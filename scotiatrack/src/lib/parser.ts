@@ -96,5 +96,6 @@ export function parseTransactions(rows: RawTransaction[]): Transaction[] {
         categoryEmoji: emoji,
       };
     })
+    .filter(t => t.amount > 0)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
