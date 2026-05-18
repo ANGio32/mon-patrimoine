@@ -1,23 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #F5F6F8;
+  --blue: #007AFF;
+  --blue-dark: #0055CC;
+  --blue-soft: #EAF3FF;
+  --green: #34C759;
+  --red: #FF3B30;
+  --red-soft: #FFF2F1;
+  --orange: #FF9500;
+  --orange-soft: #FFF8EE;
+  --bg: #F2F2F7;
   --card: #FFFFFF;
-  --border: #E8EBF0;
-  --border-focus: #2563EB;
-  --text: #0F172A;
-  --sub: #64748B;
-  --muted: #94A3B8;
-  --accent: #2563EB;
-  --accent-soft: #EFF6FF;
-  --accent-mid: #BFDBFE;
-  --ok: #16A34A;
-  --ok-soft: #F0FDF4;
-  --ok-mid: #BBF7D0;
-  --error: #DC2626;
-  --error-soft: #FEF2F2;
-  --warn: #D97706;
-  --warn-soft: #FFFBEB;
+  --label: #000000;
+  --label2: #3C3C43;
+  --label3: #8E8E93;
+  --separator: #C6C6C8;
+  --fill: #E5E5EA;
 }
 
 * {
@@ -25,21 +23,33 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 15px;
+  color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
 }
 
 #root {
   min-height: 100svh;
+  min-height: -webkit-fill-available;
 }
 
+/* Safe areas */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* Remove spinners */
 input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  opacity: 1;
-}
+input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
+/* Remove default select arrow */
+select { -webkit-appearance: none; }

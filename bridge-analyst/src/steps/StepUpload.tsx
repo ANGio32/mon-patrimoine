@@ -33,10 +33,8 @@ export function StepUpload() {
       setError('Fichier trop volumineux (max 10 MB).');
       return;
     }
-
     setError('');
     setLoading(true);
-
     try {
       const { base64, mediaType } = await fileToBase64(file);
       const result = await analyzeStructurePlan(base64, mediaType);
@@ -49,7 +47,7 @@ export function StepUpload() {
       setStep(1);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(`Erreur d'analyse : ${msg}. Essayez de saisir manuellement.`);
+      setError(`Erreur d'analyse : ${msg}`);
     } finally {
       setLoading(false);
     }
@@ -73,10 +71,15 @@ export function StepUpload() {
   };
 
   return (
-    <div className="flex flex-col gap-6 py-6">
+    <div className="flex flex-col gap-6 py-8">
+      {/* Hero */}
       <div className="text-center">
-        <h1 className="text-[26px] font-bold text-[#0F172A] mb-1">Importer un plan</h1>
-        <p className="text-[14px] text-[#64748B]">Claude Vision analyse votre plan de pont</p>
+        <div className="w-20 h-20 mx-auto mb-5 rounded-[22px] overflow-hidden"
+          style={{ boxShadow: '0 8px 24px rgba(0,122,255,0.25)' }}>
+          <img src="/logo.svg" alt="Bridge Analyst" className="w-full h-full" />
+        </div>
+        <h1 className="text-[28px] font-bold tracking-[-0.5px] text-black mb-2">Bridge Analyst</h1>
+        <p className="text-[15px] text-[#8E8E93]">Analyse préliminaire CSA S6-19</p>
       </div>
 
       {/* Drop zone */}
@@ -85,10 +88,11 @@ export function StepUpload() {
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className="relative rounded-[20px] border-2 border-dashed flex flex-col items-center justify-center gap-4 py-12 px-6 cursor-pointer transition-colors"
+        className="relative rounded-[24px] flex flex-col items-center justify-center gap-4 py-14 px-6 cursor-pointer transition-all duration-200"
         style={{
-          borderColor: dragging ? '#2563EB' : '#E8EBF0',
-          backgroundColor: dragging ? '#EFF6FF' : '#FAFBFC',
+          border: `2px dashed ${dragging ? '#007AFF' : '#C6C6C8'}`,
+          backgroundColor: dragging ? '#EAF3FF' : '#fff',
+          boxShadow: dragging ? '0 0 0 4px rgba(0,122,255,0.12)' : '0 1px 3px rgba(0,0,0,0.06)',
         }}
         aria-label="Zone de dépôt du plan"
       >
@@ -96,21 +100,37 @@ export function StepUpload() {
           ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
+          capture="environment"
           className="hidden"
           onChange={onFileChange}
         />
 
         {loading ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-10 h-10 border-[3px] border-[#BFDBFE] border-t-[#2563EB] rounded-full animate-spin" />
-            <p className="text-[14px] font-medium text-[#2563EB]">Claude Vision inspecte le plan…</p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-[3px] border-[#EAF3FF]" />
+              <div className="absolute inset-0 rounded-full border-[3px] border-t-[#007AFF] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+              <img src="/logo.svg" alt="" className="absolute inset-2 rounded-full" />
+            </div>
+            <div className="text-center">
+              <p className="text-[15px] font-semibold text-black">Claude Vision analyse…</p>
+              <p className="text-[13px] text-[#8E8E93] mt-1">Détection automatique des éléments</p>
+            </div>
           </div>
         ) : (
           <>
-            <span className="text-5xl">🏗</span>
+            {/* Upload icon */}
+            <div className="w-16 h-16 rounded-[18px] flex items-center justify-center"
+              style={{ backgroundColor: '#EAF3FF' }}>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <path d="M16 22V10M16 10l-5 5M16 10l5 5" stroke="#007AFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 24h20" stroke="#007AFF" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
             <div className="text-center">
-              <p className="text-[15px] font-semibold text-[#0F172A]">Glisser-déposer ou cliquer</p>
-              <p className="text-[13px] text-[#94A3B8] mt-1">JPEG · PNG · WebP — max 10 MB</p>
+              <p className="text-[17px] font-semibold text-black">Importer un plan</p>
+              <p className="text-[13px] text-[#8E8E93] mt-1">Photo ou fichier — JPEG · PNG · WebP</p>
+              <p className="text-[12px] text-[#C6C6C8] mt-1">max 10 MB</p>
             </div>
           </>
         )}
@@ -118,14 +138,26 @@ export function StepUpload() {
 
       {error && <ErrorBox>{error}</ErrorBox>}
 
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-[13px] text-[#94A3B8]">ou</p>
-        <GhostBtn onClick={skipToManual}>Saisir manuellement →</GhostBtn>
+      {/* Divider */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-[0.5px] bg-[#C6C6C8]" />
+        <span className="text-[13px] text-[#8E8E93]">ou</span>
+        <div className="flex-1 h-[0.5px] bg-[#C6C6C8]" />
       </div>
 
-      {/* Info */}
-      <div className="rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] p-3 text-[12px] text-[#1E40AF]">
-        <strong>Note sécurité :</strong> Le plan est envoyé à Claude via un proxy sécurisé. Aucune image n'est conservée après l'analyse.
+      <div className="flex justify-center">
+        <GhostBtn onClick={skipToManual}>Saisir manuellement</GhostBtn>
+      </div>
+
+      {/* Security note */}
+      <div className="flex items-start gap-3 px-2">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="mt-[2px] shrink-0">
+          <path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7.2C11.5 14.4 14 11.3 14 8V4L8 1z" stroke="#34C759" strokeWidth="1.2" fill="none"/>
+          <path d="M5.5 8l2 2 3-3" stroke="#34C759" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <p className="text-[12px] text-[#8E8E93] leading-relaxed">
+          Plan transmis via proxy sécurisé. Aucune image conservée après l'analyse.
+        </p>
       </div>
     </div>
   );
