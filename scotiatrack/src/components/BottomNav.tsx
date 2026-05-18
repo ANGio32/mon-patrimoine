@@ -56,7 +56,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
         background: 'rgba(242,241,237,0.92)',
         backdropFilter: 'blur(12px)',
         borderTop: '1px solid #E9E9E6',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
         zIndex: 30,
       }}
     >
