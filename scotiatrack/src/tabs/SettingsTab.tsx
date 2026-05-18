@@ -7,14 +7,18 @@ const APPS_SCRIPT_CODE = `function doGet(e) {
     const sheet = ss.getSheetByName("Feuille 1") || ss.getSheets()[0];
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return out([]);
-    const rows = data.slice(1).map(r => ({
+    const rows = data.slice(1).filter(r => {
+      if (!r[0] || String(r[0]).trim() === "") return false;
+      const amt = parseFloat(String(r[2] || "").replace(/\\s/g,"").replace(",","."));
+      return !isNaN(amt) && amt > 0;
+    }).map(r => ({
       date: String(r[0] || ""),
       description: String(r[1] || ""),
       amount: String(r[2] || ""),
       type: String(r[3] || "debit"),
       account: String(r[4] || ""),
       raw: String(r[5] || "")
-    })).filter(r => r.date && r.date !== "");
+    }));
     return out(rows);
   } catch(e) { return out({error: e.message}); }
 }
