@@ -13,6 +13,7 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
   const monthlySalary = dailySalary * 22;
   const pct = monthlySalary > 0 ? Math.min(100, (spent / monthlySalary) * 100) : 0;
   const daysUsed = dailySalary > 0 ? (spent / dailySalary).toFixed(1) : null;
+  const remaining = monthlySalary > 0 ? monthlySalary - spent : null;
 
   return (
     <div style={{
@@ -25,7 +26,7 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
           <p style={{ fontSize: 11, color: '#999', fontFamily: 'Manrope', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
             Dépensé ce mois
           </p>
-          <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 36, fontWeight: 800, margin: '6px 0 0', lineHeight: 1.1, letterSpacing: '-1px' }}>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 36, fontWeight: 800, margin: '6px 0 0', lineHeight: 1.1, letterSpacing: '-1px' }}>
             {formatCAD(spent)}
           </p>
         </div>
@@ -33,7 +34,7 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
           <p style={{ fontSize: 11, color: '#999', fontFamily: 'Manrope', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
             Reçu
           </p>
-          <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, margin: '6px 0 0', color: '#E9E9E6' }}>
+          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, margin: '6px 0 0', color: '#E9E9E6' }}>
             {formatCAD(received)}
           </p>
         </div>
@@ -51,11 +52,18 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
               style={{ height: '100%', borderRadius: 2, background: pct > 90 ? '#fff' : '#999', width: `${pct}%` }}
             />
           </div>
-          {daysUsed && (
-            <p style={{ fontSize: 11, color: '#666', fontFamily: 'Manrope', marginTop: 6 }}>
-              ≈ {daysUsed} jours de travail dépensés
-            </p>
-          )}
+          <div className="flex justify-between" style={{ marginTop: 6 }}>
+            {daysUsed && (
+              <p style={{ fontSize: 11, color: '#666', fontFamily: 'Manrope', margin: 0 }}>
+                ≈ {daysUsed} j. de travail
+              </p>
+            )}
+            {remaining !== null && (
+              <p style={{ fontSize: 11, fontFamily: 'Manrope', margin: 0, fontWeight: 600, color: remaining < 0 ? '#fff' : '#666' }}>
+                {remaining >= 0 ? `${formatCAD(remaining)} restants` : `Dépassé de ${formatCAD(-remaining)}`}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

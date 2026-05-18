@@ -23,10 +23,25 @@ function useDailySalary() {
   return [salary, save] as const;
 }
 
+function useCategoryBudgets() {
+  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
+    try {
+      const v = localStorage.getItem('scotiatrack-budgets');
+      return v ? JSON.parse(v) : {};
+    } catch { return {}; }
+  });
+  function save(b: Record<string, number>) {
+    localStorage.setItem('scotiatrack-budgets', JSON.stringify(b));
+    setBudgets(b);
+  }
+  return [budgets, save] as const;
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const { transactions, loading, error, lastSync, scriptUrl, saveUrl, refresh } = useTransactions();
   const [dailySalary, saveSalary] = useDailySalary();
+  const [categoryBudgets, saveBudgets] = useCategoryBudgets();
 
   if (!scriptUrl) {
     return (
@@ -53,7 +68,7 @@ export default function App() {
           <HomeTab transactions={transactions} dailySalary={dailySalary} onShowAll={() => setTab('transactions')} />
         )}
         {tab === 'analytics' && (
-          <AnalyticsTab transactions={transactions} dailySalary={dailySalary} />
+          <AnalyticsTab transactions={transactions} dailySalary={dailySalary} categoryBudgets={categoryBudgets} />
         )}
         {tab === 'transactions' && (
           <TransactionsTab transactions={transactions} dailySalary={dailySalary} />
@@ -67,6 +82,8 @@ export default function App() {
             onRefresh={refresh}
             lastSync={lastSync}
             connected={transactions.length > 0 && !error}
+            categoryBudgets={categoryBudgets}
+            onSaveBudgets={saveBudgets}
           />
         )}
       </div>

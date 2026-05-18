@@ -88,7 +88,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
       justifyContent: 'center', padding: '0 24px',
     }}>
       <div style={{ marginBottom: 40 }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, color: '#0D0D0D', margin: '0 0 6px' }}>
+        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#0D0D0D', margin: '0 0 6px' }}>
           ScotiaTrack
         </h1>
         <p style={{ fontSize: 14, color: '#999', fontFamily: 'Manrope', margin: 0 }}>
@@ -111,7 +111,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
         <p style={{ fontSize: 11, color: '#999', fontFamily: 'Manrope', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
           Étape {step + 1} / {steps.length}
         </p>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: '#0D0D0D', margin: '0 0 10px' }}>
+        <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 700, color: '#0D0D0D', margin: '0 0 10px' }}>
           {steps[step].title}
         </h2>
         <p style={{ fontSize: 14, color: '#666', fontFamily: 'Manrope', margin: '0 0 20px', lineHeight: 1.6 }}>

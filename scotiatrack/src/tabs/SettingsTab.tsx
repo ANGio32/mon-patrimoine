@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { formatCAD } from '../lib/format';
 
+const CATEGORIES = [
+  { key: 'Restauration', emoji: '🍽' },
+  { key: 'Transport', emoji: '🚗' },
+  { key: 'Épicerie', emoji: '🛒' },
+  { key: 'Shopping', emoji: '🛍' },
+  { key: 'Abonnements', emoji: '📺' },
+  { key: 'Utilités', emoji: '⚡' },
+  { key: 'Transferts', emoji: '💸' },
+  { key: 'Retrait', emoji: '🏧' },
+  { key: 'Pharmacie', emoji: '💊' },
+  { key: 'Autre', emoji: '💳' },
+];
+
 const APPS_SCRIPT_CODE = `function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -41,15 +54,32 @@ interface SettingsTabProps {
   onRefresh: () => void;
   lastSync: Date | null;
   connected: boolean;
+  categoryBudgets: Record<string, number>;
+  onSaveBudgets: (b: Record<string, number>) => void;
 }
 
-export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, onRefresh, lastSync, connected }: SettingsTabProps) {
+export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, onRefresh, lastSync, connected, categoryBudgets, onSaveBudgets }: SettingsTabProps) {
   const [editingSalary, setEditingSalary] = useState(false);
   const [salaryInput, setSalaryInput] = useState(String(dailySalary || ''));
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState(scriptUrl);
   const [copied, setCopied] = useState(false);
   const [savedInsight, setSavedInsight] = useState(false);
+  const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(CATEGORIES.map(c => [c.key, categoryBudgets[c.key] ? String(categoryBudgets[c.key]) : '']))
+  );
+  const [budgetSaved, setBudgetSaved] = useState(false);
+
+  function saveBudgets() {
+    const result: Record<string, number> = {};
+    for (const cat of CATEGORIES) {
+      const v = parseFloat(budgetInputs[cat.key]);
+      if (!isNaN(v) && v > 0) result[cat.key] = v;
+    }
+    onSaveBudgets(result);
+    setBudgetSaved(true);
+    setTimeout(() => setBudgetSaved(false), 2000);
+  }
 
   function saveSalary() {
     const v = parseFloat(salaryInput);
@@ -101,7 +131,7 @@ export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, o
         ) : (
           <div className="flex justify-between items-center">
             <div>
-              <p style={{ fontSize: 22, fontFamily: 'Syne, sans-serif', fontWeight: 800, color: '#0D0D0D', margin: 0 }}>
+              <p style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: '#0D0D0D', margin: 0 }}>
                 {dailySalary > 0 ? formatCAD(dailySalary) : '—'}
               </p>
               <p style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', margin: '4px 0 0' }}>par jour de travail</p>
@@ -170,6 +200,39 @@ export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, o
         )}
       </div>
 
+      {/* Budget par catégorie */}
+      <SectionTitle>Budgets mensuels</SectionTitle>
+      <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', margin: '0 0 16px' }}>
+          Plafond mensuel par catégorie. La barre vire au rouge si dépassé.
+        </p>
+        {CATEGORIES.map(cat => (
+          <div key={cat.key} className="flex justify-between items-center" style={{ marginBottom: 12 }}>
+            <div className="flex items-center gap-2">
+              <span className="emoji-grayscale" style={{ fontSize: 15 }}>{cat.emoji}</span>
+              <span style={{ fontSize: 13, fontFamily: 'Manrope', fontWeight: 600, color: '#0D0D0D' }}>{cat.key}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="number"
+                value={budgetInputs[cat.key]}
+                onChange={e => setBudgetInputs(prev => ({ ...prev, [cat.key]: e.target.value }))}
+                placeholder="—"
+                style={{
+                  width: 72, padding: '6px 8px', borderRadius: 8, border: '1.5px solid #ECECEA',
+                  fontSize: 13, fontFamily: 'Manrope', fontWeight: 600, color: '#0D0D0D',
+                  outline: 'none', textAlign: 'right', background: '#F9F9F7',
+                }}
+              />
+              <span style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope' }}>$</span>
+            </div>
+          </div>
+        ))}
+        <button onClick={saveBudgets} style={{ ...actionBtn('#0D0D0D', '#fff'), marginTop: 6 }}>
+          {budgetSaved ? '✓ Sauvé !' : 'Sauver les budgets'}
+        </button>
+      </div>
+
       {/* Apps Script code */}
       <SectionTitle>Code Apps Script</SectionTitle>
       <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>
@@ -194,7 +257,7 @@ export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, o
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
-      fontFamily: 'Syne, sans-serif', fontSize: 13, fontWeight: 700,
+      fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700,
       color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em',
       margin: '20px 0 8px',
     }}>

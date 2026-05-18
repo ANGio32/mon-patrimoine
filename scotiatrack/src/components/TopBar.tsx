@@ -10,7 +10,7 @@ export function TopBar({ loading, onRefresh }: TopBarProps) {
     <div style={{ background: '#F2F1ED' }} className="sticky top-0 z-20 px-5 pt-5 pb-3">
       <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 700, color: '#0D0D0D', margin: 0, lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 700, color: '#0D0D0D', margin: 0, lineHeight: 1.2 }}>
             Bonjour, Ange
           </h1>
           <p style={{ fontSize: 12, color: '#999999', marginTop: 2, fontFamily: 'Manrope, sans-serif', textTransform: 'capitalize' }}>
