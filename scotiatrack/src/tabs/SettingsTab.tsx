@@ -47,8 +47,10 @@ function out(data) {
 }`;
 
 interface SettingsTabProps {
-  dailySalary: number;
-  onSaveSalary: (v: number) => void;
+  payAmount: number;
+  nextPayDate: string;
+  onSavePayAmount: (v: number) => void;
+  onSaveNextPayDate: (d: string) => void;
   scriptUrl: string;
   onSaveUrl: (url: string) => void;
   onRefresh: () => void;
@@ -58,17 +60,29 @@ interface SettingsTabProps {
   onSaveBudgets: (b: Record<string, number>) => void;
 }
 
-export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, onRefresh, lastSync, connected, categoryBudgets, onSaveBudgets }: SettingsTabProps) {
-  const [editingSalary, setEditingSalary] = useState(false);
-  const [salaryInput, setSalaryInput] = useState(String(dailySalary || ''));
+export function SettingsTab({ payAmount, nextPayDate, onSavePayAmount, onSaveNextPayDate, scriptUrl, onSaveUrl, onRefresh, lastSync, connected, categoryBudgets, onSaveBudgets }: SettingsTabProps) {
+  const [editingPay, setEditingPay] = useState(false);
+  const [payAmountInput, setPayAmountInput] = useState(String(payAmount || ''));
+  const [nextPayDateInput, setNextPayDateInput] = useState(nextPayDate || '');
   const [editingUrl, setEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState(scriptUrl);
   const [copied, setCopied] = useState(false);
-  const [savedInsight, setSavedInsight] = useState(false);
+  const [paySaved, setPaySaved] = useState(false);
   const [budgetInputs, setBudgetInputs] = useState<Record<string, string>>(() =>
     Object.fromEntries(CATEGORIES.map(c => [c.key, categoryBudgets[c.key] ? String(categoryBudgets[c.key]) : '']))
   );
   const [budgetSaved, setBudgetSaved] = useState(false);
+
+  function savePay() {
+    const v = parseFloat(payAmountInput);
+    if (!isNaN(v) && v > 0 && nextPayDateInput) {
+      onSavePayAmount(v);
+      onSaveNextPayDate(nextPayDateInput);
+      setEditingPay(false);
+      setPaySaved(true);
+      setTimeout(() => setPaySaved(false), 3000);
+    }
+  }
 
   function saveBudgets() {
     const result: Record<string, number> = {};
@@ -79,16 +93,6 @@ export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, o
     onSaveBudgets(result);
     setBudgetSaved(true);
     setTimeout(() => setBudgetSaved(false), 2000);
-  }
-
-  function saveSalary() {
-    const v = parseFloat(salaryInput);
-    if (!isNaN(v) && v > 0) {
-      onSaveSalary(v);
-      setEditingSalary(false);
-      setSavedInsight(true);
-      setTimeout(() => setSavedInsight(false), 4000);
-    }
   }
 
   function saveUrl() {
@@ -105,48 +109,57 @@ export function SettingsTab({ dailySalary, onSaveSalary, scriptUrl, onSaveUrl, o
 
   return (
     <div style={{ padding: '0 16px 90px' }}>
-      {/* Salary */}
-      <SectionTitle>Salaire journalier</SectionTitle>
+      {/* Pay settings */}
+      <SectionTitle>Paye bi-hebdomadaire</SectionTitle>
       <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>
-        {editingSalary ? (
+        {editingPay ? (
           <div>
             <label style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', display: 'block', marginBottom: 6 }}>
-              Salaire net / jour (CAD)
+              Montant net par paye (CAD)
             </label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="number"
-                value={salaryInput}
-                onChange={e => setSalaryInput(e.target.value)}
-                autoFocus
-                style={{
-                  flex: 1, padding: '10px 14px', borderRadius: 12, border: '1.5px solid #ECECEA',
-                  fontSize: 16, fontFamily: 'Manrope', fontWeight: 700, color: '#0D0D0D', outline: 'none',
-                }}
-              />
-              <button onClick={saveSalary} style={actionBtn('#0D0D0D', '#fff')}>Sauver</button>
-              <button onClick={() => setEditingSalary(false)} style={actionBtn('#ECECEA', '#0D0D0D')}>Annuler</button>
+            <input
+              type="number"
+              value={payAmountInput}
+              onChange={e => setPayAmountInput(e.target.value)}
+              autoFocus
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1.5px solid #ECECEA', fontSize: 16, fontFamily: 'Manrope', fontWeight: 700, color: '#0D0D0D', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }}
+            />
+            <label style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', display: 'block', marginBottom: 6 }}>
+              Date de ta prochaine paye
+            </label>
+            <input
+              type="date"
+              value={nextPayDateInput}
+              onChange={e => setNextPayDateInput(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: '1.5px solid #ECECEA', fontSize: 14, fontFamily: 'Manrope', color: '#0D0D0D', outline: 'none', boxSizing: 'border-box', marginBottom: 14 }}
+            />
+            <div className="flex gap-2">
+              <button onClick={savePay} style={actionBtn('#0D0D0D', '#fff')}>Sauver</button>
+              <button onClick={() => setEditingPay(false)} style={actionBtn('#ECECEA', '#0D0D0D')}>Annuler</button>
             </div>
           </div>
         ) : (
-          <div className="flex justify-between items-center">
-            <div>
-              <p style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: '#0D0D0D', margin: 0 }}>
-                {dailySalary > 0 ? formatCAD(dailySalary) : '—'}
-              </p>
-              <p style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', margin: '4px 0 0' }}>par jour de travail</p>
+          <div>
+            <div className="flex justify-between items-center">
+              <div>
+                <p style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: '#0D0D0D', margin: 0 }}>
+                  {payAmount > 0 ? formatCAD(payAmount) : '—'}
+                </p>
+                <p style={{ fontSize: 12, color: '#999', fontFamily: 'Manrope', margin: '4px 0 0' }}>
+                  {nextPayDate ? `Prochaine: ${new Date(nextPayDate + 'T12:00:00').toLocaleDateString('fr-CA', { day: 'numeric', month: 'long' })}` : 'toutes les 2 semaines'}
+                </p>
+              </div>
+              <button onClick={() => { setPayAmountInput(String(payAmount || '')); setNextPayDateInput(nextPayDate || ''); setEditingPay(true); }} style={{ ...actionBtn('#ECECEA', '#0D0D0D'), fontSize: 12 }}>
+                Modifier →
+              </button>
             </div>
-            <button onClick={() => { setSalaryInput(String(dailySalary || '')); setEditingSalary(true); }} style={{ ...actionBtn('#ECECEA', '#0D0D0D'), fontSize: 12 }}>
-              Modifier →
-            </button>
-          </div>
-        )}
-
-        {savedInsight && dailySalary > 0 && (
-          <div style={{ marginTop: 14, background: '#F2F1ED', borderRadius: 12, padding: '12px 14px' }}>
-            <p style={{ fontSize: 13, fontFamily: 'Manrope', color: '#0D0D0D', margin: 0 }}>
-              💡 Chaque dépense sera maintenant exprimée en jours de travail.
-            </p>
+            {paySaved && (
+              <div style={{ marginTop: 14, background: '#F2F1ED', borderRadius: 12, padding: '12px 14px' }}>
+                <p style={{ fontSize: 13, fontFamily: 'Manrope', color: '#0D0D0D', margin: 0 }}>
+                  Paye enregistrée. L'app anticipe maintenant tes revenus automatiquement.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

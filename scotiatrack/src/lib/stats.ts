@@ -83,6 +83,54 @@ export function getTopMerchants(txs: Transaction[], limit = 5): { name: string; 
     .slice(0, limit);
 }
 
+export function getPayDatesInMonth(refDate: string, month: string): string[] {
+  if (!refDate) return [];
+  const [ry, rm, rd] = refDate.split('-').map(Number);
+  const [my, mm] = month.split('-').map(Number);
+  const refMs = new Date(ry, rm - 1, rd).getTime();
+  const daysInMonth = new Date(my, mm, 0).getDate();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const result: string[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateMs = new Date(my, mm - 1, d).getTime();
+    const diffDays = Math.round((dateMs - refMs) / DAY_MS);
+    if (diffDays % 14 === 0) {
+      result.push(`${my}-${String(mm).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+  }
+  return result;
+}
+
+export function getMonthlyIncome(refDate: string, payAmount: number, month: string): number {
+  return getPayDatesInMonth(refDate, month).length * payAmount;
+}
+
+export function getNextPayDate(refDate: string): string {
+  if (!refDate) return '';
+  const [ry, rm, rd] = refDate.split('-').map(Number);
+  const refMs = new Date(ry, rm - 1, rd).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((todayMs - refMs) / DAY_MS);
+  const cyclesPast = Math.floor(diffDays / 14);
+  const nextCycle = diffDays % 14 === 0 ? cyclesPast : cyclesPast + 1;
+  const nextPayMs = refMs + nextCycle * 14 * DAY_MS;
+  const d = new Date(nextPayMs);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function getDaysUntilNextPay(refDate: string): number {
+  const next = getNextPayDate(refDate);
+  if (!next) return -1;
+  const [ny, nm, nd] = next.split('-').map(Number);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(ny, nm - 1, nd).getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+
 export function getWorkingDaysInMonth(month: string): number {
   const [year, m] = month.split('-').map(Number);
   const daysInMonth = new Date(year, m, 0).getDate();

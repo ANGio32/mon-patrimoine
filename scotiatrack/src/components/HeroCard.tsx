@@ -1,20 +1,25 @@
 import { formatCAD } from '../lib/format';
-import { getCurrentMonth, getWorkingDaysInMonth } from '../lib/stats';
+import { getCurrentMonth, getMonthlyIncome, getPayDatesInMonth, getDaysUntilNextPay } from '../lib/stats';
 
 interface HeroCardProps {
   spent: number;
   received: number;
-  dailySalary: number;
+  payAmount: number;
+  nextPayDate: string;
   txCount: number;
   dailyAvg: number;
   lastTxAmount: number;
 }
 
-export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, lastTxAmount }: HeroCardProps) {
-  const monthlySalary = dailySalary * getWorkingDaysInMonth(getCurrentMonth());
+export function HeroCard({ spent, received, payAmount, nextPayDate, txCount, dailyAvg, lastTxAmount }: HeroCardProps) {
+  const month = getCurrentMonth();
+  const dailySalary = payAmount > 0 ? payAmount / 10 : 0;
+  const monthlySalary = payAmount > 0 && nextPayDate ? getMonthlyIncome(nextPayDate, payAmount, month) : 0;
+  const payDates = nextPayDate ? getPayDatesInMonth(nextPayDate, month) : [];
   const pct = monthlySalary > 0 ? Math.min(100, (spent / monthlySalary) * 100) : 0;
   const daysUsed = dailySalary > 0 ? (spent / dailySalary).toFixed(1) : null;
   const remaining = monthlySalary > 0 ? monthlySalary - spent : null;
+  const daysUntilPay = nextPayDate ? getDaysUntilNextPay(nextPayDate) : -1;
 
   return (
     <div style={{
@@ -44,20 +49,17 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
       {monthlySalary > 0 && (
         <div style={{ marginTop: 20 }}>
           <div className="flex justify-between" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: '#999', fontFamily: 'Manrope' }}>Budget mensuel</span>
+            <span style={{ fontSize: 11, color: '#999', fontFamily: 'Manrope' }}>
+              Budget mensuel ({payDates.length} paye{payDates.length > 1 ? 's' : ''})
+            </span>
             <span style={{ fontSize: 11, color: '#fff', fontFamily: 'Manrope', fontWeight: 600 }}>{pct.toFixed(0)}%</span>
           </div>
           <div style={{ height: 4, background: '#333', borderRadius: 2 }}>
-            <div
-              className="progress-bar-fill"
-              style={{ height: '100%', borderRadius: 2, background: pct > 90 ? '#fff' : '#999', width: `${pct}%` }}
-            />
+            <div className="progress-bar-fill" style={{ height: '100%', borderRadius: 2, background: pct > 90 ? '#fff' : '#999', width: `${pct}%` }} />
           </div>
           <div className="flex justify-between" style={{ marginTop: 6 }}>
             {daysUsed && (
-              <p style={{ fontSize: 11, color: '#666', fontFamily: 'Manrope', margin: 0 }}>
-                ≈ {daysUsed} j. de travail
-              </p>
+              <p style={{ fontSize: 11, color: '#666', fontFamily: 'Manrope', margin: 0 }}>≈ {daysUsed} j. de travail</p>
             )}
             {remaining !== null && (
               <p style={{ fontSize: 11, fontFamily: 'Manrope', margin: 0, fontWeight: 600, color: remaining < 0 ? '#fff' : '#666' }}>
@@ -65,6 +67,11 @@ export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, last
               </p>
             )}
           </div>
+          {daysUntilPay >= 0 && (
+            <p style={{ fontSize: 11, color: '#555', fontFamily: 'Manrope', marginTop: 6 }}>
+              {daysUntilPay === 0 ? `Paye aujourd'hui — ${formatCAD(payAmount)}` : `Prochaine paye dans ${daysUntilPay} jour${daysUntilPay > 1 ? 's' : ''} — ${formatCAD(payAmount)}`}
+            </p>
+          )}
         </div>
       )}
 

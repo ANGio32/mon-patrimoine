@@ -3,20 +3,23 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import type { Transaction } from '../lib/parser';
 import { DonutRing } from '../components/DonutRing';
 import { formatCAD } from '../lib/format';
-import { getCurrentMonth, getMonthTransactions, getTotalDebits, getLast6MonthsData, getLast7DaysData, getCategoryBreakdown, getTopMerchants, getWorkingDaysInMonth } from '../lib/stats';
+import { getCurrentMonth, getMonthTransactions, getTotalDebits, getLast6MonthsData, getLast7DaysData, getCategoryBreakdown, getTopMerchants, getMonthlyIncome, getPayDatesInMonth } from '../lib/stats';
 
 interface AnalyticsTabProps {
   transactions: Transaction[];
-  dailySalary: number;
+  payAmount: number;
+  nextPayDate: string;
   categoryBudgets: Record<string, number>;
 }
 
-export function AnalyticsTab({ transactions, dailySalary, categoryBudgets }: AnalyticsTabProps) {
+export function AnalyticsTab({ transactions, payAmount, nextPayDate, categoryBudgets }: AnalyticsTabProps) {
   const [chartView, setChartView] = useState<'month' | 'week'>('month');
   const month = getCurrentMonth();
+  const dailySalary = payAmount > 0 ? payAmount / 10 : 0;
   const monthTxs = getMonthTransactions(transactions, month);
   const spent = getTotalDebits(monthTxs);
-  const monthlySalary = dailySalary * getWorkingDaysInMonth(month);
+  const monthlySalary = payAmount > 0 && nextPayDate ? getMonthlyIncome(nextPayDate, payAmount, month) : 0;
+  const payDates = nextPayDate ? getPayDatesInMonth(nextPayDate, month) : [];
   const pct = monthlySalary > 0 ? Math.min(100, (spent / monthlySalary) * 100) : 0;
   const daysUsed = dailySalary > 0 ? spent / dailySalary : 0;
   const remaining = monthlySalary > 0 ? monthlySalary - spent : null;
@@ -30,7 +33,7 @@ export function AnalyticsTab({ transactions, dailySalary, categoryBudgets }: Ana
       {/* Budget ring */}
       <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>
         <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: '#0D0D0D', margin: '0 0 16px' }}>
-          Budget du mois
+          Budget du mois {payDates.length > 0 && <span style={{ fontSize: 12, fontWeight: 400, color: '#999' }}>({payDates.length} paye{payDates.length > 1 ? 's' : ''})</span>}
         </p>
         <div className="flex items-center gap-5">
           <div style={{ position: 'relative', flexShrink: 0 }}>

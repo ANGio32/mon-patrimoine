@@ -6,10 +6,11 @@ type Filter = 'all' | 'debit' | 'credit';
 
 interface TransactionsTabProps {
   transactions: Transaction[];
-  dailySalary: number;
+  payAmount: number;
 }
 
-export function TransactionsTab({ transactions, dailySalary }: TransactionsTabProps) {
+export function TransactionsTab({ transactions, payAmount }: TransactionsTabProps) {
+  const dailySalary = payAmount > 0 ? payAmount / 10 : 0;
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 

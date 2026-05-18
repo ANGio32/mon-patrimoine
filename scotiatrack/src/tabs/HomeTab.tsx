@@ -6,11 +6,13 @@ import { getCurrentMonth, getPreviousMonth, getMonthTransactions, getTotalDebits
 
 interface HomeTabProps {
   transactions: Transaction[];
-  dailySalary: number;
+  payAmount: number;
+  nextPayDate: string;
   onShowAll: () => void;
 }
 
-export function HomeTab({ transactions, dailySalary, onShowAll }: HomeTabProps) {
+export function HomeTab({ transactions, payAmount, nextPayDate, onShowAll }: HomeTabProps) {
+  const dailySalary = payAmount > 0 ? payAmount / 10 : 0;
   const month = getCurrentMonth();
   const prevMonth = getPreviousMonth();
   const monthTxs = getMonthTransactions(transactions, month);
@@ -29,7 +31,8 @@ export function HomeTab({ transactions, dailySalary, onShowAll }: HomeTabProps) 
       <HeroCard
         spent={spent}
         received={received}
-        dailySalary={dailySalary}
+        payAmount={payAmount}
+        nextPayDate={nextPayDate}
         txCount={monthTxs.length}
         dailyAvg={dailyAvg}
         lastTxAmount={lastTx?.amount ?? 0}

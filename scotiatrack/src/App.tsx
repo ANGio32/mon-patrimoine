@@ -11,16 +11,19 @@ import './index.css';
 
 type Tab = 'home' | 'analytics' | 'transactions' | 'settings';
 
-function useDailySalary() {
-  const [salary, setSalary] = useState<number>(() => {
-    const v = localStorage.getItem('dailySalary');
-    return v ? parseFloat(v) : 0;
+function usePaySettings() {
+  const [payAmount, setPayAmount] = useState<number>(() => {
+    const v = localStorage.getItem('payAmount');
+    if (v) return parseFloat(v);
+    const old = localStorage.getItem('dailySalary');
+    return old ? parseFloat(old) * 10 : 0;
   });
-  function save(v: number) {
-    localStorage.setItem('dailySalary', String(v));
-    setSalary(v);
-  }
-  return [salary, save] as const;
+  const [nextPayDate, setNextPayDate] = useState<string>(() => {
+    return localStorage.getItem('nextPayDate') || '';
+  });
+  function savePayAmount(v: number) { localStorage.setItem('payAmount', String(v)); setPayAmount(v); }
+  function saveNextPayDate(d: string) { localStorage.setItem('nextPayDate', d); setNextPayDate(d); }
+  return { payAmount, nextPayDate, savePayAmount, saveNextPayDate };
 }
 
 function useCategoryBudgets() {
@@ -40,7 +43,7 @@ function useCategoryBudgets() {
 export default function App() {
   const [tab, setTab] = useState<Tab>('home');
   const { transactions, loading, error, lastSync, scriptUrl, saveUrl, refresh } = useTransactions();
-  const [dailySalary, saveSalary] = useDailySalary();
+  const { payAmount, nextPayDate, savePayAmount, saveNextPayDate } = usePaySettings();
   const [categoryBudgets, saveBudgets] = useCategoryBudgets();
 
   if (!scriptUrl) {
@@ -65,18 +68,20 @@ export default function App() {
 
       <div style={{ overflowY: 'auto', height: 'calc(100svh - 70px)', paddingTop: 4 }}>
         {tab === 'home' && (
-          <HomeTab transactions={transactions} dailySalary={dailySalary} onShowAll={() => setTab('transactions')} />
+          <HomeTab transactions={transactions} payAmount={payAmount} nextPayDate={nextPayDate} onShowAll={() => setTab('transactions')} />
         )}
         {tab === 'analytics' && (
-          <AnalyticsTab transactions={transactions} dailySalary={dailySalary} categoryBudgets={categoryBudgets} />
+          <AnalyticsTab transactions={transactions} payAmount={payAmount} nextPayDate={nextPayDate} categoryBudgets={categoryBudgets} />
         )}
         {tab === 'transactions' && (
-          <TransactionsTab transactions={transactions} dailySalary={dailySalary} />
+          <TransactionsTab transactions={transactions} payAmount={payAmount} />
         )}
         {tab === 'settings' && (
           <SettingsTab
-            dailySalary={dailySalary}
-            onSaveSalary={saveSalary}
+            payAmount={payAmount}
+            nextPayDate={nextPayDate}
+            onSavePayAmount={savePayAmount}
+            onSaveNextPayDate={saveNextPayDate}
             scriptUrl={scriptUrl}
             onSaveUrl={saveUrl}
             onRefresh={refresh}
