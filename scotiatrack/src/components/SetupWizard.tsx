@@ -85,7 +85,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
   return (
     <div style={{
       minHeight: '100svh', display: 'flex', flexDirection: 'column',
-      justifyContent: 'center', padding: '0 24px',
+      justifyContent: 'center', padding: 'env(safe-area-inset-top, 0px) 24px env(safe-area-inset-bottom, 0px)',
     }}>
       <div style={{ marginBottom: 40 }}>
         <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#0D0D0D', margin: '0 0 6px' }}>

@@ -7,7 +7,7 @@ export function TopBar({ loading, onRefresh }: TopBarProps) {
   const today = new Date().toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div style={{ background: '#F2F1ED' }} className="sticky top-0 z-20 px-5 pt-5 pb-3">
+    <div style={{ background: '#F2F1ED', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)', top: 0 }} className="sticky z-20 px-5 pb-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 20, fontWeight: 700, color: '#0D0D0D', margin: 0, lineHeight: 1.2 }}>
