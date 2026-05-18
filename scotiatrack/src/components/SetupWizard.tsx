@@ -89,7 +89,7 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     }}>
       <div style={{ marginBottom: 40 }}>
         <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 28, fontWeight: 800, color: '#0D0D0D', margin: '0 0 6px' }}>
-          ScotiaTrack
+          Sou
         </h1>
         <p style={{ fontSize: 14, color: '#999', fontFamily: 'Manrope', margin: 0 }}>
           Configuration initiale
