@@ -7,18 +7,24 @@ const APPS_SCRIPT_CODE = `function doGet(e) {
     const sheet = ss.getSheetByName("Feuille 1") || ss.getSheets()[0];
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return out([]);
-    const rows = data.slice(1).filter(r => {
-      if (!r[0] || String(r[0]).trim() === "") return false;
-      const amt = parseFloat(String(r[2] || "").replace(/\\s/g,"").replace(",","."));
-      return !isNaN(amt) && amt > 0;
-    }).map(r => ({
-      date: String(r[0] || ""),
-      description: String(r[1] || ""),
-      amount: String(r[2] || ""),
-      type: String(r[3] || "debit"),
-      account: String(r[4] || ""),
-      raw: String(r[5] || "")
-    }));
+    const rows = data.slice(1).map(r => {
+      const raw = String(r[5] || "");
+      const amtMatch = raw.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      const amount = amtMatch ? amtMatch[1].replace(/\\s/g, "").replace(",", ".") : String(r[2] || "");
+      const merchMatch = raw.match(/auprès de (.+?) a été/i);
+      const description = merchMatch ? merchMatch[1].trim() : String(r[1] || "");
+      return {
+        date: String(r[0] || ""),
+        description: description,
+        amount: amount,
+        type: String(r[3] || "debit"),
+        account: String(r[4] || ""),
+        raw: raw
+      };
+    }).filter(r => {
+      if (!r.date || r.date.trim() === "") return false;
+      return parseFloat(r.amount) > 0;
+    });
     return out(rows);
   } catch(e) { return out({error: e.message}); }
 }
