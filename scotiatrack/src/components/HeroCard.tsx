@@ -1,4 +1,5 @@
 import { formatCAD } from '../lib/format';
+import { getCurrentMonth, getWorkingDaysInMonth } from '../lib/stats';
 
 interface HeroCardProps {
   spent: number;
@@ -10,7 +11,7 @@ interface HeroCardProps {
 }
 
 export function HeroCard({ spent, received, dailySalary, txCount, dailyAvg, lastTxAmount }: HeroCardProps) {
-  const monthlySalary = dailySalary * 22;
+  const monthlySalary = dailySalary * getWorkingDaysInMonth(getCurrentMonth());
   const pct = monthlySalary > 0 ? Math.min(100, (spent / monthlySalary) * 100) : 0;
   const daysUsed = dailySalary > 0 ? (spent / dailySalary).toFixed(1) : null;
   const remaining = monthlySalary > 0 ? monthlySalary - spent : null;

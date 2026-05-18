@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import type { Transaction } from '../lib/parser';
 import { DonutRing } from '../components/DonutRing';
 import { formatCAD } from '../lib/format';
-import { getCurrentMonth, getMonthTransactions, getTotalDebits, getLast6MonthsData, getLast7DaysData, getCategoryBreakdown, getTopMerchants } from '../lib/stats';
+import { getCurrentMonth, getMonthTransactions, getTotalDebits, getLast6MonthsData, getLast7DaysData, getCategoryBreakdown, getTopMerchants, getWorkingDaysInMonth } from '../lib/stats';
 
 interface AnalyticsTabProps {
   transactions: Transaction[];
@@ -16,7 +16,7 @@ export function AnalyticsTab({ transactions, dailySalary, categoryBudgets }: Ana
   const month = getCurrentMonth();
   const monthTxs = getMonthTransactions(transactions, month);
   const spent = getTotalDebits(monthTxs);
-  const monthlySalary = dailySalary * 22;
+  const monthlySalary = dailySalary * getWorkingDaysInMonth(month);
   const pct = monthlySalary > 0 ? Math.min(100, (spent / monthlySalary) * 100) : 0;
   const daysUsed = dailySalary > 0 ? spent / dailySalary : 0;
   const remaining = monthlySalary > 0 ? monthlySalary - spent : null;
