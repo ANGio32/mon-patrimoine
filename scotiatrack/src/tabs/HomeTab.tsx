@@ -27,7 +27,7 @@ export function HomeTab({ transactions, payAmount, nextPayDate, onShowAll }: Hom
   const prevMonthLabel = new Date(prevMonth + '-02').toLocaleDateString('fr-CA', { month: 'long' });
 
   return (
-    <div style={{ paddingBottom: 90 }}>
+    <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)' }}>
       <HeroCard
         spent={spent}
         received={received}

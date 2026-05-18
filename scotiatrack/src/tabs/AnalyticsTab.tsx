@@ -29,7 +29,7 @@ export function AnalyticsTab({ transactions, payAmount, nextPayDate, categoryBud
   const merchants = getTopMerchants(monthTxs);
 
   return (
-    <div style={{ paddingBottom: 90, padding: '0 16px 90px' }}>
+    <div style={{ padding: '0 16px calc(env(safe-area-inset-bottom, 0px) + 90px)' }}>
       {/* Budget ring */}
       <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>
         <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: '#0D0D0D', margin: '0 0 16px' }}>

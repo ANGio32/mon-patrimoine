@@ -108,7 +108,7 @@ export function SettingsTab({ payAmount, nextPayDate, onSavePayAmount, onSaveNex
   }
 
   return (
-    <div style={{ padding: '0 16px 90px' }}>
+    <div style={{ padding: '0 16px calc(env(safe-area-inset-bottom, 0px) + 90px)' }}>
       {/* Pay settings */}
       <SectionTitle>Paye bi-hebdomadaire</SectionTitle>
       <div style={{ background: '#fff', borderRadius: 18, padding: 20, marginBottom: 16 }}>

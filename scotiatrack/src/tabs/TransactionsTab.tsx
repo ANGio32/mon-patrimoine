@@ -37,7 +37,7 @@ export function TransactionsTab({ transactions, payAmount }: TransactionsTabProp
   });
 
   return (
-    <div style={{ paddingBottom: 90 }}>
+    <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)' }}>
       <div style={{ padding: '0 16px 12px' }}>
         {/* Search */}
         <div style={{
