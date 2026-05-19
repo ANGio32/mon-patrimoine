@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GeoData, LoadData, AnalysisResult, AIAnalysis, SessionData, SLSProps, HistoryEntry } from '../types';
+import type { GeoData, LoadData, AnalysisResult, AIAnalysis, SessionData, SLSProps, HistoryEntry, ConditionResult } from '../types';
 
 const STORAGE_KEY = 'bridge-analyst-session';
 const HISTORY_KEY = 'bridge-analyst-history-v1';
@@ -58,6 +58,7 @@ interface AppState {
   loads: LoadData;
   analysis: AnalysisResult | null;
   aiAnalysis: AIAnalysis | null;
+  conditionResult: ConditionResult | null;
   activePanel: string | null;
   slsProps: SLSProps;
   history: HistoryEntry[];
@@ -67,6 +68,7 @@ interface AppState {
   setLoads: (l: LoadData) => void;
   setAnalysis: (a: AnalysisResult) => void;
   setAIAnalysis: (ai: AIAnalysis) => void;
+  setConditionResult: (r: ConditionResult | null) => void;
   setActivePanel: (p: string | null) => void;
   setSLSProps: (p: SLSProps) => void;
   setShowHistory: (b: boolean) => void;
@@ -102,6 +104,7 @@ export const useStore = create<AppState>((set, get) => ({
   loads: DEFAULT_LOADS,
   analysis: null,
   aiAnalysis: null,
+  conditionResult: null,
   activePanel: null,
   slsProps: DEFAULT_SLS_PROPS,
   history: loadHistoryFromStorage(),
@@ -112,6 +115,7 @@ export const useStore = create<AppState>((set, get) => ({
   setLoads: (l) => set({ loads: l }),
   setAnalysis: (a) => set({ analysis: a }),
   setAIAnalysis: (ai) => set({ aiAnalysis: ai }),
+  setConditionResult: (r) => set({ conditionResult: r }),
   setActivePanel: (p) => set({ activePanel: p }),
   setSLSProps: (p) => set({ slsProps: p }),
   setShowHistory: (b) => set({ showHistory: b }),
@@ -174,6 +178,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   reset: () => {
     localStorage.removeItem(STORAGE_KEY);
-    set({ step: 0, geo: null, loads: DEFAULT_LOADS, analysis: null, aiAnalysis: null, activePanel: null, slsProps: DEFAULT_SLS_PROPS });
+    set({ step: 0, geo: null, loads: DEFAULT_LOADS, analysis: null, aiAnalysis: null, conditionResult: null, activePanel: null, slsProps: DEFAULT_SLS_PROPS });
   },
 }));

@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, SectionLabel, BigStat, Pill, InfoRow, GhostBtn } from '../components/ui';
 import { BridgeSVG } from '../components/bridge/BridgeSVG';
 import { useStore } from '../store';
+import { getShareURL } from '../lib/share';
+import { getRecommendations } from '../lib/api';
 
 const DECK_LABELS: Record<string, string> = {
   slab: 'Dalle pleine', box_girder: 'Caisson', i_beam: 'Poutre en I',
@@ -54,17 +56,59 @@ const PANEL_ITEMS = [
   { id: 'export', title: 'Exporter la fiche', sub: 'Texte + PDF prêts à l\'emploi' },
 ];
 
+function SparkleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1z" stroke="#007AFF" strokeWidth="1.2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export function StepSummary() {
   const { geo, loads, analysis, setActivePanel, setStep, reset, saveToHistory } = useStore();
 
   const defaultName = geo ? `Pont ${geo.spans}×${(geo.total_length_m / geo.spans).toFixed(1)}m` : 'Pont';
   const [saveName, setSaveName] = useState(defaultName);
   const [saved, setSaved] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const [recs, setRecs] = useState<string[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsError, setRecsError] = useState('');
+
+  const fetchRecs = () => {
+    if (!geo || !loads || !analysis) return;
+    setRecsLoading(true);
+    setRecsError('');
+    getRecommendations(geo, loads, analysis)
+      .then(r => { setRecs(r); })
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        setRecsError(msg);
+      })
+      .finally(() => { setRecsLoading(false); });
+  };
+
+  useEffect(() => {
+    fetchRecs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSave = () => {
     saveToHistory(saveName || defaultName);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleCopyLink = () => {
+    if (!geo || !loads) return;
+    const url = getShareURL(geo, loads);
+    navigator.clipboard.writeText(url).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 3000);
+    }).catch(() => {
+      setLinkCopied(false);
+    });
   };
 
   if (!geo || !loads || !analysis) {
@@ -110,6 +154,52 @@ export function StepSummary() {
         <BigStat label="V_max ULS" value={analysis.Vmax.toFixed(1)} unit="kN" color="accent" />
         <BigStat label="M_max ULS" value={analysis.Mmax.toFixed(1)} unit="kN·m" color="error" />
       </div>
+
+      {/* AI Recommendations */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <SparkleIcon />
+          <SectionLabel>Recommandations Claude</SectionLabel>
+        </div>
+        {recsLoading && (
+          <div className="flex items-center gap-3 py-2">
+            <div className="relative w-5 h-5 shrink-0">
+              <div className="absolute inset-0 rounded-full border-2 border-[#EAF3FF]" />
+              <div className="absolute inset-0 rounded-full border-2 border-t-[#007AFF] border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+            </div>
+            <span className="text-[14px] text-[#8E8E93]">Claude analyse…</span>
+          </div>
+        )}
+        {recsError && !recsLoading && (
+          <div className="flex items-center justify-between gap-3 py-1">
+            <p className="text-[13px] text-[#8E8E93]">Impossible de charger les recommandations.</p>
+            <button
+              type="button"
+              onClick={fetchRecs}
+              className="text-[13px] font-semibold shrink-0"
+              style={{ color: '#007AFF' }}
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+        {!recsLoading && !recsError && recs.length > 0 && (
+          <div className="flex flex-col gap-3">
+            {recs.map((rec, i) => (
+              <div
+                key={i}
+                className="rounded-[12px] p-3 pl-4"
+                style={{
+                  backgroundColor: '#F5F9FF',
+                  borderLeft: '3px solid #007AFF',
+                }}
+              >
+                <p className="text-[14px] text-black leading-relaxed">{rec}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Ouvrage */}
       <Card>
@@ -161,6 +251,23 @@ export function StepSummary() {
             </button>
           ))}
         </div>
+      </Card>
+
+      {/* Share */}
+      <Card>
+        <SectionLabel>Partager</SectionLabel>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="w-full h-[44px] rounded-[10px] text-[15px] font-semibold transition-opacity active:opacity-70"
+          style={{
+            backgroundColor: '#fff',
+            color: '#007AFF',
+            border: '1px solid #007AFF',
+          }}
+        >
+          {linkCopied ? '✓ Lien copié !' : 'Copier le lien'}
+        </button>
       </Card>
 
       {/* Save to history */}

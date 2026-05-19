@@ -136,3 +136,11 @@ export interface HistoryEntry {
   analysis: AnalysisResult;
   slsProps?: SLSProps;
 }
+
+export interface ConditionResult {
+  overall: 'bon' | 'acceptable' | 'dégradé' | 'critique';
+  score: number;
+  observations: string[];
+  urgent_actions: string[];
+  notes: string;
+}
