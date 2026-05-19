@@ -1,4 +1,4 @@
-import type { AIAnalysis } from '../types';
+import type { AIAnalysis, GeoData, LoadData, AnalysisResult, ConditionResult } from '../types';
 
 const API_URL = '/api/analyze';
 
@@ -54,6 +54,29 @@ export async function analyzeStructurePlan(base64: string, mediaType: string): P
   } catch {
     return fallback;
   }
+}
+
+export async function getRecommendations(
+  geo: GeoData, loads: LoadData, analysis: AnalysisResult
+): Promise<string[]> {
+  const resp = await fetch('/api/recommend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ geo, loads, analysis }),
+  });
+  if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+  const data = await resp.json();
+  return (data.recommendations as string[]) ?? [];
+}
+
+export async function analyzeCondition(base64: string, mediaType: string): Promise<ConditionResult> {
+  const resp = await fetch('/api/condition', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base64, mediaType }),
+  });
+  if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+  return await resp.json() as ConditionResult;
 }
 
 export function fileToBase64(file: File): Promise<{ base64: string; mediaType: string }> {
