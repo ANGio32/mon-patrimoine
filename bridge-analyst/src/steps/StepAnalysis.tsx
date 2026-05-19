@@ -3,22 +3,41 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { Card, SectionLabel, BigStat, Pill, WarnBox, PrimaryBtn, GhostBtn } from '../components/ui';
+import { Card, SectionLabel, BigStat, Pill, WarnBox, PrimaryBtn, GhostBtn, CheckBadge, Input, SelectInput } from '../components/ui';
 import { useStore } from '../store';
-import { computeLoads, computeBeam } from '../lib/structural';
+import { computeLoads, computeBeam, computeDeflection } from '../lib/structural';
 import { GAMMA_D, GAMMA_L } from '../constants';
+import type { SLSProps } from '../types';
 
 function fmt(n: number, dec = 1) { return n.toFixed(dec); }
 
+const MATERIAL_E: Record<SLSProps['material'], number> = {
+  concrete: 28000,
+  steel: 200000,
+  custom: 0,
+};
+
 export function StepAnalysis() {
-  const { geo, loads, setAnalysis, setStep, saveSession } = useStore();
+  const { geo, loads, slsProps, setSLSProps, setAnalysis, setStep, saveSession } = useStore();
 
   const result = useMemo(() => {
     if (!geo || !loads) return null;
     const ld = computeLoads(geo, loads);
     const beam = computeBeam(geo.total_length_m, geo.spans, ld.wULS);
-    return { ld, beam };
+    const beamSLS = computeBeam(geo.total_length_m, geo.spans, ld.wSLS);
+    return { ld, beam, beamSLS };
   }, [geo, loads]);
+
+  const slsResults = useMemo(() => {
+    if (!geo || !result) return null;
+    const { ld, beamSLS } = result;
+    const isPedestrian = geo.structure_type === 'pedestrian';
+    return computeDeflection(
+      geo.total_length_m, geo.spans, ld.wSLS, geo.width_m,
+      beamSLS.supportMoments, slsProps.E_MPa, slsProps.h_mm,
+      slsProps.material, isPedestrian,
+    );
+  }, [geo, result, slsProps]);
 
   if (!geo || !loads || !result) {
     return (
@@ -29,6 +48,14 @@ export function StepAnalysis() {
   }
 
   const { ld, beam } = result;
+
+  const handleMaterialChange = (mat: string) => {
+    const m = mat as SLSProps['material'];
+    const E = m === 'custom' ? slsProps.E_MPa : MATERIAL_E[m];
+    setSLSProps({ ...slsProps, material: m, E_MPa: E });
+  };
+
+  const allSLSOk = slsResults ? slsResults.every(r => r.ok) : true;
 
   const handleNext = () => {
     setAnalysis({
@@ -41,6 +68,9 @@ export function StepAnalysis() {
     saveSession();
     setStep(4);
   };
+
+  const isPedestrian = geo.structure_type === 'pedestrian';
+  const limitLabel = isPedestrian ? 'L/500' : 'L/300';
 
   return (
     <div className="flex flex-col gap-5 py-4">
@@ -193,6 +223,80 @@ export function StepAnalysis() {
             />
           </LineChart>
         </ResponsiveContainer>
+      </Card>
+
+      {/* SLS Deflection */}
+      <Card>
+        <SectionLabel>Vérification flèche ELS — CSA S6-19</SectionLabel>
+
+        <div className="flex flex-col gap-3 mb-4">
+          <SelectInput
+            label="Matériau du tablier"
+            value={slsProps.material}
+            onChange={handleMaterialChange}
+            options={[
+              { value: 'concrete', label: 'Béton (η = 0.5)' },
+              { value: 'steel', label: 'Acier (η = 1.0)' },
+              { value: 'custom', label: 'Personnalisé' },
+            ]}
+          />
+          <Input
+            label="Hauteur h"
+            value={slsProps.h_mm}
+            onChange={v => setSLSProps({ ...slsProps, h_mm: Math.max(50, Number(v) || 50) })}
+            type="number"
+            unit="mm"
+            min={50}
+            max={5000}
+            step={50}
+          />
+          <Input
+            label="Module E"
+            value={slsProps.E_MPa}
+            onChange={v => slsProps.material === 'custom' && setSLSProps({ ...slsProps, E_MPa: Math.max(1000, Number(v) || 1000) })}
+            type="number"
+            unit="MPa"
+            min={1000}
+            max={300000}
+            step={500}
+            hint={slsProps.material !== 'custom' ? 'Auto depuis le matériau' : undefined}
+          />
+        </div>
+
+        {slsResults && slsResults.length > 0 && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #E8EBF0' }}>
+                    {['Travée', 'L (m)', 'δ (mm)', `Lim. ${limitLabel}`, 'Ratio', ''].map(h => (
+                      <th key={h} className="text-left text-[10px] font-semibold text-[#8E8E93] uppercase tracking-wide py-2 pr-2">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {slsResults.map((r, i) => (
+                    <tr key={i} style={{ backgroundColor: i % 2 === 1 ? '#F9F9F9' : 'transparent', borderBottom: '0.5px solid #F0F0F0' }}>
+                      <td className="py-2 pr-2 font-semibold text-[#0F172A]">{r.span}</td>
+                      <td className="py-2 pr-2 font-mono text-[#0F172A]">{r.L_m}</td>
+                      <td className="py-2 pr-2 font-mono" style={{ color: r.ok ? '#34C759' : '#FF3B30', fontWeight: 600 }}>{r.delta_mm}</td>
+                      <td className="py-2 pr-2 font-mono text-[#64748B]">{r.limit_mm}</td>
+                      <td className="py-2 pr-2 font-mono" style={{ color: r.ok ? '#1A8A3C' : '#D70015' }}>{r.ratio}</td>
+                      <td className="py-2">{r.ok
+                        ? <span style={{ color: '#34C759', fontSize: 14 }}>✓</span>
+                        : <span style={{ color: '#FF3B30', fontSize: 14 }}>✗</span>
+                      }</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <CheckBadge ok={allSLSOk} label={allSLSOk ? 'Flèche OK' : 'Flèche NOK'} />
+            </div>
+          </>
+        )}
       </Card>
 
       <WarnBox>

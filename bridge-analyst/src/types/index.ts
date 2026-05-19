@@ -107,5 +107,31 @@ export interface SessionData {
   geo?: GeoData;
   loads?: LoadData;
   analysis?: AnalysisResult;
+  slsProps?: SLSProps;
   savedAt: number;
+}
+
+export interface SLSProps {
+  material: 'concrete' | 'steel' | 'custom';
+  h_mm: number;
+  E_MPa: number;
+}
+
+export interface SLSSpanResult {
+  span: number;
+  L_m: number;
+  delta_mm: number;
+  limit_mm: number;
+  ratio: number;
+  ok: boolean;
+}
+
+export interface HistoryEntry {
+  id: string;
+  name: string;
+  savedAt: number;
+  geo: GeoData;
+  loads: LoadData;
+  analysis: AnalysisResult;
+  slsProps?: SLSProps;
 }

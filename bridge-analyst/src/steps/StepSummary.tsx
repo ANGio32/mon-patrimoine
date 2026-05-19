@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Card, SectionLabel, BigStat, Pill, InfoRow, GhostBtn } from '../components/ui';
 import { BridgeSVG } from '../components/bridge/BridgeSVG';
 import { useStore } from '../store';
@@ -54,7 +55,17 @@ const PANEL_ITEMS = [
 ];
 
 export function StepSummary() {
-  const { geo, loads, analysis, setActivePanel, setStep, reset } = useStore();
+  const { geo, loads, analysis, setActivePanel, setStep, reset, saveToHistory } = useStore();
+
+  const defaultName = geo ? `Pont ${geo.spans}×${(geo.total_length_m / geo.spans).toFixed(1)}m` : 'Pont';
+  const [saveName, setSaveName] = useState(defaultName);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    saveToHistory(saveName || defaultName);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   if (!geo || !loads || !analysis) {
     return (
@@ -150,6 +161,37 @@ export function StepSummary() {
             </button>
           ))}
         </div>
+      </Card>
+
+      {/* Save to history */}
+      <Card>
+        <SectionLabel>Sauvegarder l'analyse</SectionLabel>
+        <div className="flex gap-2 items-center">
+          <input
+            type="text"
+            value={saveName}
+            onChange={e => setSaveName(e.target.value)}
+            placeholder={defaultName}
+            className="flex-1 h-[44px] rounded-[10px] px-3 text-[16px] text-black focus:outline-none transition-all"
+            style={{ border: '1px solid #C6C6C8', backgroundColor: '#F2F2F7' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#007AFF'; e.currentTarget.style.backgroundColor = '#fff'; }}
+            onBlur={e => { e.currentTarget.style.borderColor = '#C6C6C8'; e.currentTarget.style.backgroundColor = '#F2F2F7'; }}
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saved}
+            className="h-[44px] px-4 rounded-[10px] text-white text-[15px] font-semibold shrink-0 transition-opacity disabled:opacity-60 active:opacity-80"
+            style={{ backgroundColor: '#007AFF' }}
+          >
+            {saved ? '✓' : 'Sauvegarder'}
+          </button>
+        </div>
+        {saved && (
+          <p className="text-[13px] mt-2" style={{ color: '#34C759' }}>
+            ✓ Sauvegardé dans l'historique
+          </p>
+        )}
       </Card>
 
       <div className="flex justify-center gap-6 pb-4">

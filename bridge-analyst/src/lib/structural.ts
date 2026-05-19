@@ -1,4 +1,4 @@
-import type { GeoData, LoadData, LoadResults, BeamResults, SectionResult, SectionInput } from '../types';
+import type { GeoData, LoadData, LoadResults, BeamResults, SectionResult, SectionInput, SLSSpanResult } from '../types';
 import {
   SELF_WEIGHT, BARRIER_WEIGHT, MPF, LANE_LOAD, PEDESTRIAN_LOAD,
   GAMMA_D, GAMMA_L, CL625,
@@ -197,4 +197,34 @@ export function computeSection(input: SectionInput, Mf_total: number, Vf_total: 
     sufficient,
     suggestedBar,
   };
+}
+
+export function computeDeflection(
+  totalLen: number, spans: number, wSLS: number, width_m: number,
+  supportMoments: number[], E_MPa: number, h_mm: number,
+  material: 'concrete' | 'steel' | 'custom', isPedestrian: boolean
+): SLSSpanResult[] {
+  const n = Math.max(1, spans);
+  const L = totalLen / n;
+  const w = wSLS / width_m;
+  const I_gross = 1000 * Math.pow(h_mm, 3) / 12;
+  const eta = material === 'concrete' ? 0.5 : 1.0;
+  const I_eff = I_gross * eta;
+  const EI = (E_MPa * 1000) * (I_eff * 1e-12);
+  const limitFactor = isPedestrian ? 500 : 300;
+  return Array.from({ length: n }, (_, i) => {
+    const MA = Math.abs(supportMoments[i] ?? 0) / width_m;
+    const MB = Math.abs(supportMoments[i + 1] ?? 0) / width_m;
+    const dUDL = (5 * w * Math.pow(L, 4)) / (384 * EI);
+    const dMom = ((MA + MB) * L * L) / (16 * EI);
+    const delta_mm = Math.max(0.1, dUDL - dMom) * 1000;
+    const limit_mm = (L * 1000) / limitFactor;
+    return {
+      span: i + 1, L_m: parseFloat(L.toFixed(2)),
+      delta_mm: parseFloat(delta_mm.toFixed(1)),
+      limit_mm: parseFloat(limit_mm.toFixed(1)),
+      ratio: parseFloat((delta_mm / limit_mm).toFixed(2)),
+      ok: delta_mm <= limit_mm,
+    };
+  });
 }

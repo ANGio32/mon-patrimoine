@@ -1,7 +1,9 @@
 import { create } from 'zustand';
-import type { GeoData, LoadData, AnalysisResult, AIAnalysis, SessionData } from '../types';
+import type { GeoData, LoadData, AnalysisResult, AIAnalysis, SessionData, SLSProps, HistoryEntry } from '../types';
 
 const STORAGE_KEY = 'bridge-analyst-session';
+const HISTORY_KEY = 'bridge-analyst-history-v1';
+
 const DEFAULT_LOADS: LoadData = {
   num_lanes: 2,
   lane_width_m: 3.7,
@@ -28,6 +30,28 @@ const DEFAULT_LOADS: LoadData = {
   has_construction: false,
 };
 
+const DEFAULT_SLS_PROPS: SLSProps = {
+  material: 'concrete',
+  h_mm: 800,
+  E_MPa: 28000,
+};
+
+function loadHistoryFromStorage(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as HistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryToStorage(history: HistoryEntry[]): void {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch { /* ignore */ }
+}
+
 interface AppState {
   step: number;
   geo: GeoData | null;
@@ -35,12 +59,20 @@ interface AppState {
   analysis: AnalysisResult | null;
   aiAnalysis: AIAnalysis | null;
   activePanel: string | null;
+  slsProps: SLSProps;
+  history: HistoryEntry[];
+  showHistory: boolean;
   setStep: (s: number) => void;
   setGeo: (g: GeoData) => void;
   setLoads: (l: LoadData) => void;
   setAnalysis: (a: AnalysisResult) => void;
   setAIAnalysis: (ai: AIAnalysis) => void;
   setActivePanel: (p: string | null) => void;
+  setSLSProps: (p: SLSProps) => void;
+  setShowHistory: (b: boolean) => void;
+  saveToHistory: (name: string) => void;
+  deleteFromHistory: (id: string) => void;
+  loadFromHistory: (entry: HistoryEntry) => void;
   saveSession: () => void;
   loadSession: () => boolean;
   reset: () => void;
@@ -52,7 +84,13 @@ function loadFromStorage(): Partial<AppState> | null {
     if (!raw) return null;
     const data: SessionData = JSON.parse(raw);
     if (Date.now() - data.savedAt > 24 * 60 * 60 * 1000) return null;
-    return { step: data.step, geo: data.geo, loads: data.loads ?? DEFAULT_LOADS, analysis: data.analysis };
+    return {
+      step: data.step,
+      geo: data.geo,
+      loads: data.loads ?? DEFAULT_LOADS,
+      analysis: data.analysis,
+      slsProps: data.slsProps ?? DEFAULT_SLS_PROPS,
+    };
   } catch {
     return null;
   }
@@ -65,25 +103,77 @@ export const useStore = create<AppState>((set, get) => ({
   analysis: null,
   aiAnalysis: null,
   activePanel: null,
+  slsProps: DEFAULT_SLS_PROPS,
+  history: loadHistoryFromStorage(),
+  showHistory: false,
+
   setStep: (s) => set({ step: s }),
   setGeo: (g) => set({ geo: g }),
   setLoads: (l) => set({ loads: l }),
   setAnalysis: (a) => set({ analysis: a }),
   setAIAnalysis: (ai) => set({ aiAnalysis: ai }),
   setActivePanel: (p) => set({ activePanel: p }),
+  setSLSProps: (p) => set({ slsProps: p }),
+  setShowHistory: (b) => set({ showHistory: b }),
+
+  saveToHistory: (name) => {
+    const { geo, loads, analysis, slsProps } = get();
+    if (!geo || !analysis) return;
+    const entry: HistoryEntry = {
+      id: Date.now().toString(),
+      name,
+      savedAt: Date.now(),
+      geo,
+      loads,
+      analysis,
+      slsProps,
+    };
+    const prev = get().history;
+    const updated = [entry, ...prev].slice(0, 20);
+    saveHistoryToStorage(updated);
+    set({ history: updated });
+  },
+
+  deleteFromHistory: (id) => {
+    const updated = get().history.filter(e => e.id !== id);
+    saveHistoryToStorage(updated);
+    set({ history: updated });
+  },
+
+  loadFromHistory: (entry) => {
+    set({
+      geo: entry.geo,
+      loads: entry.loads,
+      analysis: entry.analysis,
+      slsProps: entry.slsProps ?? DEFAULT_SLS_PROPS,
+      step: 4,
+      showHistory: false,
+      activePanel: null,
+    });
+  },
+
   saveSession: () => {
-    const { step, geo, loads, analysis } = get();
-    const data: SessionData = { step, geo: geo ?? undefined, loads, analysis: analysis ?? undefined, savedAt: Date.now() };
+    const { step, geo, loads, analysis, slsProps } = get();
+    const data: SessionData = {
+      step,
+      geo: geo ?? undefined,
+      loads,
+      analysis: analysis ?? undefined,
+      slsProps,
+      savedAt: Date.now(),
+    };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
   },
+
   loadSession: () => {
     const saved = loadFromStorage();
     if (!saved) return false;
     set(saved as Partial<AppState>);
     return true;
   },
+
   reset: () => {
     localStorage.removeItem(STORAGE_KEY);
-    set({ step: 0, geo: null, loads: DEFAULT_LOADS, analysis: null, aiAnalysis: null, activePanel: null });
+    set({ step: 0, geo: null, loads: DEFAULT_LOADS, analysis: null, aiAnalysis: null, activePanel: null, slsProps: DEFAULT_SLS_PROPS });
   },
 }));

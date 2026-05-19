@@ -9,6 +9,7 @@ import { PanelSection } from './components/panels/PanelSection';
 import { PanelTruck } from './components/panels/PanelTruck';
 import { PanelSpecial } from './components/panels/PanelSpecial';
 import { PanelExport } from './components/panels/PanelExport';
+import { HistoryView } from './views/HistoryView';
 
 const STEPS = ['Import', 'Géométrie', 'Charges', 'Analyse', 'Résumé'];
 
@@ -73,7 +74,11 @@ function SessionBanner() {
 }
 
 export default function App() {
-  const { step, activePanel, setActivePanel } = useStore();
+  const { step, activePanel, setActivePanel, showHistory, setShowHistory, history } = useStore();
+
+  if (showHistory) {
+    return <HistoryView />;
+  }
 
   const content = activePanel ? (
     PANELS[activePanel] ?? null
@@ -115,8 +120,24 @@ export default function App() {
             {activePanel ? PANEL_TITLES[activePanel] : STEPS[step]}
           </span>
 
-          {/* Right: CSA badge */}
-          <span className="text-[11px] font-semibold text-[#8E8E93] tracking-wide">CSA S6-19</span>
+          {/* Right: History button on step 0, CSA badge otherwise */}
+          {step === 0 && !activePanel ? (
+            <button
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-1 active:opacity-60 transition-opacity text-[13px] font-semibold"
+              style={{ color: '#007AFF' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M3 4h12M3 9h9M3 14h6" stroke="#007AFF" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              {history.length > 0 && (
+                <span className="text-[12px]">({history.length})</span>
+              )}
+            </button>
+          ) : (
+            <span className="text-[11px] font-semibold text-[#8E8E93] tracking-wide">CSA S6-19</span>
+          )}
         </div>
 
         {/* Step progress bar */}
