@@ -10,6 +10,7 @@ import { PanelTruck } from './components/panels/PanelTruck';
 import { PanelSpecial } from './components/panels/PanelSpecial';
 import { PanelExport } from './components/panels/PanelExport';
 import { HistoryView } from './views/HistoryView';
+import { decodeShare } from './lib/share';
 
 const STEPS = ['Import', 'Géométrie', 'Charges', 'Analyse', 'Résumé'];
 
@@ -74,7 +75,21 @@ function SessionBanner() {
 }
 
 export default function App() {
-  const { step, activePanel, setActivePanel, showHistory, setShowHistory, history } = useStore();
+  const { step, activePanel, setActivePanel, showHistory, setShowHistory, history, setGeo, setLoads, setStep } = useStore();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareParam = params.get('share');
+    if (shareParam) {
+      const decoded = decodeShare(shareParam);
+      if (decoded) {
+        setGeo(decoded.geo);
+        setLoads(decoded.loads);
+        setStep(1);
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   if (showHistory) {
     return <HistoryView />;
@@ -95,7 +110,7 @@ export default function App() {
   return (
     <div className="min-h-svh" style={{ backgroundColor: '#F2F2F7' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 pt-safe"
+      <header className="sticky top-0 z-40 pt-safe dark-header"
         style={{ backgroundColor: 'rgba(242,242,247,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '0.5px solid rgba(0,0,0,0.12)' }}>
         <div className="max-w-[480px] mx-auto w-full px-4 h-14 flex items-center justify-between">
           {/* Left: back button or logo */}

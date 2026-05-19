@@ -22,8 +22,24 @@ export function BridgeSVG({ geo, className = '' }: Props) {
   const pierW = 8;
 
   const spans = Math.max(1, geo.spans);
-  const spanW = (drawW - 2 * abutW) / spans;
-  const spanLen = (geo.total_length_m / spans).toFixed(1);
+
+  // Support unequal spans
+  const Ls = (geo.span_lengths && geo.span_lengths.length === spans)
+    ? geo.span_lengths
+    : Array(spans).fill(geo.total_length_m / spans);
+  const totalL = Ls.reduce((a, b) => a + b, 0);
+
+  // Compute cumulative span start positions (in metres)
+  const spanStartMetres: number[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < spans; i++) {
+    spanStartMetres.push(cumulative);
+    cumulative += Ls[i];
+  }
+
+  // Helper: convert metres along bridge to screen X
+  const mToScreenX = (m: number) =>
+    marginX + abutW + (m / totalL) * (drawW - 2 * abutW);
 
   // Ground lines (hatching)
   const hatchCount = Math.ceil(drawW / 9) + 2;
@@ -37,10 +53,8 @@ export function BridgeSVG({ geo, className = '' }: Props) {
     );
   });
 
-  // Pier footing x positions
-  const pierPositions = Array.from({ length: spans - 1 }, (_, i) => {
-    return marginX + abutW + (i + 1) * spanW;
-  });
+  // Pier positions (at cumulative span boundaries, excluding start and end)
+  const pierPositions = spanStartMetres.slice(1).map(m => mToScreenX(m));
 
   // Piers
   const pierElems = (geo.has_piers && spans > 1)
@@ -63,9 +77,10 @@ export function BridgeSVG({ geo, className = '' }: Props) {
   // Span dimension lines
   const dimY = deckY - 14;
   const spanDims = Array.from({ length: spans }, (_, i) => {
-    const x0 = marginX + abutW + i * spanW;
-    const x1 = x0 + spanW;
+    const x0 = mToScreenX(spanStartMetres[i]);
+    const x1 = mToScreenX(spanStartMetres[i] + Ls[i]);
     const cx = (x0 + x1) / 2;
+    const spanLen = Ls[i].toFixed(1);
     return (
       <g key={i}>
         <line x1={x0 + 2} y1={dimY} x2={x1 - 2} y2={dimY} stroke="#007AFF" strokeWidth="0.8" />

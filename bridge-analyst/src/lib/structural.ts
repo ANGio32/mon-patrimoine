@@ -42,10 +42,9 @@ export function computeLoads(geo: GeoData, loads: LoadData): LoadResults {
   return { w_self, w_wear, w_barrier, w_lanes, w_ped, wD, wL, wSLS, wULS, nLanes, mpf };
 }
 
-export function computeBeam(totalLen: number, spans: number, w: number): BeamResults {
+export function computeBeam(totalLen: number, spans: number, w: number, span_lengths?: number[]): BeamResults {
   const n = spans;
-  const L = totalLen / n;
-  const Ls = Array(n).fill(L);
+  const Ls = (span_lengths && span_lengths.length === n) ? span_lengths : Array(n).fill(totalLen / n);
 
   let supportMoments: number[] = Array(n + 1).fill(0);
 
@@ -202,10 +201,11 @@ export function computeSection(input: SectionInput, Mf_total: number, Vf_total: 
 export function computeDeflection(
   totalLen: number, spans: number, wSLS: number, width_m: number,
   supportMoments: number[], E_MPa: number, h_mm: number,
-  material: 'concrete' | 'steel' | 'custom', isPedestrian: boolean
+  material: 'concrete' | 'steel' | 'custom', isPedestrian: boolean,
+  span_lengths?: number[]
 ): SLSSpanResult[] {
   const n = Math.max(1, spans);
-  const L = totalLen / n;
+  const Ls = (span_lengths && span_lengths.length === n) ? span_lengths : Array(n).fill(totalLen / n);
   const w = wSLS / width_m;
   const I_gross = 1000 * Math.pow(h_mm, 3) / 12;
   const eta = material === 'concrete' ? 0.5 : 1.0;
@@ -213,6 +213,7 @@ export function computeDeflection(
   const EI = (E_MPa * 1000) * (I_eff * 1e-12);
   const limitFactor = isPedestrian ? 500 : 300;
   return Array.from({ length: n }, (_, i) => {
+    const L = Ls[i];
     const MA = Math.abs(supportMoments[i] ?? 0) / width_m;
     const MB = Math.abs(supportMoments[i + 1] ?? 0) / width_m;
     const dUDL = (5 * w * Math.pow(L, 4)) / (384 * EI);
@@ -225,6 +226,27 @@ export function computeDeflection(
       limit_mm: parseFloat(limit_mm.toFixed(1)),
       ratio: parseFloat((delta_mm / limit_mm).toFixed(2)),
       ok: delta_mm <= limit_mm,
+    };
+  });
+}
+
+export function computeCamber(
+  totalLen: number, spans: number, wD: number, width_m: number,
+  E_MPa: number, h_mm: number, material: 'concrete' | 'steel' | 'custom',
+  span_lengths?: number[]
+): SLSSpanResult[] {
+  const n = Math.max(1, spans);
+  const Ls = (span_lengths && span_lengths.length === n) ? span_lengths : Array(n).fill(totalLen / n);
+  const w = wD / width_m;
+  const I_gross = 1000 * Math.pow(h_mm, 3) / 12;
+  const eta = material === 'concrete' ? 0.5 : 1.0;
+  const EI = (E_MPa * 1000) * (I_gross * eta * 1e-12);
+  return Ls.map((L, i) => {
+    const delta_mm = (5 * w * Math.pow(L, 4)) / (384 * EI) * 1000;
+    return {
+      span: i + 1, L_m: parseFloat(L.toFixed(2)),
+      delta_mm: parseFloat(delta_mm.toFixed(1)),
+      limit_mm: 0, ratio: 0, ok: true,
     };
   });
 }

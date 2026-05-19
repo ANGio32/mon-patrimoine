@@ -53,3 +53,37 @@ input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
 
 /* Remove default select arrow */
 select { -webkit-appearance: none; }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #1C1C1E;
+    --card: #2C2C2E;
+    --label: #FFFFFF;
+    --label2: #EBEBF5;
+    --label3: #EBEBF5;
+    --separator: #38383A;
+    --fill: #3A3A3C;
+    --blue-soft: #1C3050;
+  }
+  body { background-color: #1C1C1E; color: #FFFFFF; }
+
+  /* Cards */
+  .bg-white { background-color: #2C2C2E !important; }
+
+  /* Inputs and selects */
+  input, select {
+    background-color: #3A3A3C !important;
+    color: #FFFFFF !important;
+    border-color: #48484A !important;
+  }
+
+  /* Pre blocks */
+  pre { background-color: #1C1C1E !important; color: #EBEBF5 !important; }
+
+  /* SVG backgrounds */
+  svg rect[fill="#FAFAFA"] { fill: #2C2C2E; }
+
+  /* Dark header */
+  .dark-header { background-color: rgba(28,28,30,0.85) !important; }
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Card, SectionLabel, Input, SelectInput, Toggle, PrimaryBtn, GhostBtn, Pill, InfoBox } from '../components/ui';
 import { BridgeSVG } from '../components/bridge/BridgeSVG';
+import { CrossSectionSVG } from '../components/bridge/CrossSectionSVG';
 import { useStore } from '../store';
 import type { GeoData } from '../types';
 
@@ -28,7 +29,7 @@ const CONFIDENCE_COLORS: Record<string, { bg: string; text: string; border: stri
 };
 
 export function StepGeometry() {
-  const { geo, setGeo, aiAnalysis, setStep, saveSession } = useStore();
+  const { geo, setGeo, aiAnalysis, setStep, saveSession, loads } = useStore();
 
   const [data, setData] = useState<GeoData>(geo ?? {
     structure_type: 'bridge', spans: 3, total_length_m: 45, width_m: 12,
@@ -36,8 +37,26 @@ export function StepGeometry() {
     has_abutments: true, has_walls: false,
   });
 
+  const [unequalSpans, setUnequalSpans] = useState(!!data.span_lengths);
+  const [spanLengthsRaw, setSpanLengthsRaw] = useState<number[]>(() => {
+    if (data.span_lengths && data.span_lengths.length === data.spans) {
+      return data.span_lengths;
+    }
+    const n = Math.max(1, data.spans);
+    return Array(n).fill(parseFloat((data.total_length_m / n).toFixed(2)));
+  });
+
   const update = <K extends keyof GeoData>(key: K, val: GeoData[K]) => {
-    setData(d => ({ ...d, [key]: val }));
+    setData(d => {
+      const next = { ...d, [key]: val };
+      // When spans or total_length changes, reset spanLengthsRaw to equal distribution
+      if (key === 'spans' || key === 'total_length_m') {
+        const n = Math.max(1, key === 'spans' ? (val as number) : next.spans);
+        const L = key === 'total_length_m' ? (val as number) : next.total_length_m;
+        setSpanLengthsRaw(Array(n).fill(parseFloat((L / n).toFixed(2))));
+      }
+      return next;
+    });
   };
 
   const num = (s: string, fallback: number, min?: number) => {
@@ -48,8 +67,36 @@ export function StepGeometry() {
 
   const spanLen = data.spans > 0 ? (data.total_length_m / data.spans).toFixed(1) : '—';
 
+  const spanLengthsSum = spanLengthsRaw.reduce((a, b) => a + b, 0);
+  const sumOk = Math.abs(spanLengthsSum - data.total_length_m) < 0.01;
+
+  // The geo data enriched with span_lengths for live preview
+  const liveData: GeoData = {
+    ...data,
+    span_lengths: unequalSpans && spanLengthsRaw.length === data.spans ? spanLengthsRaw : undefined,
+  };
+
+  const handleToggleUnequalSpans = (v: boolean) => {
+    setUnequalSpans(v);
+    if (!v) {
+      setData(d => ({ ...d, span_lengths: undefined }));
+    }
+  };
+
+  const handleSpanLengthChange = (i: number, val: string) => {
+    setSpanLengthsRaw(prev => {
+      const next = [...prev];
+      next[i] = num(val, prev[i], 0.1);
+      return next;
+    });
+  };
+
   const handleNext = () => {
-    setGeo(data);
+    const finalData: GeoData = {
+      ...data,
+      span_lengths: unequalSpans && spanLengthsRaw.length === data.spans ? spanLengthsRaw : undefined,
+    };
+    setGeo(finalData);
     saveSession();
     setStep(2);
   };
@@ -84,7 +131,7 @@ export function StepGeometry() {
 
       {/* Live SVG */}
       <div className="bg-white rounded-2xl border border-[#E8EBF0] p-4 shadow-sm">
-        <BridgeSVG geo={data} className="w-full h-auto" />
+        <BridgeSVG geo={liveData} className="w-full h-auto" />
         <div className="flex flex-wrap gap-2 mt-3">
           <Pill label="L" value={`${data.total_length_m}m`} />
           <Pill label="l" value={`${data.width_m}m`} />
@@ -92,6 +139,12 @@ export function StepGeometry() {
           <Pill label="h" value={`${data.clearance_m}m`} />
         </div>
       </div>
+
+      {/* Cross-section SVG */}
+      <Card>
+        <SectionLabel>Coupe transversale</SectionLabel>
+        <CrossSectionSVG geo={liveData} loads={loads} className="w-full h-auto" />
+      </Card>
 
       {/* Card 1: Type */}
       <Card>
@@ -151,12 +204,53 @@ export function StepGeometry() {
             onChange={v => update('clearance_m', num(v, 0))}
           />
         </div>
-        <InfoBox>
-          <div className="flex items-center justify-between">
-            <span>Portée / travée calculée</span>
-            <span className="font-mono font-bold">{spanLen} m</span>
+        <div className="mt-3">
+          <InfoBox>
+            <div className="flex items-center justify-between">
+              <span>Portée / travée calculée</span>
+              <span className="font-mono font-bold">{spanLen} m</span>
+            </div>
+          </InfoBox>
+        </div>
+
+        {/* Unequal spans toggle */}
+        {data.spans >= 2 && (
+          <div className="mt-4">
+            <div className="border-t border-[#E8EBF0] mb-3" />
+            <Toggle
+              label="Travées inégales"
+              checked={unequalSpans}
+              onChange={handleToggleUnequalSpans}
+            />
+
+            {unequalSpans && (
+              <div className="mt-3 flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {spanLengthsRaw.map((len, i) => (
+                    <Input
+                      key={i}
+                      label={`Travée ${i + 1}`}
+                      value={len}
+                      type="number"
+                      unit="m"
+                      min={0.1}
+                      step={0.5}
+                      onChange={v => handleSpanLengthChange(i, v)}
+                    />
+                  ))}
+                </div>
+                <InfoBox>
+                  <div className="flex items-center justify-between">
+                    <span>Somme des travées</span>
+                    <span className={`font-mono font-bold ${sumOk ? 'text-[#1A8A3C]' : 'text-[#D70015]'}`}>
+                      {spanLengthsSum.toFixed(2)} m {sumOk ? '✓' : `(objectif: ${data.total_length_m} m)`}
+                    </span>
+                  </div>
+                </InfoBox>
+              </div>
+            )}
           </div>
-        </InfoBox>
+        )}
       </Card>
 
       {/* Card 3: Elements */}

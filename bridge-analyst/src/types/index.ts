@@ -9,6 +9,7 @@ export interface GeoData {
   pier_count: number;
   has_abutments: boolean;
   has_walls: boolean;
+  span_lengths?: number[];
 }
 
 export interface LoadData {

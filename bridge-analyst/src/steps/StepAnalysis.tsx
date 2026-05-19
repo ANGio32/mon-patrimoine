@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { Card, SectionLabel, BigStat, Pill, WarnBox, PrimaryBtn, GhostBtn, CheckBadge, Input, SelectInput } from '../components/ui';
 import { useStore } from '../store';
-import { computeLoads, computeBeam, computeDeflection } from '../lib/structural';
+import { computeLoads, computeBeam, computeDeflection, computeCamber } from '../lib/structural';
 import { GAMMA_D, GAMMA_L } from '../constants';
 import type { SLSProps } from '../types';
 
@@ -35,7 +35,16 @@ export function StepAnalysis() {
     return computeDeflection(
       geo.total_length_m, geo.spans, ld.wSLS, geo.width_m,
       beamSLS.supportMoments, slsProps.E_MPa, slsProps.h_mm,
-      slsProps.material, isPedestrian,
+      slsProps.material, isPedestrian, geo.span_lengths,
+    );
+  }, [geo, result, slsProps]);
+
+  const camberResults = useMemo(() => {
+    if (!geo || !result) return null;
+    const { ld } = result;
+    return computeCamber(
+      geo.total_length_m, geo.spans, ld.wD, geo.width_m,
+      slsProps.E_MPa, slsProps.h_mm, slsProps.material, geo.span_lengths,
     );
   }, [geo, result, slsProps]);
 
@@ -298,6 +307,36 @@ export function StepAnalysis() {
           </>
         )}
       </Card>
+
+      {/* Camber (contre-flèche) */}
+      {camberResults && camberResults.length > 0 && (
+        <Card>
+          <SectionLabel>Contre-flèche recommandée</SectionLabel>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr style={{ borderBottom: '1px solid #E8EBF0' }}>
+                  {['Travée', 'L (m)', 'δ_D (mm)'].map(h => (
+                    <th key={h} className="text-left text-[10px] font-semibold text-[#8E8E93] uppercase tracking-wide py-2 pr-2">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {camberResults.map((r, i) => (
+                  <tr key={i} style={{ backgroundColor: i % 2 === 1 ? '#F9F9F9' : 'transparent', borderBottom: '0.5px solid #F0F0F0' }}>
+                    <td className="py-2 pr-2 font-semibold text-[#0F172A]">{r.span}</td>
+                    <td className="py-2 pr-2 font-mono text-[#0F172A]">{r.L_m}</td>
+                    <td className="py-2 pr-2 font-mono font-bold" style={{ color: '#007AFF' }}>{r.delta_mm}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-[#8E8E93] mt-3 leading-relaxed">
+            Pré-cambrage sous charges permanentes (ELS). Valeur à spécifier dans les plans de fabrication.
+          </p>
+        </Card>
+      )}
 
       <WarnBox>
         Modèle simplifié CUR (travées égales). Vérification camion CL-625 et combinaisons complètes requises pour la conception finale.
