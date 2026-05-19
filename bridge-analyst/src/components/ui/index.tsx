@@ -1,18 +1,19 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
-export function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-white rounded-2xl border border-[#E8EBF0] p-[18px_16px] shadow-sm ${className}`}>
+    <div className={`bg-white rounded-[20px] p-5 ${className}`}
+      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05)' }}>
       {children}
     </div>
   );
 }
 
 // ─── SectionLabel ─────────────────────────────────────────────────────────────
-export function SectionLabel({ children }: { children: React.ReactNode }) {
+export function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[11px] font-bold uppercase tracking-[1px] text-[#94A3B8] mb-3">{children}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-[0.6px] text-[#8E8E93] mb-4">{children}</p>
   );
 }
 
@@ -20,7 +21,7 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
 export function PrimaryBtn({
   children, onClick, disabled = false, type = 'button',
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   type?: 'button' | 'submit';
@@ -30,7 +31,8 @@ export function PrimaryBtn({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="w-full h-[54px] rounded-2xl bg-[#2563EB] text-white font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+      className="w-full h-[56px] rounded-[16px] text-white font-semibold text-[17px] tracking-[-0.2px] disabled:opacity-40 active:opacity-80 transition-opacity"
+      style={{ backgroundColor: '#007AFF' }}
     >
       {children}
     </button>
@@ -38,12 +40,13 @@ export function PrimaryBtn({
 }
 
 // ─── GhostBtn ─────────────────────────────────────────────────────────────────
-export function GhostBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+export function GhostBtn({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-[#64748B] font-medium text-[14px] px-1 py-2 active:opacity-70 transition-opacity"
+      className="font-medium text-[15px] px-2 py-2 active:opacity-60 transition-opacity"
+      style={{ color: '#007AFF' }}
     >
       {children}
     </button>
@@ -64,8 +67,8 @@ interface InputProps {
 }
 export function Input({ label, value, onChange, type = 'text', unit, hint, min, max, step }: InputProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[13px] font-medium text-[#64748B]">{label}</label>
+    <div className="flex flex-col gap-[6px]">
+      <label className="text-[13px] font-medium text-[#3C3C43]">{label}</label>
       <div className="relative">
         <input
           type={type}
@@ -74,14 +77,26 @@ export function Input({ label, value, onChange, type = 'text', unit, hint, min, 
           max={max}
           step={step}
           onChange={e => onChange(e.target.value)}
-          className="w-full h-12 rounded-xl border-[1.5px] border-[#E8EBF0] bg-white px-3 text-[15px] text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-colors"
-          style={unit ? { paddingRight: '2.75rem' } : {}}
+          className="w-full h-[44px] rounded-[10px] px-3 text-[16px] text-black focus:outline-none transition-all"
+          style={{
+            border: '1px solid #C6C6C8',
+            backgroundColor: '#F2F2F7',
+            paddingRight: unit ? '2.75rem' : undefined,
+          }}
+          onFocus={e => {
+            e.currentTarget.style.borderColor = '#007AFF';
+            e.currentTarget.style.backgroundColor = '#fff';
+          }}
+          onBlur={e => {
+            e.currentTarget.style.borderColor = '#C6C6C8';
+            e.currentTarget.style.backgroundColor = '#F2F2F7';
+          }}
         />
         {unit && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[#94A3B8]">{unit}</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-[#8E8E93] pointer-events-none">{unit}</span>
         )}
       </div>
-      {hint && <p className="text-[12px] text-[#94A3B8]">{hint}</p>}
+      {hint && <p className="text-[12px] text-[#8E8E93]">{hint}</p>}
     </div>
   );
 }
@@ -95,18 +110,23 @@ interface SelectInputProps {
 }
 export function SelectInput({ label, value, onChange, options }: SelectInputProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-[13px] font-medium text-[#64748B]">{label}</label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full h-12 rounded-xl border-[1.5px] border-[#E8EBF0] bg-white px-3 text-[15px] text-[#0F172A] focus:outline-none focus:border-[#2563EB] transition-colors appearance-none"
-        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-      >
-        {options.map(o => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+    <div className="flex flex-col gap-[6px]">
+      <label className="text-[13px] font-medium text-[#3C3C43]">{label}</label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full h-[44px] rounded-[10px] px-3 text-[16px] text-black focus:outline-none appearance-none"
+          style={{ border: '1px solid #C6C6C8', backgroundColor: '#F2F2F7' }}
+        >
+          {options.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M4 6l4 4 4-4" stroke="#8E8E93" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
     </div>
   );
 }
@@ -123,20 +143,27 @@ export function Toggle({ label, checked, onChange, subtitle }: ToggleProps) {
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex items-center justify-between w-full py-1"
+      className="flex items-center justify-between w-full py-1 gap-3"
       aria-pressed={checked}
     >
       <div className="text-left">
-        <p className="text-[14px] font-medium text-[#0F172A]">{label}</p>
-        {subtitle && <p className="text-[12px] text-[#94A3B8]">{subtitle}</p>}
+        <p className="text-[16px] text-black">{label}</p>
+        {subtitle && <p className="text-[13px] text-[#8E8E93] mt-[2px]">{subtitle}</p>}
       </div>
       <div
-        className="relative w-11 h-[26px] rounded-full transition-colors duration-200 shrink-0"
-        style={{ backgroundColor: checked ? '#2563EB' : '#E8EBF0' }}
+        className="relative shrink-0 transition-colors duration-200"
+        style={{
+          width: 51, height: 31, borderRadius: 15.5,
+          backgroundColor: checked ? '#34C759' : '#E5E5EA',
+        }}
       >
         <span
-          className="absolute top-[3px] w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
-          style={{ transform: checked ? 'translateX(22px)' : 'translateX(3px)' }}
+          className="absolute bg-white rounded-full shadow-sm transition-transform duration-200"
+          style={{
+            top: 2, width: 27, height: 27,
+            transform: checked ? 'translateX(20px)' : 'translateX(2px)',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+          }}
         />
       </div>
     </button>
@@ -146,22 +173,24 @@ export function Toggle({ label, checked, onChange, subtitle }: ToggleProps) {
 // ─── InfoRow ──────────────────────────────────────────────────────────────────
 export function InfoRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-[10px] border-b border-[#E8EBF0] last:border-0">
-      <span className="text-[14px] text-[#64748B]">{label}</span>
-      <span className={`text-[14px] font-semibold text-[#0F172A] ${mono ? "font-mono" : ""}`}>{value}</span>
+    <div className="flex items-center justify-between py-[11px]" style={{ borderBottom: '0.5px solid #C6C6C8' }}>
+      <span className="text-[15px] text-[#3C3C43]">{label}</span>
+      <span className={`text-[15px] font-semibold text-black ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   );
 }
 
 // ─── BigStat ──────────────────────────────────────────────────────────────────
 export function BigStat({ label, value, unit, color = 'accent' }: { label: string; value: string; unit?: string; color?: 'accent' | 'error' | 'ok' }) {
-  const colors = { accent: '#2563EB', error: '#DC2626', ok: '#16A34A' };
+  const c = { accent: '#007AFF', error: '#FF3B30', ok: '#34C759' }[color];
   return (
-    <div className="bg-white rounded-2xl border border-[#E8EBF0] p-4 flex flex-col gap-1 shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-[1px] text-[#94A3B8]">{label}</p>
-      <p className="font-mono font-bold text-[22px] leading-tight" style={{ color: colors[color] }}>
-        {value}<span className="text-[13px] font-normal text-[#94A3B8] ml-1">{unit}</span>
+    <div className="bg-white rounded-[20px] p-4 flex flex-col"
+      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05)' }}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[#8E8E93] mb-2">{label}</p>
+      <p className="font-mono font-bold leading-none" style={{ fontSize: 28, color: c }}>
+        {value}
       </p>
+      {unit && <p className="text-[13px] text-[#8E8E93] mt-1">{unit}</p>}
     </div>
   );
 }
@@ -170,14 +199,13 @@ export function BigStat({ label, value, unit, color = 'accent' }: { label: strin
 export function CheckBadge({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border"
+      className="inline-flex items-center gap-[6px] px-3 py-[6px] rounded-full text-[13px] font-semibold"
       style={{
-        backgroundColor: ok ? '#F0FDF4' : '#FEF2F2',
-        color: ok ? '#16A34A' : '#DC2626',
-        borderColor: ok ? '#BBF7D0' : '#FECACA',
+        backgroundColor: ok ? '#F0FFF4' : '#FFF2F1',
+        color: ok ? '#1A8A3C' : '#D70015',
       }}
     >
-      <span>{ok ? '✓' : '✗'}</span>
+      <span style={{ fontSize: 12 }}>{ok ? '✓' : '✗'}</span>
       <span>{label}</span>
     </div>
   );
@@ -186,36 +214,45 @@ export function CheckBadge({ ok, label }: { ok: boolean; label: string }) {
 // ─── Pill ─────────────────────────────────────────────────────────────────────
 export function Pill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5 bg-[#EFF6FF] rounded-[20px] px-3 py-1.5">
-      <span className="text-[11px] text-[#64748B]">{label}</span>
-      <span className="text-[12px] font-bold text-[#2563EB]">{value}</span>
+    <div className="inline-flex items-center gap-[5px] rounded-full px-3 py-[5px]"
+      style={{ backgroundColor: '#EAF3FF' }}>
+      <span className="text-[12px] text-[#8E8E93]">{label}</span>
+      <span className="text-[13px] font-bold" style={{ color: '#007AFF' }}>{value}</span>
     </div>
   );
 }
 
 // ─── WarnBox ──────────────────────────────────────────────────────────────────
-export function WarnBox({ children }: { children: React.ReactNode }) {
+export function WarnBox({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl bg-[#FFFBEB] border border-[#FDE68A] p-3 text-[12px] text-[#92400E] leading-relaxed">
+    <div className="rounded-[14px] p-4 text-[13px] leading-relaxed"
+      style={{ backgroundColor: '#FFF8EE', border: '1px solid #FFCC80', color: '#7A4F00' }}>
       {children}
     </div>
   );
 }
 
 // ─── ErrorBox ─────────────────────────────────────────────────────────────────
-export function ErrorBox({ children }: { children: React.ReactNode }) {
+export function ErrorBox({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl bg-[#FEF2F2] border border-[#FECACA] p-3 text-[12px] text-[#991B1B] leading-relaxed">
+    <div className="rounded-[14px] p-4 text-[13px] leading-relaxed"
+      style={{ backgroundColor: '#FFF2F1', border: '1px solid #FFBBB8', color: '#D70015' }}>
       {children}
     </div>
   );
 }
 
 // ─── InfoBox ──────────────────────────────────────────────────────────────────
-export function InfoBox({ children }: { children: React.ReactNode }) {
+export function InfoBox({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] p-3 text-[12px] text-[#1E40AF] leading-relaxed">
+    <div className="rounded-[14px] p-4 text-[13px] leading-relaxed"
+      style={{ backgroundColor: '#EAF3FF', border: '1px solid #B3D4FF', color: '#004DB3' }}>
       {children}
     </div>
   );
+}
+
+// ─── Divider ──────────────────────────────────────────────────────────────────
+export function Divider() {
+  return <div style={{ height: '0.5px', backgroundColor: '#C6C6C8' }} />;
 }

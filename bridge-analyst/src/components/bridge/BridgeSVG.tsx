@@ -1,7 +1,8 @@
 import type { GeoData } from '../../types';
 
 const DECK_LABEL: Record<string, string> = {
-  slab: 'Dalle', box_girder: 'Caisson', i_beam: 'I', t_beam: 'T', arch: 'Arc', unknown: '?',
+  slab: 'DALLE', box_girder: 'CAISSON', i_beam: 'I-POUTRE',
+  t_beam: 'T-POUTRE', arch: 'ARC', unknown: '—',
 };
 
 interface Props {
@@ -10,62 +11,99 @@ interface Props {
 }
 
 export function BridgeSVG({ geo, className = '' }: Props) {
-  const PX = 20;
-  const drawW = 300;
-  const deckY = 44;
-  const deckH = 16;
-  const groundY = 118;
-  const abutW = 18;
-  const pierW = 10;
-  const viewH = 140;
-  const viewW = 340;
+  const W = 340;
+  const H = 130;
+  const marginX = 24;
+  const drawW = W - 2 * marginX;
+  const deckY = 38;
+  const deckH = 10;
+  const groundY = 104;
+  const abutW = 14;
+  const pierW = 8;
 
   const spans = Math.max(1, geo.spans);
-  const spanW = (drawW - 2 * abutW) / spans;
-  const spanLen = spans > 0 ? (geo.total_length_m / spans).toFixed(1) : '—';
 
-  // Ground hatch
-  const hatchLines = Array.from({ length: 30 }, (_, i) => (
-    <line key={i}
-      x1={PX + i * 12} y1={groundY + 1}
-      x2={PX + i * 12 - 8} y2={groundY + 9}
-      stroke="#CBD5E1" strokeWidth="1" />
-  ));
+  // Support unequal spans
+  const Ls = (geo.span_lengths && geo.span_lengths.length === spans)
+    ? geo.span_lengths
+    : Array(spans).fill(geo.total_length_m / spans);
+  const totalL = Ls.reduce((a, b) => a + b, 0);
+
+  // Compute cumulative span start positions (in metres)
+  const spanStartMetres: number[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < spans; i++) {
+    spanStartMetres.push(cumulative);
+    cumulative += Ls[i];
+  }
+
+  // Helper: convert metres along bridge to screen X
+  const mToScreenX = (m: number) =>
+    marginX + abutW + (m / totalL) * (drawW - 2 * abutW);
+
+  // Ground lines (hatching)
+  const hatchCount = Math.ceil(drawW / 9) + 2;
+  const hatchLines = Array.from({ length: hatchCount }, (_, i) => {
+    const x = marginX - 4 + i * 9;
+    return (
+      <line key={i}
+        x1={x} y1={groundY + 1}
+        x2={x - 6} y2={groundY + 8}
+        stroke="#B0B0B0" strokeWidth="0.8" strokeLinecap="round" />
+    );
+  });
+
+  // Pier positions (at cumulative span boundaries, excluding start and end)
+  const pierPositions = spanStartMetres.slice(1).map(m => mToScreenX(m));
 
   // Piers
-  const abutH = groundY - deckY - deckH;
   const pierElems = (geo.has_piers && spans > 1)
-    ? Array.from({ length: spans - 1 }, (_, i) => {
-        const k = i + 1;
-        const px = PX + abutW + k * spanW - pierW / 2;
+    ? pierPositions.map((cx, i) => {
+        const px = cx - pierW / 2;
+        const capY = groundY - 7;
         return (
-          <g key={k}>
-            <rect x={px - 4} y={groundY - 6} width={pierW + 8} height={6} rx={2}
-              fill="#CBD5E1" stroke="#94A3B8" strokeWidth="0.8" />
-            <rect x={px} y={deckY + deckH} width={pierW} height={abutH - 6} rx={2}
-              fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.8" />
+          <g key={i}>
+            {/* Pier shaft */}
+            <rect x={px} y={deckY + deckH} width={pierW} height={capY - (deckY + deckH)}
+              fill="#ECECEC" stroke="#9A9A9A" strokeWidth="0.8" />
+            {/* Pier cap */}
+            <rect x={px - 5} y={capY} width={pierW + 10} height={7} rx="1"
+              fill="#DCDCDC" stroke="#9A9A9A" strokeWidth="0.8" />
           </g>
         );
       })
     : null;
 
-  // Span labels
-  const spanLabels = Array.from({ length: spans }, (_, i) => {
-    const cx = PX + abutW + i * spanW + spanW / 2;
+  // Span dimension lines
+  const dimY = deckY - 14;
+  const spanDims = Array.from({ length: spans }, (_, i) => {
+    const x0 = mToScreenX(spanStartMetres[i]);
+    const x1 = mToScreenX(spanStartMetres[i] + Ls[i]);
+    const cx = (x0 + x1) / 2;
+    const spanLen = Ls[i].toFixed(1);
     return (
-      <text key={i} x={cx} y={deckY - 6} textAnchor="middle" fontSize={7} fill="#94A3B8">
-        {spanLen} m
-      </text>
+      <g key={i}>
+        <line x1={x0 + 2} y1={dimY} x2={x1 - 2} y2={dimY} stroke="#007AFF" strokeWidth="0.8" />
+        <line x1={x0 + 2} y1={dimY - 3} x2={x0 + 2} y2={dimY + 3} stroke="#007AFF" strokeWidth="0.8" />
+        <line x1={x1 - 2} y1={dimY - 3} x2={x1 - 2} y2={dimY + 3} stroke="#007AFF" strokeWidth="0.8" />
+        <text x={cx} y={dimY - 4} textAnchor="middle" fontSize="6.5" fill="#007AFF" fontFamily="monospace">
+          {spanLen}m
+        </text>
+      </g>
     );
   });
 
-  const dimColor = '#C4B5FD';
-  const arrowY = deckY - 18;
+  // Abutments
+  const leftAbut = marginX;
+  const rightAbut = marginX + drawW - abutW;
 
   return (
-    <svg viewBox={`0 0 ${viewW} ${viewH}`} className={className} aria-label="Schéma du pont">
-      {/* Ground */}
-      <rect x={PX} y={groundY} width={drawW} height={3} fill="#CBD5E1" />
+    <svg viewBox={`0 0 ${W} ${H}`} className={className} aria-label="Schéma du pont">
+      {/* Background */}
+      <rect width={W} height={H} fill="#FAFAFA" rx="12" />
+
+      {/* Ground line */}
+      <line x1={marginX} y1={groundY} x2={marginX + drawW} y2={groundY} stroke="#9A9A9A" strokeWidth="1" />
       {hatchLines}
 
       {/* Piers */}
@@ -74,36 +112,41 @@ export function BridgeSVG({ geo, className = '' }: Props) {
       {/* Abutments */}
       {geo.has_abutments !== false && (
         <>
-          <rect x={PX} y={deckY + deckH} width={abutW} height={abutH} rx={2}
-            fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.8" />
-          <rect x={PX - 4} y={groundY - 6} width={abutW + 8} height={6} rx={2}
-            fill="#CBD5E1" stroke="#94A3B8" strokeWidth="0.8" />
-          <rect x={PX + drawW - abutW} y={deckY + deckH} width={abutW} height={abutH} rx={2}
-            fill="#E2E8F0" stroke="#94A3B8" strokeWidth="0.8" />
-          <rect x={PX + drawW - abutW - 4} y={groundY - 6} width={abutW + 8} height={6} rx={2}
-            fill="#CBD5E1" stroke="#94A3B8" strokeWidth="0.8" />
+          {/* Left */}
+          <rect x={leftAbut} y={deckY + deckH} width={abutW} height={groundY - deckY - deckH - 7}
+            fill="#DCDCDC" stroke="#9A9A9A" strokeWidth="0.8" />
+          <rect x={leftAbut - 4} y={groundY - 7} width={abutW + 8} height={7} rx="1"
+            fill="#C8C8C8" stroke="#9A9A9A" strokeWidth="0.8" />
+          {/* Right */}
+          <rect x={rightAbut} y={deckY + deckH} width={abutW} height={groundY - deckY - deckH - 7}
+            fill="#DCDCDC" stroke="#9A9A9A" strokeWidth="0.8" />
+          <rect x={rightAbut - 4} y={groundY - 7} width={abutW + 8} height={7} rx="1"
+            fill="#C8C8C8" stroke="#9A9A9A" strokeWidth="0.8" />
         </>
       )}
 
       {/* Deck */}
-      <rect x={PX} y={deckY} width={drawW} height={deckH} rx={3}
-        fill="#2563EB" fillOpacity={0.85} />
-      <text x={PX + drawW / 2} y={deckY + deckH / 2 + 2.5} textAnchor="middle"
-        fontSize={7.5} fontWeight="bold" fill="white">
+      <rect x={marginX} y={deckY} width={drawW} height={deckH} rx="2"
+        fill="#007AFF" fillOpacity="0.12" stroke="#007AFF" strokeWidth="1.2" />
+
+      {/* Deck label */}
+      <text x={marginX + drawW / 2} y={deckY + deckH / 2 + 2.5} textAnchor="middle"
+        fontSize="6" fontWeight="600" fill="#007AFF" letterSpacing="0.5" fontFamily="monospace">
         {DECK_LABEL[geo.deck_type] ?? '?'}
       </text>
 
-      {/* Span labels */}
-      {spanLabels}
+      {/* Span dimensions */}
+      {spanDims}
 
-      {/* Dim line */}
-      <line x1={PX} y1={arrowY} x2={PX + drawW} y2={arrowY} stroke={dimColor} strokeWidth={0.8} />
-      <polygon points={`${PX},${arrowY} ${PX + 5},${arrowY - 2} ${PX + 5},${arrowY + 2}`} fill={dimColor} />
-      <polygon points={`${PX + drawW},${arrowY} ${PX + drawW - 5},${arrowY - 2} ${PX + drawW - 5},${arrowY + 2}`} fill={dimColor} />
-
-      {/* Dim text */}
-      <text x={viewW - 16} y={groundY + 14} textAnchor="end" fontSize={7} fill="#94A3B8">
-        L={geo.total_length_m}m · l={geo.width_m}m · h={geo.clearance_m}m
+      {/* Footer info */}
+      <text x={marginX} y={H - 6} fontSize="6" fill="#8E8E93" fontFamily="monospace">
+        L={geo.total_length_m}m
+      </text>
+      <text x={W / 2} y={H - 6} textAnchor="middle" fontSize="6" fill="#8E8E93" fontFamily="monospace">
+        l={geo.width_m}m
+      </text>
+      <text x={W - marginX} y={H - 6} textAnchor="end" fontSize="6" fill="#8E8E93" fontFamily="monospace">
+        h={geo.clearance_m}m
       </text>
     </svg>
   );
