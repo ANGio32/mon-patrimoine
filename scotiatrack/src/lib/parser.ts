@@ -38,8 +38,8 @@ function parseAmount(raw: string, amountStr: string): number {
     const n = parseFloat(cleaned);
     if (!isNaN(n)) return n;
   }
-  // Fall back to raw field
-  const match = raw.match(/de\s+([\d\s]+[,.]\d{2})\s*\$/i);
+  // Match "autorisation de X $" and "opération de X $"
+  const match = raw.match(/(?:autorisation|op[eé]ration) de\s+([\d\s,]+[\d])\s*\$/i);
   if (match) {
     const cleaned = match[1].replace(/\s/g, '').replace(',', '.');
     return parseFloat(cleaned) || 0;
@@ -49,9 +49,9 @@ function parseAmount(raw: string, amountStr: string): number {
 
 function parseDescription(raw: string, description: string): string {
   if (description && description.trim() !== '') return description.trim();
-  const match = raw.match(/aupr[eèê]s de (.+?) a [eèê]t[eèê]/i);
+  // Match merchant before "a été" or before time "à HH h"
+  const match = raw.match(/aupr[eèê]s de (.+?)(?:\s+a [eèê]t[eèê]|\s+à \d)/i);
   if (match) return match[1].trim();
-  // Fallback: try "auprès de X" without the rest
   const match2 = raw.match(/aupr[eèê]s de ([^,.\n]+)/i);
   if (match2) return match2[1].trim();
   return 'Transaction';

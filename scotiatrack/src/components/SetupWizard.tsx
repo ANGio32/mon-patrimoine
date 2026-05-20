@@ -5,15 +5,15 @@ function processScotiaEmails() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
     .getSheetByName("Feuille 1") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   const existing = sheet.getDataRange().getValues().slice(1).map(r => String(r[5]));
-  const threads = GmailApp.search('autorisation de newer_than:30d', 0, 100);
+  const threads = GmailApp.search('auprès de newer_than:30d', 0, 100);
   for (const thread of threads) {
     for (const msg of thread.getMessages()) {
       const body = msg.getPlainBody() || msg.getBody();
-      const amtMatch = body.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      const amtMatch = body.match(/(?:autorisation|op[eé]ration) de ([\\d\\s,]+[\\d])\\s*\\$/i);
       if (!amtMatch) continue;
       if (existing.includes(body)) continue;
       const amount = amtMatch[1].replace(/\\s/g, '').replace(',', '.');
-      const merchMatch = body.match(/auprès de (.+?) a été/i);
+      const merchMatch = body.match(/auprès de (.+?)(?:\\s+a été|\\s+à \\d)/i);
       const description = merchMatch ? merchMatch[1].trim() : msg.getSubject();
       const date = Utilities.formatDate(msg.getDate(), 'America/Toronto', 'yyyy-MM-dd');
       sheet.appendRow([date, description, amount, 'debit', 'Scotia', body]);
@@ -31,9 +31,9 @@ function doGet(e) {
     if (data.length < 2) return out([]);
     const rows = data.slice(1).map(r => {
       const raw = String(r[5] || "");
-      const amtMatch = raw.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      const amtMatch = raw.match(/(?:autorisation|op[eé]ration) de ([\\d\\s,]+[\\d])\\s*\\$/i);
       const amount = amtMatch ? amtMatch[1].replace(/\\s/g, "").replace(",", ".") : String(r[2] || "");
-      const merchMatch = raw.match(/auprès de (.+?) a été/i);
+      const merchMatch = raw.match(/auprès de (.+?)(?:\\s+a été|\\s+à \\d)/i);
       const description = merchMatch ? merchMatch[1].trim() : String(r[1] || "");
       return {
         date: String(r[0] || ""),
