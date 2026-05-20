@@ -1,0 +1,143 @@
+import type { Transaction } from './parser';
+
+export function getCurrentMonth(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+export function getPreviousMonth(): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return d.toISOString().slice(0, 7);
+}
+
+export function getMonthTransactions(txs: Transaction[], month: string) {
+  return txs.filter(t => t.date.startsWith(month));
+}
+
+export function getTotalDebits(txs: Transaction[]): number {
+  return txs.filter(t => t.type === 'debit').reduce((s, t) => s + t.amount, 0);
+}
+
+export function getTotalCredits(txs: Transaction[]): number {
+  return txs.filter(t => t.type === 'credit').reduce((s, t) => s + t.amount, 0);
+}
+
+export function getDailyAverage(txs: Transaction[], month: string): number {
+  const debits = getMonthTransactions(txs, month).filter(t => t.type === 'debit');
+  if (!debits.length) return 0;
+  const dates = [...new Set(debits.map(t => t.date))];
+  return getTotalDebits(debits) / dates.length;
+}
+
+export function getLast6MonthsData(txs: Transaction[]): { month: string; label: string; total: number }[] {
+  const now = new Date();
+  const result = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('fr-CA', { month: 'short' });
+    const monthTxs = getMonthTransactions(txs, month).filter(t => t.type === 'debit');
+    result.push({ month, label, total: getTotalDebits(monthTxs) });
+  }
+  return result;
+}
+
+export function getLast7DaysData(txs: Transaction[]): { label: string; total: number }[] {
+  const result = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    const label = d.toLocaleDateString('fr-CA', { weekday: 'short' });
+    const dayTotal = txs
+      .filter(t => t.date === date && t.type === 'debit')
+      .reduce((s, t) => s + t.amount, 0);
+    result.push({ label, total: dayTotal });
+  }
+  return result;
+}
+
+export function getCategoryBreakdown(txs: Transaction[]) {
+  const map: Record<string, { emoji: string; total: number }> = {};
+  txs.filter(t => t.type === 'debit').forEach(t => {
+    if (!map[t.category]) map[t.category] = { emoji: t.categoryEmoji, total: 0 };
+    map[t.category].total += t.amount;
+  });
+  return Object.entries(map)
+    .map(([category, { emoji, total }]) => ({ category, emoji, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+}
+
+export function getTopMerchants(txs: Transaction[], limit = 5): { name: string; total: number; count: number }[] {
+  const map: Record<string, { total: number; count: number }> = {};
+  txs.filter(t => t.type === 'debit').forEach(t => {
+    if (!map[t.description]) map[t.description] = { total: 0, count: 0 };
+    map[t.description].total += t.amount;
+    map[t.description].count += 1;
+  });
+  return Object.entries(map)
+    .map(([name, { total, count }]) => ({ name, total, count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}
+
+export function getPayDatesInMonth(refDate: string, month: string): string[] {
+  if (!refDate) return [];
+  const [ry, rm, rd] = refDate.split('-').map(Number);
+  const [my, mm] = month.split('-').map(Number);
+  const refMs = new Date(ry, rm - 1, rd).getTime();
+  const daysInMonth = new Date(my, mm, 0).getDate();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const result: string[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateMs = new Date(my, mm - 1, d).getTime();
+    const diffDays = Math.round((dateMs - refMs) / DAY_MS);
+    if (diffDays % 14 === 0) {
+      result.push(`${my}-${String(mm).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    }
+  }
+  return result;
+}
+
+export function getMonthlyIncome(refDate: string, payAmount: number, month: string): number {
+  return getPayDatesInMonth(refDate, month).length * payAmount;
+}
+
+export function getNextPayDate(refDate: string): string {
+  if (!refDate) return '';
+  const [ry, rm, rd] = refDate.split('-').map(Number);
+  const refMs = new Date(ry, rm - 1, rd).getTime();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((todayMs - refMs) / DAY_MS);
+  const cyclesPast = Math.floor(diffDays / 14);
+  const nextCycle = diffDays % 14 === 0 ? cyclesPast : cyclesPast + 1;
+  const nextPayMs = refMs + nextCycle * 14 * DAY_MS;
+  const d = new Date(nextPayMs);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function getDaysUntilNextPay(refDate: string): number {
+  const next = getNextPayDate(refDate);
+  if (!next) return -1;
+  const [ny, nm, nd] = next.split('-').map(Number);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(ny, nm - 1, nd).getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+
+export function getWorkingDaysInMonth(month: string): number {
+  const [year, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(year, m, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const day = new Date(year, m - 1, d).getDay();
+    if (day !== 0 && day !== 6) count++;
+  }
+  return count;
+}
