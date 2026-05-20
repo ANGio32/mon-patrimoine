@@ -80,7 +80,8 @@ export function AddTransactionModal({ onAdd, onClose }: Props) {
           <div style={{ display: 'flex', gap: 10 }}>
             <Field label="Montant ($)" style={{ flex: 1 }}>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
@@ -122,7 +123,7 @@ export function AddTransactionModal({ onAdd, onClose }: Props) {
                   color: type === t ? '#fff' : '#0D0D0D',
                 }}
               >
-                {t === 'debit' ? 'Débit' : 'Crédit'}
+                {t === 'debit' ? 'Dépense' : 'Revenu'}
               </button>
             ))}
           </div>
