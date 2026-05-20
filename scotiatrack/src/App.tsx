@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TopBar } from './components/TopBar';
 import { BottomNav } from './components/BottomNav';
 import { SetupWizard } from './components/SetupWizard';
+import { AddTransactionModal } from './components/AddTransactionModal';
 import { HomeTab } from './tabs/HomeTab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { TransactionsTab } from './tabs/TransactionsTab';
@@ -42,7 +43,8 @@ function useCategoryBudgets() {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('home');
-  const { transactions, loading, error, lastSync, scriptUrl, saveUrl, refresh } = useTransactions();
+  const [showAddModal, setShowAddModal] = useState(false);
+  const { transactions, loading, error, lastSync, scriptUrl, saveUrl, refresh, addManualTransaction, deleteManualTransaction } = useTransactions();
   const { payAmount, nextPayDate, savePayAmount, saveNextPayDate } = usePaySettings();
   const [categoryBudgets, saveBudgets] = useCategoryBudgets();
 
@@ -74,7 +76,7 @@ export default function App() {
           <AnalyticsTab transactions={transactions} payAmount={payAmount} nextPayDate={nextPayDate} categoryBudgets={categoryBudgets} />
         )}
         {tab === 'transactions' && (
-          <TransactionsTab transactions={transactions} payAmount={payAmount} />
+          <TransactionsTab transactions={transactions} payAmount={payAmount} onDelete={deleteManualTransaction} />
         )}
         {tab === 'settings' && (
           <SettingsTab
@@ -92,6 +94,34 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Floating + button */}
+      {tab !== 'settings' && (
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{
+            position: 'fixed',
+            bottom: `max(calc(env(safe-area-inset-bottom, 0px) + 72px), 92px)`,
+            right: 'calc(50% - 390px/2 + 16px)',
+            width: 48, height: 48, borderRadius: '50%',
+            background: '#0D0D0D', color: '#fff', border: 'none',
+            fontSize: 26, cursor: 'pointer', zIndex: 25,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+            lineHeight: 1,
+          }}
+          aria-label="Ajouter une dépense"
+        >
+          +
+        </button>
+      )}
+
+      {showAddModal && (
+        <AddTransactionModal
+          onAdd={addManualTransaction}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
 
       <BottomNav active={tab} onChange={setTab} />
     </div>

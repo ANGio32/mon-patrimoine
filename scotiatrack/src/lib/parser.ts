@@ -17,6 +17,7 @@ export interface Transaction {
   raw: string;
   category: string;
   categoryEmoji: string;
+  manual?: boolean;
 }
 
 function normalizeDate(d: string): string {

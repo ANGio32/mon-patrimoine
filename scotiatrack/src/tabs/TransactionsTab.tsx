@@ -7,9 +7,10 @@ type Filter = 'all' | 'debit' | 'credit';
 interface TransactionsTabProps {
   transactions: Transaction[];
   payAmount: number;
+  onDelete: (id: string) => void;
 }
 
-export function TransactionsTab({ transactions, payAmount }: TransactionsTabProps) {
+export function TransactionsTab({ transactions, payAmount, onDelete }: TransactionsTabProps) {
   const dailySalary = payAmount > 0 ? payAmount / 10 : 0;
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -78,7 +79,22 @@ export function TransactionsTab({ transactions, payAmount }: TransactionsTabProp
         ) : (
           sortedDates.map(date =>
             grouped[date].map((tx, i) => (
-              <TransactionRow key={tx.id} tx={tx} dailySalary={dailySalary} showDate={i === 0} />
+              <div key={tx.id} style={{ position: 'relative' }}>
+                <TransactionRow tx={tx} dailySalary={dailySalary} showDate={i === 0} />
+                {tx.manual && (
+                  <button
+                    onClick={() => onDelete(tx.id)}
+                    style={{
+                      position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: '#CCC', fontSize: 16, padding: 4, lineHeight: 1,
+                    }}
+                    aria-label="Supprimer"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             ))
           )
         )}
