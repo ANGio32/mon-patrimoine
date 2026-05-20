@@ -1,19 +1,52 @@
 import { useState } from 'react';
 
-const APPS_SCRIPT_CODE = `function doGet(e) {
+const APPS_SCRIPT_CODE = `// ── Capture automatique (déclencheur toutes les heures) ──
+function processScotiaEmails() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName("Feuille 1") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const existing = sheet.getDataRange().getValues().slice(1).map(r => String(r[5]));
+  const threads = GmailApp.search('autorisation de newer_than:30d', 0, 100);
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      const body = msg.getPlainBody() || msg.getBody();
+      const amtMatch = body.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      if (!amtMatch) continue;
+      if (existing.includes(body)) continue;
+      const amount = amtMatch[1].replace(/\\s/g, '').replace(',', '.');
+      const merchMatch = body.match(/auprès de (.+?) a été/i);
+      const description = merchMatch ? merchMatch[1].trim() : msg.getSubject();
+      const date = Utilities.formatDate(msg.getDate(), 'America/Toronto', 'yyyy-MM-dd');
+      sheet.appendRow([date, description, amount, 'debit', 'Scotia', body]);
+      existing.push(body);
+    }
+  }
+}
+
+// ── API Web App (lecture par l'app) ──
+function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Feuille 1") || ss.getSheets()[0];
     const data = sheet.getDataRange().getValues();
     if (data.length < 2) return out([]);
-    const rows = data.slice(1).map(r => ({
-      date: String(r[0] || ""),
-      description: String(r[1] || ""),
-      amount: String(r[2] || ""),
-      type: String(r[3] || "debit"),
-      account: String(r[4] || ""),
-      raw: String(r[5] || "")
-    })).filter(r => r.date && r.date !== "");
+    const rows = data.slice(1).map(r => {
+      const raw = String(r[5] || "");
+      const amtMatch = raw.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      const amount = amtMatch ? amtMatch[1].replace(/\\s/g, "").replace(",", ".") : String(r[2] || "");
+      const merchMatch = raw.match(/auprès de (.+?) a été/i);
+      const description = merchMatch ? merchMatch[1].trim() : String(r[1] || "");
+      return {
+        date: String(r[0] || ""),
+        description: description,
+        amount: amount,
+        type: String(r[3] || "debit"),
+        account: String(r[4] || ""),
+        raw: raw
+      };
+    }).filter(r => {
+      if (!r.date || r.date.trim() === "") return false;
+      return parseFloat(r.amount) > 0;
+    });
     return out(rows);
   } catch(e) { return out({error: e.message}); }
 }
@@ -59,6 +92,11 @@ export function SetupWizard({ onComplete }: SetupWizardProps) {
     {
       title: 'Déployez',
       desc: 'Dans Apps Script : Déployer → Nouveau déploiement → Application Web → Accès : Tout le monde.',
+      action: null,
+    },
+    {
+      title: 'Activez le déclencheur',
+      desc: 'Dans Apps Script → Déclencheurs (horloge) → Ajouter un déclencheur → Fonction : processScotiaEmails → Type : Déclencheur horaire. Seuls les emails Scotia seront capturés.',
       action: null,
     },
     {

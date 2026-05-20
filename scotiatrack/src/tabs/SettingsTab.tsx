@@ -14,7 +14,30 @@ const CATEGORIES = [
   { key: 'Autre', emoji: '💳' },
 ];
 
-const APPS_SCRIPT_CODE = `function doGet(e) {
+const APPS_SCRIPT_CODE = `// ── Capture automatique (déclencheur toutes les heures) ──
+function processScotiaEmails() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName("Feuille 1") || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const existing = sheet.getDataRange().getValues().slice(1).map(r => String(r[5]));
+  const threads = GmailApp.search('autorisation de newer_than:30d', 0, 100);
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      const body = msg.getPlainBody() || msg.getBody();
+      const amtMatch = body.match(/autorisation de ([\\d\\s,]+[\\d])\\s*\\$/i);
+      if (!amtMatch) continue;
+      if (existing.includes(body)) continue;
+      const amount = amtMatch[1].replace(/\\s/g, '').replace(',', '.');
+      const merchMatch = body.match(/auprès de (.+?) a été/i);
+      const description = merchMatch ? merchMatch[1].trim() : msg.getSubject();
+      const date = Utilities.formatDate(msg.getDate(), 'America/Toronto', 'yyyy-MM-dd');
+      sheet.appendRow([date, description, amount, 'debit', 'Scotia', body]);
+      existing.push(body);
+    }
+  }
+}
+
+// ── API Web App (lecture par l'app) ──
+function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName("Feuille 1") || ss.getSheets()[0];
