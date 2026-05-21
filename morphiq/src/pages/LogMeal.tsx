@@ -109,13 +109,13 @@ export default function LogMeal() {
   }
 
   return (
-    <div className="page">
+    <div className="page bg-bg">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-5">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-card border border-border flex items-center justify-center">
-          <ChevronLeft size={18} className="text-white" />
+        <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-card shadow-card border border-border flex items-center justify-center">
+          <ChevronLeft size={18} className="text-text" />
         </button>
-        <h1 className="text-lg font-bold text-white">Log Meal</h1>
+        <h1 className="text-lg font-bold text-text">Log Meal</h1>
       </div>
 
       {/* Meal type */}
@@ -126,7 +126,7 @@ export default function LogMeal() {
               key={t.value}
               onClick={() => setMealType(t.value)}
               className={`flex-1 flex flex-col items-center py-3 rounded-2xl border text-xs font-medium transition-all ${
-                mealType === t.value ? 'border-white/20 bg-white/5 text-white' : 'border-border text-muted bg-card/50'
+                mealType === t.value ? 'border-green bg-green-bg text-green-dark' : 'border-border text-muted bg-card'
               }`}
             >
               <span className="text-xl mb-0.5">{t.emoji}</span>
@@ -140,7 +140,7 @@ export default function LogMeal() {
       <div className="px-5 mb-5">
         <div
           onClick={() => fileRef.current?.click()}
-          className="relative rounded-3xl border border-border overflow-hidden cursor-pointer bg-card"
+          className="relative rounded-3xl border border-border overflow-hidden cursor-pointer bg-card shadow-card"
           style={{ height: photo ? 220 : 110 }}
         >
           {photo ? (
@@ -161,7 +161,7 @@ export default function LogMeal() {
           </button>
         )}
         {photo && !hasKey && (
-          <div className="mt-3 flex items-center gap-2 text-orange/80 text-xs bg-orange/5 px-4 py-3 rounded-2xl border border-orange/10">
+          <div className="mt-3 flex items-center gap-2 text-orange text-xs bg-orange-bg px-4 py-3 rounded-2xl border border-border">
             <AlertCircle size={14} className="flex-shrink-0" />
             Add your Gemini API key in Profile to enable AI analysis
           </div>
@@ -175,19 +175,19 @@ export default function LogMeal() {
           <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Detected items</p>
           <div className="space-y-2 mb-3">
             {items.map((item, i) => (
-              <div key={i} className="bg-card rounded-2xl border border-border p-4 flex items-start gap-3">
+              <div key={i} className="bg-card rounded-2xl border border-border shadow-card p-4 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium">{item.name}</p>
+                  <p className="text-text text-sm font-medium">{item.name}</p>
                   <p className="text-muted text-xs mt-0.5">{item.portionDescription}</p>
                   <div className="flex gap-3 mt-1.5 text-xs">
-                    <span className="text-primary-light">P {Math.round(item.protein)}g</span>
-                    <span className="text-green">C {Math.round(item.carbs)}g</span>
+                    <span className="text-green">P {Math.round(item.protein)}g</span>
+                    <span className="text-blue">C {Math.round(item.carbs)}g</span>
                     <span className="text-orange">F {Math.round(item.fat)}g</span>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0 flex items-start gap-2">
                   <div>
-                    <p className="text-white font-semibold text-sm">{Math.round(item.calories)}</p>
+                    <p className="text-text font-semibold text-sm">{Math.round(item.calories)}</p>
                     <p className="text-muted text-xs">kcal</p>
                   </div>
                   <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-muted hover:text-red-400 transition-colors mt-0.5">
@@ -198,13 +198,13 @@ export default function LogMeal() {
             ))}
           </div>
           {/* Total */}
-          <div className="bg-primary/8 border border-primary/15 rounded-2xl p-4 flex items-center justify-between">
-            <div className="flex gap-4 text-xs text-muted">
-              <span>P <strong className="text-white">{Math.round(totals.pro)}g</strong></span>
-              <span>C <strong className="text-white">{Math.round(totals.carb)}g</strong></span>
-              <span>F <strong className="text-white">{Math.round(totals.fat)}g</strong></span>
+          <div className="bg-green-bg border border-border rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex gap-4 text-xs text-dim">
+              <span>P <strong className="text-text">{Math.round(totals.pro)}g</strong></span>
+              <span>C <strong className="text-text">{Math.round(totals.carb)}g</strong></span>
+              <span>F <strong className="text-text">{Math.round(totals.fat)}g</strong></span>
             </div>
-            <span className="text-primary-light font-black text-lg">{Math.round(totals.cal)} kcal</span>
+            <span className="text-green-dark font-black text-lg">{Math.round(totals.cal)} kcal</span>
           </div>
         </div>
       )}
@@ -212,7 +212,7 @@ export default function LogMeal() {
       {/* Add manually */}
       <div className="px-5 mb-5">
         <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Add manually</p>
-        <div className="bg-card rounded-2xl border border-border p-4 space-y-2.5">
+        <div className="bg-card rounded-2xl border border-border shadow-card p-4 space-y-2.5">
           <input className="input-field" placeholder="Food name" value={name} onChange={e => setName(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
             <input className="input-field" type="number" placeholder="Calories" value={cal} onChange={e => setCal(e.target.value)} />
@@ -231,28 +231,28 @@ export default function LogMeal() {
         <div className="px-5 mb-5">
           <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Sport Timing</p>
           {loadingTiming ? (
-            <div className="bg-card rounded-2xl border border-border p-4 text-center text-dim text-sm flex items-center justify-center gap-2">
+            <div className="bg-card rounded-2xl border border-border shadow-card p-4 text-center text-dim text-sm flex items-center justify-center gap-2">
               <Loader size={14} className="animate-spin" /> Generating advice...
             </div>
           ) : timing ? (
-            <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
               {[
                 { icon: <Clock size={15} />, label: 'Before exercise', value: timing.waitBeforeExercise, color: 'text-green' },
-                { icon: <Dumbbell size={15} />, label: 'Workout type', value: timing.exerciseType, color: 'text-primary-light' },
+                { icon: <Dumbbell size={15} />, label: 'Workout type', value: timing.exerciseType, color: 'text-green' },
                 { icon: <Clock size={15} />, label: 'Recovery', value: timing.recoveryWindow, color: 'text-orange' },
-                { icon: <Droplets size={15} />, label: 'Hydration', value: timing.hydration, color: 'text-blue-400' },
+                { icon: <Droplets size={15} />, label: 'Hydration', value: timing.hydration, color: 'text-blue' },
               ].map((row, i) => (
                 <div key={i} className={`flex items-start gap-3 px-4 py-3 ${i < 3 ? 'border-b border-border' : ''}`}>
                   <span className={`mt-0.5 ${row.color}`}>{row.icon}</span>
                   <div>
-                    <p className="text-white text-xs font-medium">{row.label}</p>
+                    <p className="text-text text-xs font-medium">{row.label}</p>
                     <p className="text-dim text-xs mt-0.5">{row.value}</p>
                   </div>
                 </div>
               ))}
-              <div className="px-4 py-3 bg-primary/5 flex gap-2">
-                <Lightbulb size={14} className="text-primary-light flex-shrink-0 mt-0.5" />
-                <p className="text-primary-light text-xs">{timing.tip}</p>
+              <div className="px-4 py-3 bg-green-bg flex gap-2">
+                <Lightbulb size={14} className="text-green flex-shrink-0 mt-0.5" />
+                <p className="text-green-dark text-xs">{timing.tip}</p>
               </div>
             </div>
           ) : null}
