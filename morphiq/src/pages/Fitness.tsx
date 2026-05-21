@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy } from 'lucide-react';
+import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getWorkoutPlan } from '../utils/gemini';
-import { saveWorkout, generateId, getTodayKey } from '../utils/storage';
-import type { WorkoutSession, Exercise } from '../types';
-import StickFigure, { EXERCISE_CUES } from '../components/StickFigure';
+import { generateStructuredProgram } from '../utils/gemini';
+import { saveWorkout, generateId, getTodayKey, saveAiProgram, loadAiPrograms, deleteAiProgram } from '../utils/storage';
+import type { WorkoutSession, Exercise, AiProgram, AiProgramSession } from '../types';
+import StickFigure, { ExerciseAnimation, EXERCISE_CUES } from '../components/StickFigure';
 
 function getExerciseCue(name: string): string {
   const key = name.toLowerCase();
@@ -216,11 +216,9 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
             </div>
           ) : (
             <>
-              <div className="bg-purple-bg rounded-3xl p-5 flex items-center justify-center mb-3" style={{ width: 180, height: 180 }}>
-                <StickFigure exercise={ex?.name ?? ''} size={150} showGround />
-              </div>
+              <ExerciseAnimation exercise={ex?.name ?? ''} size={110} />
               {/* Instruction cue */}
-              <div className="flex items-start gap-2 bg-card-yellow rounded-2xl px-4 py-2.5 max-w-xs">
+              <div className="flex items-start gap-2 bg-card-yellow rounded-2xl px-4 py-2.5 max-w-xs mt-3">
                 <span className="text-base flex-shrink-0">💡</span>
                 <p className="text-amber-800 text-xs leading-relaxed font-medium">{getExerciseCue(ex?.name ?? '')}</p>
               </div>
@@ -276,20 +274,74 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   );
 }
 
+// ── Session card (shared between built-in and AI programs) ───────────────────
+function SessionCard({ session, onStart }: { session: AiProgramSession; onStart: () => void }) {
+  return (
+    <div className="bg-white shadow-card rounded-3xl overflow-hidden">
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-text font-bold text-sm">{session.name}</h3>
+            <p className="text-muted text-xs mt-0.5">{session.durationMin} min · {session.exercises.length} exercises</p>
+          </div>
+          <button
+            onClick={onStart}
+            className="flex items-center gap-2 bg-[#1C1C1E] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
+          >
+            <Play size={14} fill="white" /> Start
+          </button>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+          {session.exercises.map((ex, ei) => (
+            <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
+              <div className="rounded-2xl bg-purple-bg flex items-center justify-center" style={{ width: 72, height: 72 }}>
+                <StickFigure exercise={ex.name} size={60} showGround />
+              </div>
+              <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-border">
+        {session.exercises.map((ex, ei) => (
+          <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
+            <div className="w-8 h-8 rounded-xl bg-purple-bg flex items-center justify-center flex-shrink-0">
+              <StickFigure exercise={ex.name} size={28} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-text text-sm font-medium">{ex.name}</p>
+              <p className="text-muted text-xs mt-0.5">
+                {ex.sets} sets · {ex.reps ? `${ex.reps} reps` : `${ex.durationSec ?? 30}s`} · {ex.restSec}s rest
+              </p>
+            </div>
+            <div className="flex gap-1 flex-wrap justify-end max-w-[100px]">
+              {ex.muscleGroups.slice(0, 2).map(m => (
+                <span key={m} className="pill bg-section text-dim border border-border text-[9px]">{m}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Fitness Page ───────────────────────────────────────────────────────
 
 export default function Fitness() {
   const { state, refreshToday } = useApp();
   const [tab, setTab] = useState<'program' | 'ai'>('program');
   const [aiDays, setAiDays] = useState(4);
-  const [aiResult, setAiResult] = useState('');
+  const [aiRequest, setAiRequest] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activePlayer, setActivePlayer] = useState<typeof GOAL_PROGRAMS.lose_weight.sessions[0] | null>(null);
+  const [aiPrograms, setAiPrograms] = useState<AiProgram[]>(() => loadAiPrograms());
+  const [activePlayer, setActivePlayer] = useState<AiProgramSession | null>(null);
 
   const goal = state.profile?.goal ?? 'maintain';
+  const equipment = state.profile?.equipment ?? 'both';
   const program = GOAL_PROGRAMS[goal];
 
-  function handleWorkoutDone(session: typeof GOAL_PROGRAMS.lose_weight.sessions[0]) {
+  function handleWorkoutDone(session: AiProgramSession) {
     const workout: WorkoutSession = {
       id: generateId(),
       date: getTodayKey(),
@@ -303,15 +355,30 @@ export default function Fitness() {
     setActivePlayer(null);
   }
 
-  async function generatePlan() {
+  async function generateProgram() {
     if (!state.profile?.geminiApiKey) return;
     setLoading(true);
-    setAiResult('');
+    const req = aiRequest.trim() || `${aiDays} days/week workout, goal: ${goal.replace('_', ' ')}`;
     try {
-      const text = await getWorkoutPlan(state.profile.geminiApiKey, goal, aiDays);
-      setAiResult(text);
-    } catch (e) { setAiResult(`Error: ${e instanceof Error ? e.message : 'Unknown error. Check your API key in Profile.'}`); }
-    finally { setLoading(false); }
+      const result = await generateStructuredProgram(state.profile.geminiApiKey, req, equipment, aiDays);
+      const newProgram: AiProgram = {
+        id: generateId(),
+        name: result.programName,
+        createdAt: new Date().toISOString(),
+        request: req,
+        sessions: result.sessions,
+      };
+      saveAiProgram(newProgram);
+      setAiPrograms(loadAiPrograms());
+      setTab('program');
+    } catch (e) {
+      alert(`Error: ${e instanceof Error ? e.message : 'Check your API key in Profile.'}`);
+    } finally { setLoading(false); }
+  }
+
+  function removeAiProgram(id: string) {
+    deleteAiProgram(id);
+    setAiPrograms(loadAiPrograms());
   }
 
   const todayWorkouts = state.todayLog.workouts;
@@ -334,7 +401,7 @@ export default function Fitness() {
 
         {/* Done today */}
         {todayWorkouts.length > 0 && (
-          <div className="px-5 mb-5">
+          <div className="px-5 mb-5 space-y-2">
             {todayWorkouts.map(w => (
               <div key={w.id} className="bg-card-mint rounded-2xl p-4 flex items-center gap-3">
                 <CheckCircle size={20} className="text-green flex-shrink-0" />
@@ -354,67 +421,50 @@ export default function Fitness() {
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === t ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
               >
-                {t === 'program' ? <><Dumbbell size={15} /> My Program</> : <><Sparkles size={15} /> AI Plan</>}
+                {t === 'program' ? <><Dumbbell size={15} /> My Program</> : <><Sparkles size={15} /> AI Coach</>}
               </button>
             ))}
           </div>
         </div>
 
         {tab === 'program' && (
-          <div className="px-5 space-y-4">
-            {program.sessions.map((session, si) => (
-              <div key={si} className="bg-white shadow-card rounded-3xl overflow-hidden">
-                {/* Session header */}
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-text font-bold">{session.name}</h3>
-                      <p className="text-muted text-xs mt-0.5">{session.durationMin} min · {session.exercises.length} exercises</p>
-                    </div>
-                    <button
-                      onClick={() => setActivePlayer(session)}
-                      className="flex items-center gap-2 bg-[#1C1C1E] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
-                    >
-                      <Play size={14} fill="white" /> Start
-                    </button>
-                  </div>
+          <div className="px-5 space-y-6">
+            {/* Built-in program */}
+            <div className="space-y-4">
+              <p className="text-muted text-xs font-bold uppercase tracking-widest">Built-in · {program.tag}</p>
+              {program.sessions.map((session, si) => (
+                <SessionCard key={si} session={session} onStart={() => setActivePlayer(session)} />
+              ))}
+            </div>
 
-                  {/* Exercise previews with stick figures */}
-                  <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
-                    {session.exercises.map((ex, ei) => (
-                      <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
-                        <div className="w-18 h-18 rounded-2xl bg-purple-bg flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                          <StickFigure exercise={ex.name} size={60} showGround />
-                        </div>
-                        <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Exercise list */}
-                <div className="border-t border-border">
-                  {session.exercises.map((ex, ei) => (
-                    <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
-                      <div className="w-8 h-8 rounded-xl bg-purple-bg flex items-center justify-center flex-shrink-0">
-                        <StickFigure exercise={ex.name} size={28} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text text-sm font-medium">{ex.name}</p>
-                        <p className="text-muted text-xs mt-0.5">
-                          {ex.sets} sets · {ex.reps ? `${ex.reps} reps` : `${ex.durationSec ?? 30}s`} · {ex.restSec}s rest
-                        </p>
-                      </div>
-                      <div className="flex gap-1 flex-wrap justify-end max-w-[100px]">
-                        {ex.muscleGroups.slice(0, 2).map(m => (
-                          <span key={m} className="pill bg-section text-dim border border-border text-[9px]">{m}</span>
-                        ))}
-                      </div>
+            {/* AI-generated programs */}
+            {aiPrograms.map(ap => (
+              <div key={ap.id} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] bg-purple text-white rounded-full px-2 py-0.5 font-bold">AI</span>
+                      <p className="text-text text-sm font-bold">{ap.name}</p>
                     </div>
-                  ))}
+                    <p className="text-muted text-xs mt-0.5 italic">"{ap.request}"</p>
+                  </div>
+                  <button onClick={() => removeAiProgram(ap.id)} className="w-8 h-8 rounded-xl bg-section border border-border flex items-center justify-center">
+                    <Trash2 size={14} className="text-muted" />
+                  </button>
                 </div>
+                {ap.sessions.map((session, si) => (
+                  <SessionCard key={si} session={session} onStart={() => setActivePlayer(session)} />
+                ))}
               </div>
             ))}
+
+            {/* Prompt to add AI program */}
+            <button
+              onClick={() => setTab('ai')}
+              className="w-full py-4 rounded-3xl border-2 border-dashed border-border flex items-center justify-center gap-2 text-muted text-sm font-medium active:scale-95 transition-all"
+            >
+              <Plus size={18} /> Generate AI Program
+            </button>
           </div>
         )}
 
@@ -428,9 +478,30 @@ export default function Fitness() {
               </div>
             ) : (
               <>
-                <p className="text-dim text-sm mb-5">Generate a custom workout plan with AI, tailored to your exact goal.</p>
+                {/* Equipment badge */}
+                <div className="mb-4 flex items-center gap-2 bg-white shadow-card rounded-2xl px-4 py-3">
+                  <span className="text-lg">{equipment === 'gym' ? '🏋️' : equipment === 'home' ? '🏠' : '⚡'}</span>
+                  <div>
+                    <p className="text-text text-xs font-bold">{equipment === 'gym' ? 'Gym' : equipment === 'home' ? 'Home + Outdoor' : 'Gym + Home + Outdoor'}</p>
+                    <p className="text-muted text-[10px]">Change in Profile → Training Setup</p>
+                  </div>
+                </div>
+
+                {/* Natural language input */}
+                <div className="mb-4">
+                  <p className="text-dim text-xs font-bold uppercase tracking-widest mb-2">Describe your goal</p>
+                  <textarea
+                    className="w-full bg-white shadow-card rounded-2xl px-4 py-3 text-text text-sm resize-none border border-border focus:outline-none focus:border-purple transition-colors"
+                    rows={3}
+                    placeholder={'e.g. Lose weight in 2 weeks, I run on weekends\nor: 4 weeks of strength for football\nor: Build muscle, focus on upper body'}
+                    value={aiRequest}
+                    onChange={e => setAiRequest(e.target.value)}
+                  />
+                </div>
+
+                {/* Days selector */}
                 <div className="mb-5">
-                  <p className="text-dim text-xs font-medium mb-3 uppercase tracking-widest">Days per week</p>
+                  <p className="text-dim text-xs font-bold uppercase tracking-widest mb-3">Sessions per week</p>
                   <div className="flex gap-2">
                     {[2, 3, 4, 5, 6].map(d => (
                       <button key={d} onClick={() => setAiDays(d)}
@@ -439,14 +510,32 @@ export default function Fitness() {
                     ))}
                   </div>
                 </div>
-                <button onClick={generatePlan} disabled={loading} className="btn-primary w-full mb-5 flex items-center justify-center gap-2 text-sm">
-                  {loading ? <><Loader size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Plan</>}
+
+                <button onClick={generateProgram} disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 text-sm">
+                  {loading ? <><Loader size={16} className="animate-spin" /> Creating your program...</> : <><Sparkles size={16} /> Generate & Add to Program</>}
                 </button>
-                {aiResult && (
-                  <div className="bg-white shadow-card rounded-2xl p-4">
-                    <p className="text-dim text-sm whitespace-pre-wrap leading-relaxed">{aiResult}</p>
+                <p className="text-muted text-xs text-center mt-3">Added directly to "My Program" tab</p>
+
+                {/* Inspiration examples */}
+                <div className="mt-6">
+                  <p className="text-dim text-xs font-bold uppercase tracking-widest mb-3">Need inspiration?</p>
+                  <div className="space-y-2">
+                    {[
+                      'Lose weight in 2 weeks, I run on weekends',
+                      '4 weeks strength training for football',
+                      'Build muscle, mix gym and home workouts',
+                      'Toning full body, beginner friendly',
+                    ].map(ex => (
+                      <button
+                        key={ex}
+                        onClick={() => setAiRequest(ex)}
+                        className="w-full text-left px-4 py-2.5 bg-white shadow-card rounded-2xl text-dim text-xs border border-border active:scale-95 transition-all"
+                      >
+                        "{ex}"
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </>
             )}
           </div>

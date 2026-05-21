@@ -2,7 +2,13 @@ import { useState } from 'react';
 import { Key, ChevronRight, Check, Info, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
-import type { Goal, ActivityLevel } from '../types';
+import type { Goal, ActivityLevel, Equipment } from '../types';
+
+const EQUIPMENT_OPTIONS: { value: Equipment; label: string; emoji: string; desc: string }[] = [
+  { value: 'home', label: 'Home', emoji: '🏠', desc: 'Bodyweight + outdoor' },
+  { value: 'gym', label: 'Gym', emoji: '🏋️', desc: 'Full equipment' },
+  { value: 'both', label: 'Both', emoji: '⚡', desc: 'Mix gym & home' },
+];
 
 const GOAL_LABELS: Record<Goal, string> = {
   lose_weight: '🔥 Fat Loss',
@@ -105,6 +111,10 @@ export default function Profile() {
     localStorage.setItem('morphiq_water_reminder', String(next));
   }
 
+  function setEquipment(eq: Equipment) {
+    setProfile({ ...p, equipment: eq });
+  }
+
   return (
     <div className="page bg-bg">
       <div className="px-5 pt-14 pb-5">
@@ -184,6 +194,25 @@ export default function Profile() {
           <button onClick={saveWeight} className="btn-primary px-5 py-3">
             {savedWeight ? <Check size={16} /> : <ChevronRight size={16} />}
           </button>
+        </div>
+      </div>
+
+      {/* Equipment / Training Setup */}
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
+        <p className="text-text font-black text-sm mb-1">Training Setup</p>
+        <p className="text-muted text-xs mb-3">Used by AI to tailor your workout programs</p>
+        <div className="grid grid-cols-3 gap-2">
+          {EQUIPMENT_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setEquipment(opt.value)}
+              className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${p.equipment === opt.value ? 'border-purple bg-purple-bg' : 'border-border bg-section'}`}
+            >
+              <span className="text-xl">{opt.emoji}</span>
+              <span className={`text-xs font-bold ${p.equipment === opt.value ? 'text-purple' : 'text-text'}`}>{opt.label}</span>
+              <span className="text-[10px] text-muted leading-tight text-center">{opt.desc}</span>
+            </button>
+          ))}
         </div>
       </div>
 

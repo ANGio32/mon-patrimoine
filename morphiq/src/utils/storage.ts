@@ -1,8 +1,9 @@
-import type { UserProfile, MealEntry, WorkoutSession, DailyLog } from '../types';
+import type { UserProfile, MealEntry, WorkoutSession, DailyLog, AiProgram } from '../types';
 
 const KEYS = {
   profile: 'morphiq_profile',
   logs: 'morphiq_logs',
+  aiPrograms: 'morphiq_ai_programs',
 };
 
 export function saveProfile(profile: UserProfile): void {
@@ -68,6 +69,23 @@ export function saveWorkout(workout: WorkoutSession): void {
 
 export function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function loadAiPrograms(): AiProgram[] {
+  const raw = localStorage.getItem(KEYS.aiPrograms);
+  return raw ? (JSON.parse(raw) as AiProgram[]) : [];
+}
+
+export function saveAiProgram(program: AiProgram): void {
+  const all = loadAiPrograms();
+  const idx = all.findIndex(p => p.id === program.id);
+  if (idx >= 0) all[idx] = program; else all.unshift(program);
+  localStorage.setItem(KEYS.aiPrograms, JSON.stringify(all));
+}
+
+export function deleteAiProgram(id: string): void {
+  const all = loadAiPrograms().filter(p => p.id !== id);
+  localStorage.setItem(KEYS.aiPrograms, JSON.stringify(all));
 }
 
 export function getLast7DaysLogs(): DailyLog[] {

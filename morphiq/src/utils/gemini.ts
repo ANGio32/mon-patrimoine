@@ -1,4 +1,4 @@
-import type { FoodItem, MealType, SportTimingAdvice, Goal } from '../types';
+import type { FoodItem, MealType, SportTimingAdvice, Goal, Equipment, AiProgramSession } from '../types';
 
 interface GeminiFoodResult {
   mealType: MealType;
@@ -119,4 +119,59 @@ export async function getWorkoutPlan(
   const prompt = `Create a ${daysPerWeek}-day/week workout plan for someone wanting to "${goal.replace('_', ' ')}". Include exercise names, sets, reps, and rest times. Be specific and practical. Format clearly.`;
 
   return callGemini(apiKey, [{ parts: [{ text: prompt }] }], 2048, 0.5);
+}
+
+interface RawAiSession {
+  name?: string;
+  durationMin?: number;
+  exercises?: Array<{
+    name?: string;
+    sets?: number;
+    reps?: number;
+    durationSec?: number;
+    restSec?: number;
+    muscleGroups?: string[];
+  }>;
+}
+
+export async function generateStructuredProgram(
+  apiKey: string,
+  request: string,
+  equipment: Equipment,
+  daysPerWeek: number
+): Promise<{ programName: string; sessions: AiProgramSession[] }> {
+  const equipmentText = equipment === 'gym' ? 'gym with full equipment (barbells, dumbbells, machines, cables)'
+    : equipment === 'home' ? 'home only (bodyweight, optional dumbbells/resistance bands) and outdoor running'
+    : 'both gym and home/outdoor (mix gym sessions, home bodyweight, and outdoor runs)';
+
+  const prompt = `You are an expert fitness coach. The user request: "${request}". Equipment: ${equipmentText}. Create a ${daysPerWeek}-session workout program.
+
+Return ONLY a raw JSON object (no markdown, no explanation):
+{"programName":"descriptive program name","sessions":[{"name":"e.g. Day 1 - Gym Upper Body","durationMin":45,"exercises":[{"name":"exercise name","sets":3,"reps":10,"restSec":60,"muscleGroups":["chest"]},{"name":"timed exercise","sets":3,"durationSec":30,"restSec":30,"muscleGroups":["cardio"]}]}]}
+
+Rules:
+- ${daysPerWeek} sessions total
+- Mix location in session names: "Gym - ...", "Home - ...", "Outdoor Run", etc.
+- 4-6 exercises per session
+- Use "reps" OR "durationSec" per exercise (not both)
+- Use real exercise names (Barbell Squat, Push-Ups, Jogging, Box Jumps, etc.)
+- restSec: 30-120 seconds, durationMin: 30-60`;
+
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 4096, 0.4);
+  const parsed = JSON.parse(extractJSON(raw)) as { programName?: string; sessions?: RawAiSession[] };
+
+  const sessions: AiProgramSession[] = (parsed.sessions ?? []).map((s: RawAiSession) => ({
+    name: s.name ?? 'Session',
+    durationMin: s.durationMin ?? 45,
+    exercises: (s.exercises ?? []).map(e => ({
+      name: e.name ?? 'Exercise',
+      sets: e.sets ?? 3,
+      reps: e.reps,
+      durationSec: e.durationSec,
+      restSec: e.restSec ?? 60,
+      muscleGroups: e.muscleGroups ?? [],
+    })),
+  }));
+
+  return { programName: parsed.programName ?? 'AI Program', sessions };
 }
