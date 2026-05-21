@@ -4,7 +4,15 @@ import { useApp } from '../context/AppContext';
 import { getWorkoutPlan } from '../utils/gemini';
 import { saveWorkout, generateId, getTodayKey } from '../utils/storage';
 import type { WorkoutSession, Exercise } from '../types';
-import StickFigure from '../components/StickFigure';
+import StickFigure, { EXERCISE_CUES } from '../components/StickFigure';
+
+function getExerciseCue(name: string): string {
+  const key = name.toLowerCase();
+  for (const [k, cue] of Object.entries(EXERCISE_CUES)) {
+    if (key.includes(k)) return cue;
+  }
+  return 'Focus on controlled movement and proper form';
+}
 
 const GOAL_PROGRAMS = {
   lose_weight: {
@@ -199,16 +207,24 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           {ex?.reps ? `${ex.reps} reps` : `${exDuration}s`} · {ex?.muscleGroups.join(', ')}
         </p>
 
-        {/* Stick figure */}
-        <div className="mb-8">
+        {/* Stick figure with ground + instruction */}
+        <div className="mb-6 flex flex-col items-center">
           {phase === 'rest' ? (
-            <div className="w-24 h-24 flex items-center justify-center">
-              <span className="text-5xl">💧</span>
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-6xl">💧</span>
+              <p className="text-muted text-sm text-center px-6">Breathe, hydrate, prepare for the next set</p>
             </div>
           ) : (
-            <div className="p-2">
-              <StickFigure exercise={ex?.name ?? ''} size={120} />
-            </div>
+            <>
+              <div className="bg-purple-bg rounded-3xl p-5 flex items-center justify-center mb-3" style={{ width: 180, height: 180 }}>
+                <StickFigure exercise={ex?.name ?? ''} size={150} showGround />
+              </div>
+              {/* Instruction cue */}
+              <div className="flex items-start gap-2 bg-card-yellow rounded-2xl px-4 py-2.5 max-w-xs">
+                <span className="text-base flex-shrink-0">💡</span>
+                <p className="text-amber-800 text-xs leading-relaxed font-medium">{getExerciseCue(ex?.name ?? '')}</p>
+              </div>
+            </>
           )}
         </div>
 
@@ -294,7 +310,7 @@ export default function Fitness() {
     try {
       const text = await getWorkoutPlan(state.profile.geminiApiKey, goal, aiDays);
       setAiResult(text);
-    } catch { setAiResult('Failed. Check your API key in Profile.'); }
+    } catch (e) { setAiResult(`Error: ${e instanceof Error ? e.message : 'Unknown error. Check your API key in Profile.'}`); }
     finally { setLoading(false); }
   }
 
@@ -366,11 +382,11 @@ export default function Fitness() {
                   {/* Exercise previews with stick figures */}
                   <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
                     {session.exercises.map((ex, ei) => (
-                      <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1 w-16">
-                        <div className="w-14 h-14 rounded-2xl bg-purple-bg flex items-center justify-center">
-                          <StickFigure exercise={ex.name} size={44} />
+                      <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
+                        <div className="w-18 h-18 rounded-2xl bg-purple-bg flex items-center justify-center" style={{ width: 72, height: 72 }}>
+                          <StickFigure exercise={ex.name} size={60} showGround />
                         </div>
-                        <p className="text-muted text-[9px] text-center leading-tight line-clamp-2">{ex.name}</p>
+                        <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
                       </div>
                     ))}
                   </div>

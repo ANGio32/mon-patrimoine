@@ -39,15 +39,15 @@ interface GeminiResponse {
 async function callGemini(
   apiKey: string,
   contents: unknown[],
-  maxTokens = 2048,
-  temperature = 0.1,
-  disableThinking = false
+  maxTokens = 4096,
+  temperature = 0.1
 ): Promise<string> {
-  const generationConfig: Record<string, unknown> = { temperature, maxOutputTokens: maxTokens };
-  if (disableThinking) {
-    // Disable thinking for cleaner, faster JSON responses
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
-  }
+  // Always disable thinking: faster, no token waste, clean output
+  const generationConfig: Record<string, unknown> = {
+    temperature,
+    maxOutputTokens: maxTokens,
+    thinkingConfig: { thinkingBudget: 0 },
+  };
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
@@ -81,8 +81,7 @@ export async function analyzeFoodPhoto(
     apiKey,
     [{ parts: [{ text: FOOD_ANALYSIS_PROMPT }, { inline_data: { mime_type: mimeType, data: base64 } }] }],
     2048,
-    0.1,
-    true // disable thinking for clean JSON
+    0.1
   );
 
   const json = extractJSON(raw);
@@ -97,7 +96,7 @@ export async function getSportTimingAdvice(
   const prompt = `Given a meal of ${mealCalories} calories and a fitness goal of "${goal.replace('_', ' ')}", provide sport timing advice. Return ONLY a raw JSON object (no markdown, no explanation):
 {"waitBeforeExercise":"e.g. Wait 1.5 hours","exerciseType":"e.g. Cardio or strength training recommended","recoveryWindow":"e.g. Eat protein within 45 min after workout","hydration":"e.g. Drink 500ml water before exercising","tip":"one personalized tip"}`;
 
-  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 1024, 0.3, true);
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 1024, 0.3);
   return JSON.parse(extractJSON(raw)) as SportTimingAdvice;
 }
 

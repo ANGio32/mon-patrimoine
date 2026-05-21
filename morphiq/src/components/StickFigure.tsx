@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 type ExerciseName = string;
 
 interface Pose {
-  // head center x,y; body endpoints; limb angles in degrees
   head: [number, number];
   neck: [number, number];
   hip: [number, number];
@@ -19,152 +18,155 @@ interface Pose {
   rFoot: [number, number];
 }
 
-// Pre-computed keyframes for each exercise
+// Short coaching cue shown below the figure
+export const EXERCISE_CUES: Record<string, string> = {
+  'jumping jacks': 'Jump feet out & sweep arms overhead simultaneously',
+  'bodyweight squats': 'Sit back & down — knees track over toes',
+  'push-ups': 'Lower chest to floor, elbows at 45°, back flat',
+  'mountain climbers': 'Drive each knee to chest, hips level',
+  'plank': 'Straight line head to heel — core braced',
+  'high knees': 'Lift knees to hip height, pump arms fast',
+  'burpees': 'Squat → jump back → push-up → jump up with arms',
+  'bicycle crunches': 'Rotate elbow to opposite knee, control the twist',
+  'lateral lunges': 'Step wide, sit into one hip, keep chest tall',
+  'bench press': 'Lower bar to mid-chest, press up and slightly back',
+  'pull-ups': 'Hang full, pull elbows to ribs, chin over bar',
+  'barbell row': 'Hinge at hips, pull bar to lower chest, squeeze',
+  'overhead press': 'Press straight up, lock out overhead, brace core',
+  'barbell squat': 'Bar on traps, squat deep, drive through heels',
+  'romanian deadlift': 'Hinge hips back, lower bar along legs, feel hamstrings',
+  'walking lunges': 'Step forward, lower back knee toward floor',
+  'calf raises': 'Rise on balls of feet, hold top for 1 sec',
+  'tricep dips': 'Lower until elbows at 90°, push through palms',
+  'lateral raises': 'Raise arms to shoulder height, slight bend in elbows',
+};
+
 const ANIMATIONS: Record<string, Pose[]> = {
-  // ─── JUMPING JACKS ──────────────────────────────────────────
   'jumping jacks': [
     {
-      head:[50,10], neck:[50,18], hip:[50,42],
-      lShoulder:[44,22], rShoulder:[56,22],
-      lElbow:[36,30], rElbow:[64,30],
-      lHand:[28,22], rHand:[72,22],
+      head:[50,8], neck:[50,16], hip:[50,40],
+      lShoulder:[44,20], rShoulder:[56,20],
+      lElbow:[37,28], rElbow:[63,28],
+      lHand:[30,20], rHand:[70,20],
       lKnee:[44,54], rKnee:[56,54],
       lFoot:[38,68], rFoot:[62,68],
     },
     {
-      head:[50,10], neck:[50,18], hip:[50,42],
-      lShoulder:[44,22], rShoulder:[56,22],
-      lElbow:[30,16], rElbow:[70,16],
-      lHand:[22,10], rHand:[78,10],
-      lKnee:[40,55], rKnee:[60,55],
-      lFoot:[28,68], rFoot:[72,68],
+      head:[50,8], neck:[50,16], hip:[50,40],
+      lShoulder:[44,20], rShoulder:[56,20],
+      lElbow:[28,13], rElbow:[72,13],
+      lHand:[20,6], rHand:[80,6],
+      lKnee:[38,55], rKnee:[62,55],
+      lFoot:[26,68], rFoot:[74,68],
     },
   ],
-
-  // ─── SQUATS ────────────────────────────────────────────────
   'bodyweight squats': [
     {
-      head:[50,10], neck:[50,18], hip:[50,40],
-      lShoulder:[43,23], rShoulder:[57,23],
-      lElbow:[38,32], rElbow:[62,32],
-      lHand:[38,40], rHand:[62,40],
-      lKnee:[44,52], rKnee:[56,52],
-      lFoot:[42,64], rFoot:[58,64],
+      head:[50,8], neck:[50,16], hip:[50,38],
+      lShoulder:[43,21], rShoulder:[57,21],
+      lElbow:[38,30], rElbow:[62,30],
+      lHand:[38,38], rHand:[62,38],
+      lKnee:[44,50], rKnee:[56,50],
+      lFoot:[42,62], rFoot:[58,62],
     },
     {
-      head:[50,20], neck:[50,28], hip:[50,50],
+      head:[50,20], neck:[50,28], hip:[50,52],
       lShoulder:[42,33], rShoulder:[58,33],
-      lElbow:[34,42], rElbow:[66,42],
-      lHand:[30,52], rHand:[70,52],
-      lKnee:[38,62], rKnee:[62,62],
-      lFoot:[36,72], rFoot:[64,72],
+      lElbow:[34,44], rElbow:[66,44],
+      lHand:[28,54], rHand:[72,54],
+      lKnee:[36,64], rKnee:[64,64],
+      lFoot:[34,74], rFoot:[66,74],
     },
   ],
-
-  // ─── PUSH-UPS ──────────────────────────────────────────────
   'push-ups': [
     {
-      head:[20,30], neck:[26,34], hip:[60,42],
-      lShoulder:[32,36], rShoulder:[32,40],
-      lElbow:[22,34], rElbow:[22,42],
-      lHand:[14,36], rHand:[14,44],
-      lKnee:[72,44], rKnee:[72,46],
-      lFoot:[84,44], rFoot:[84,46],
+      head:[16,38], neck:[22,42], hip:[58,50],
+      lShoulder:[28,42], rShoulder:[28,48],
+      lElbow:[18,40], rElbow:[18,50],
+      lHand:[10,42], rHand:[10,52],
+      lKnee:[74,52], rKnee:[74,54],
+      lFoot:[86,52], rFoot:[86,54],
     },
     {
-      head:[20,22], neck:[26,26], hip:[60,36],
-      lShoulder:[32,28], rShoulder:[32,32],
-      lElbow:[22,26], rElbow:[22,34],
-      lHand:[14,28], rHand:[14,36],
-      lKnee:[72,38], rKnee:[72,40],
-      lFoot:[84,38], rFoot:[84,40],
+      head:[18,30], neck:[24,34], hip:[58,42],
+      lShoulder:[30,34], rShoulder:[30,40],
+      lElbow:[20,32], rElbow:[20,42],
+      lHand:[12,34], rHand:[12,44],
+      lKnee:[74,44], rKnee:[74,46],
+      lFoot:[86,44], rFoot:[86,46],
     },
   ],
-
-  // ─── MOUNTAIN CLIMBERS ─────────────────────────────────────
   'mountain climbers': [
     {
-      head:[20,26], neck:[26,30], hip:[58,36],
-      lShoulder:[30,30], rShoulder:[30,34],
-      lElbow:[20,30], rElbow:[20,36],
-      lHand:[12,32], rHand:[12,38],
-      lKnee:[50,46], rKnee:[68,38],
-      lFoot:[44,58], rFoot:[78,38],
+      head:[16,32], neck:[22,36], hip:[56,44],
+      lShoulder:[28,36], rShoulder:[28,42],
+      lElbow:[18,34], rElbow:[18,44],
+      lHand:[10,36], rHand:[10,46],
+      lKnee:[48,54], rKnee:[70,46],
+      lFoot:[42,66], rFoot:[80,46],
     },
     {
-      head:[20,26], neck:[26,30], hip:[58,36],
-      lShoulder:[30,30], rShoulder:[30,34],
-      lElbow:[20,30], rElbow:[20,36],
-      lHand:[12,32], rHand:[12,38],
-      lKnee:[70,38], rKnee:[50,48],
-      lFoot:[80,38], rFoot:[44,60],
+      head:[16,32], neck:[22,36], hip:[56,44],
+      lShoulder:[28,36], rShoulder:[28,42],
+      lElbow:[18,34], rElbow:[18,44],
+      lHand:[10,36], rHand:[10,46],
+      lKnee:[72,46], rKnee:[48,56],
+      lFoot:[82,46], rFoot:[42,68],
     },
   ],
-
-  // ─── PLANK ─────────────────────────────────────────────────
   'plank': [
     {
-      head:[16,28], neck:[22,30], hip:[58,36],
-      lShoulder:[28,30], rShoulder:[28,34],
-      lElbow:[18,30], rElbow:[18,36],
-      lHand:[10,32], rHand:[10,38],
-      lKnee:[70,38], rKnee:[70,40],
-      lFoot:[82,38], rFoot:[82,40],
+      head:[14,34], neck:[20,36], hip:[56,44],
+      lShoulder:[26,36], rShoulder:[26,42],
+      lElbow:[16,36], rElbow:[16,44],
+      lHand:[8,38], rHand:[8,46],
+      lKnee:[70,46], rKnee:[70,48],
+      lFoot:[82,46], rFoot:[82,48],
     },
     {
-      head:[16,28], neck:[22,30], hip:[58,36],
-      lShoulder:[28,30], rShoulder:[28,34],
-      lElbow:[18,30], rElbow:[18,36],
-      lHand:[10,32], rHand:[10,38],
-      lKnee:[70,38], rKnee:[70,40],
-      lFoot:[82,38], rFoot:[82,40],
+      head:[14,34], neck:[20,36], hip:[56,44],
+      lShoulder:[26,36], rShoulder:[26,42],
+      lElbow:[16,36], rElbow:[16,44],
+      lHand:[8,38], rHand:[8,46],
+      lKnee:[70,46], rKnee:[70,48],
+      lFoot:[82,46], rFoot:[82,48],
     },
   ],
-
-  // ─── HIGH KNEES ────────────────────────────────────────────
   'high knees': [
     {
-      head:[50,10], neck:[50,18], hip:[50,40],
-      lShoulder:[44,22], rShoulder:[56,22],
-      lElbow:[38,30], rElbow:[64,28],
-      lHand:[34,38], rHand:[68,20],
-      lKnee:[46,52], rKnee:[58,46],
-      lFoot:[44,64], rFoot:[56,56],
+      head:[50,8], neck:[50,16], hip:[50,38],
+      lShoulder:[43,20], rShoulder:[57,20],
+      lElbow:[37,28], rElbow:[65,26],
+      lHand:[33,36], rHand:[69,18],
+      lKnee:[44,52], rKnee:[60,44],
+      lFoot:[42,64], rFoot:[58,54],
     },
     {
-      head:[50,10], neck:[50,18], hip:[50,40],
-      lShoulder:[44,22], rShoulder:[56,22],
-      lElbow:[36,28], rElbow:[62,30],
-      lHand:[32,20], rHand:[66,38],
-      lKnee:[42,46], rKnee:[54,52],
-      lFoot:[40,56], rFoot:[52,64],
+      head:[50,8], neck:[50,16], hip:[50,38],
+      lShoulder:[43,20], rShoulder:[57,20],
+      lElbow:[35,26], rElbow:[63,28],
+      lHand:[31,18], rHand:[67,36],
+      lKnee:[40,44], rKnee:[56,52],
+      lFoot:[38,54], rFoot:[54,64],
     },
   ],
-
-  // ─── BURPEES (4 frames) ────────────────────────────────────
   'burpees': [
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[36,30], rElbow:[64,30], lHand:[28,22], rHand:[72,22], lKnee:[44,54], rKnee:[56,54], lFoot:[38,68], rFoot:[62,68] },
-    { head:[50,20], neck:[50,28], hip:[50,50], lShoulder:[42,33], rShoulder:[58,33], lElbow:[34,42], rElbow:[66,42], lHand:[30,52], rHand:[70,52], lKnee:[38,62], rKnee:[62,62], lFoot:[36,72], rFoot:[64,72] },
-    { head:[20,28], neck:[26,32], hip:[58,38], lShoulder:[30,32], rShoulder:[30,36], lElbow:[20,32], rElbow:[20,38], lHand:[12,34], rHand:[12,40], lKnee:[70,40], rKnee:[70,42], lFoot:[82,40], rFoot:[82,42] },
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[30,16], rElbow:[70,16], lHand:[22,10], rHand:[78,10], lKnee:[40,55], rKnee:[60,55], lFoot:[28,68], rFoot:[72,68] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[36,28], rElbow:[64,28], lHand:[28,20], rHand:[72,20], lKnee:[43,52], rKnee:[57,52], lFoot:[38,66], rFoot:[62,66] },
+    { head:[50,20], neck:[50,28], hip:[50,52], lShoulder:[42,33], rShoulder:[58,33], lElbow:[34,44], rElbow:[66,44], lHand:[30,54], rHand:[70,54], lKnee:[36,64], rKnee:[64,64], lFoot:[34,74], rFoot:[66,74] },
+    { head:[16,36], neck:[22,40], hip:[58,48], lShoulder:[28,40], rShoulder:[28,46], lElbow:[18,38], rElbow:[18,48], lHand:[10,40], rHand:[10,50], lKnee:[72,50], rKnee:[72,52], lFoot:[84,50], rFoot:[84,52] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[28,12], rElbow:[72,12], lHand:[20,5], rHand:[80,5], lKnee:[38,53], rKnee:[62,53], lFoot:[26,66], rFoot:[74,66] },
   ],
-
-  // ─── BICYCLE CRUNCHES ─────────────────────────────────────
   'bicycle crunches': [
-    { head:[50,16], neck:[50,22], hip:[50,44], lShoulder:[42,22], rShoulder:[58,22], lElbow:[36,30], rElbow:[68,18], lHand:[44,36], rHand:[64,14], lKnee:[58,52], rKnee:[44,46], lFoot:[62,62], rFoot:[38,54] },
-    { head:[50,16], neck:[50,22], hip:[50,44], lShoulder:[42,22], rShoulder:[58,22], lElbow:[32,18], rElbow:[64,30], lHand:[36,14], rHand:[56,36], lKnee:[42,46], rKnee:[56,52], lFoot:[36,54], rFoot:[60,62] },
+    { head:[50,14], neck:[50,20], hip:[50,42], lShoulder:[41,20], rShoulder:[59,20], lElbow:[34,28], rElbow:[68,16], lHand:[42,34], rHand:[62,12], lKnee:[60,52], rKnee:[42,44], lFoot:[64,62], rFoot:[36,52] },
+    { head:[50,14], neck:[50,20], hip:[50,42], lShoulder:[41,20], rShoulder:[59,20], lElbow:[30,16], rElbow:[64,28], lHand:[34,12], rHand:[56,34], lKnee:[40,44], rKnee:[58,52], lFoot:[34,52], rFoot:[62,62] },
   ],
-
-  // ─── LATERAL LUNGES ───────────────────────────────────────
   'lateral lunges': [
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[40,32], rElbow:[60,32], lHand:[40,42], rHand:[60,42], lKnee:[36,54], rKnee:[58,52], lFoot:[28,66], rFoot:[58,66] },
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[40,32], rElbow:[60,32], lHand:[40,42], rHand:[60,42], lKnee:[42,52], rKnee:[64,54], lFoot:[42,66], rFoot:[72,66] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[40,30], rElbow:[60,30], lHand:[40,40], rHand:[60,40], lKnee:[34,52], rKnee:[58,50], lFoot:[26,64], rFoot:[58,64] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[40,30], rElbow:[60,30], lHand:[40,40], rHand:[60,40], lKnee:[42,50], rKnee:[66,52], lFoot:[42,64], rFoot:[74,64] },
   ],
-
-  // default standing
   default: [
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[40,32], rElbow:[60,32], lHand:[38,42], rHand:[62,42], lKnee:[45,54], rKnee:[55,54], lFoot:[42,66], rFoot:[58,66] },
-    { head:[50,10], neck:[50,18], hip:[50,40], lShoulder:[44,22], rShoulder:[56,22], lElbow:[40,30], rElbow:[60,30], lHand:[38,40], rHand:[62,40], lKnee:[45,52], rKnee:[55,52], lFoot:[42,64], rFoot:[58,64] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[40,30], rElbow:[60,30], lHand:[38,40], rHand:[62,40], lKnee:[45,52], rKnee:[55,52], lFoot:[42,64], rFoot:[58,64] },
+    { head:[50,8], neck:[50,16], hip:[50,38], lShoulder:[43,20], rShoulder:[57,20], lElbow:[40,28], rElbow:[60,28], lHand:[38,38], rHand:[62,38], lKnee:[45,50], rKnee:[55,50], lFoot:[42,62], rFoot:[58,62] },
   ],
 };
 
@@ -196,16 +198,17 @@ interface Props {
   exercise: ExerciseName;
   color?: string;
   size?: number;
+  showGround?: boolean;
 }
 
-export default function StickFigure({ exercise, color = '#7C3AED', size = 96 }: Props) {
+export default function StickFigure({ exercise, color = '#7C3AED', size = 96, showGround = true }: Props) {
   const poses = getPoses(exercise);
   const [t, setT] = useState(0);
   const [frameDir, setFrameDir] = useState(1);
   const [frameIdx, setFrameIdx] = useState(0);
 
   const isStatic = exercise.toLowerCase().includes('plank');
-  const speed = exercise.toLowerCase().includes('jumping') || exercise.toLowerCase().includes('high') ? 40 : 60;
+  const speed = exercise.toLowerCase().includes('jumping') || exercise.toLowerCase().includes('high') ? 40 : 55;
 
   useEffect(() => {
     if (isStatic) return;
@@ -231,12 +234,41 @@ export default function StickFigure({ exercise, color = '#7C3AED', size = 96 }: 
 
   const s = (x: number) => (x / 100) * size;
 
+  // Ground level: lowest foot Y, clamped near bottom
+  const groundY = Math.max(pose.lFoot[1], pose.rFoot[1]);
+  const groundCX = (pose.lFoot[0] + pose.rFoot[0]) / 2;
+  const shadowRx = Math.abs(pose.lFoot[0] - pose.rFoot[0]) / 2 + 8;
+
   const line = (a: [number, number], b: [number, number], width = 3) => (
     <line x1={s(a[0])} y1={s(a[1])} x2={s(b[0])} y2={s(b[1])} stroke={color} strokeWidth={width} strokeLinecap="round" />
   );
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {showGround && (
+        <>
+          {/* Ground shadow ellipse */}
+          <ellipse
+            cx={s(groundCX)}
+            cy={s(groundY) + 5}
+            rx={s(shadowRx)}
+            ry={s(2.5)}
+            fill={color}
+            opacity={0.12}
+          />
+          {/* Ground line */}
+          <line
+            x1={s(groundCX - shadowRx - 4)}
+            y1={s(groundY) + 5}
+            x2={s(groundCX + shadowRx + 4)}
+            y2={s(groundY) + 5}
+            stroke={color}
+            strokeWidth={1.5}
+            opacity={0.2}
+            strokeLinecap="round"
+          />
+        </>
+      )}
       {/* Body */}
       {line(pose.neck, pose.hip, 3)}
       {/* Head */}
@@ -248,10 +280,10 @@ export default function StickFigure({ exercise, color = '#7C3AED', size = 96 }: 
       {line(pose.lElbow, pose.lHand, 2.5)}
       {line(pose.rShoulder, pose.rElbow, 2.5)}
       {line(pose.rElbow, pose.rHand, 2.5)}
-      {/* Hips */}
+      {/* Hips to knees */}
       {line(pose.hip, pose.lKnee, 2.5)}
       {line(pose.hip, pose.rKnee, 2.5)}
-      {/* Legs */}
+      {/* Knees to feet */}
       {line(pose.lKnee, pose.lFoot, 2.5)}
       {line(pose.rKnee, pose.rFoot, 2.5)}
     </svg>
