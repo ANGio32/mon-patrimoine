@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Trash2, ChevronLeft, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader } from 'lucide-react';
+import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeFoodPhoto, getSportTimingAdvice } from '../utils/gemini';
 import { saveMealEntry, generateId, getTodayKey } from '../utils/storage';
@@ -110,8 +110,25 @@ export default function LogMeal() {
 
   return (
     <div className="page bg-bg">
+      {/* Restaurant menu analyzer shortcut */}
+      <div className="px-5 pt-14 pb-2">
+        <button
+          onClick={() => navigate('/menu')}
+          className="w-full flex items-center justify-between bg-card-orange rounded-3xl px-5 py-4 active:scale-95 transition-all shadow-card"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🗺️</span>
+            <div className="text-left">
+              <p className="text-orange font-black text-sm">Mode Restaurant</p>
+              <p className="text-orange/70 text-xs">Photographiez le menu · IA recommande</p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-orange/70" />
+        </button>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-5">
+      <div className="flex items-center gap-3 px-5 pt-4 pb-5">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center">
           <ChevronLeft size={18} className="text-text" />
         </button>
