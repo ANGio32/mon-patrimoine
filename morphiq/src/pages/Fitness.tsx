@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus } from 'lucide-react';
+import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { generateStructuredProgram } from '../utils/gemini';
+import { generateStructuredProgram, getAdaptedSession } from '../utils/gemini';
 import { saveWorkout, generateId, getTodayKey, saveAiProgram, loadAiPrograms, deleteAiProgram } from '../utils/storage';
 import type { WorkoutSession, Exercise, AiProgram, AiProgramSession } from '../types';
 import StickFigure, { ExerciseAnimation, EXERCISE_CUES } from '../components/StickFigure';
@@ -302,6 +302,109 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   );
 }
 
+// ── Energy check modal ────────────────────────────────────────────────────────
+const ENERGY_LEVELS = [
+  { value: 1, emoji: '😴', label: 'Épuisé', color: 'bg-card-pink text-pink-700', desc: 'Séance de récupération' },
+  { value: 2, emoji: '😔', label: 'Fatigué', color: 'bg-card-orange text-orange', desc: 'Circuit léger adapté' },
+  { value: 3, emoji: '😐', label: 'Moyen', color: 'bg-card-yellow text-amber-700', desc: 'Séance allégée' },
+  { value: 4, emoji: '😊', label: 'En forme', color: 'bg-card-mint text-green', desc: 'Séance normale' },
+  { value: 5, emoji: '🔥', label: 'Au top !', color: 'bg-purple-bg text-purple', desc: 'Séance complète' },
+];
+
+interface EnergyModalProps {
+  session: AiProgramSession;
+  apiKey?: string;
+  onStart: (session: AiProgramSession) => void;
+  onClose: () => void;
+}
+
+function EnergyCheckModal({ session, apiKey, onStart, onClose }: EnergyModalProps) {
+  const [energy, setEnergy] = useState(4);
+  const [adapting, setAdapting] = useState(false);
+  const level = ENERGY_LEVELS[energy - 1];
+
+  async function handleStart() {
+    if (energy >= 4 || !apiKey) {
+      onStart(session);
+      return;
+    }
+    setAdapting(true);
+    try {
+      const adapted = await getAdaptedSession(
+        apiKey,
+        session.name,
+        energy,
+        session.exercises.map(e => e.name)
+      );
+      onStart(adapted);
+    } catch {
+      onStart(session);
+    }
+    setAdapting(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(28,28,30,0.5)', backdropFilter: 'blur(12px)' }}>
+      <div className="w-full max-w-md bg-white rounded-t-[2.5rem] p-6 pb-10 shadow-2xl" style={{ animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-text font-black text-lg">Comment vous sentez-vous ?</h3>
+            <p className="text-muted text-xs mt-0.5">{session.name}</p>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-2xl bg-section border border-border flex items-center justify-center">
+            <X size={16} className="text-muted" />
+          </button>
+        </div>
+
+        {/* Slider track */}
+        <div className="mb-5">
+          <div className="flex justify-between mb-3">
+            {ENERGY_LEVELS.map(l => (
+              <button
+                key={l.value}
+                onClick={() => setEnergy(l.value)}
+                className={`flex-1 mx-0.5 flex flex-col items-center py-3 rounded-2xl transition-all ${energy === l.value ? l.color + ' scale-105 shadow-md' : 'bg-section'}`}
+              >
+                <span className="text-xl">{l.emoji}</span>
+                <span className={`text-[9px] font-bold mt-1 ${energy === l.value ? '' : 'text-muted'}`}>{l.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Adaptive message */}
+          <div className={`rounded-2xl px-4 py-3 ${level.color}`}>
+            <div className="flex items-center gap-2">
+              <Zap size={14} />
+              <span className="text-sm font-bold">{level.desc}</span>
+            </div>
+            <p className="text-xs mt-1 opacity-75">
+              {energy <= 2
+                ? "L'IA va adapter votre séance à une récupération douce."
+                : energy === 3
+                ? "La séance sera légèrement allégée pour vous ménager."
+                : "Vous êtes prêt — séance complète lancée !"}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleStart}
+          disabled={adapting}
+          className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
+        >
+          {adapting
+            ? <><Loader size={16} className="animate-spin" /> Adaptation en cours...</>
+            : energy <= 3 && apiKey
+            ? <><Zap size={16} /> Adapter et démarrer</>
+            : <><Play size={16} fill="white" /> Démarrer</>
+          }
+        </button>
+      </div>
+      <style>{`@keyframes slideUp { from { transform: translateY(60px); opacity:0; } to { transform: translateY(0); opacity:1; } }`}</style>
+    </div>
+  );
+}
+
 // ── Session card (shared between built-in and AI programs) ───────────────────
 function SessionCard({ session, onStart }: { session: AiProgramSession; onStart: () => void }) {
   return (
@@ -364,6 +467,7 @@ export default function Fitness() {
   const [loading, setLoading] = useState(false);
   const [aiPrograms, setAiPrograms] = useState<AiProgram[]>(() => loadAiPrograms());
   const [activePlayer, setActivePlayer] = useState<AiProgramSession | null>(null);
+  const [energySession, setEnergySession] = useState<AiProgramSession | null>(null);
 
   const goal = state.profile?.goal ?? 'maintain';
   const equipment = state.profile?.equipment ?? 'both';
@@ -420,6 +524,14 @@ export default function Fitness() {
           onClose={() => setActivePlayer(null)}
         />
       )}
+      {energySession && !activePlayer && (
+        <EnergyCheckModal
+          session={energySession}
+          apiKey={state.profile?.geminiApiKey}
+          onStart={(s) => { setActivePlayer(s); setEnergySession(null); }}
+          onClose={() => setEnergySession(null)}
+        />
+      )}
 
       <div className="page bg-bg">
         <div className="px-5 pt-14 pb-4">
@@ -461,7 +573,7 @@ export default function Fitness() {
             <div className="space-y-4">
               <p className="text-muted text-xs font-bold uppercase tracking-widest">Built-in · {program.tag}</p>
               {program.sessions.map((session, si) => (
-                <SessionCard key={si} session={session} onStart={() => setActivePlayer(session)} />
+                <SessionCard key={si} session={session} onStart={() => setEnergySession(session)} />
               ))}
             </div>
 
@@ -481,7 +593,7 @@ export default function Fitness() {
                   </button>
                 </div>
                 {ap.sessions.map((session, si) => (
-                  <SessionCard key={si} session={session} onStart={() => setActivePlayer(session)} />
+                  <SessionCard key={si} session={session} onStart={() => setEnergySession(session)} />
                 ))}
               </div>
             ))}

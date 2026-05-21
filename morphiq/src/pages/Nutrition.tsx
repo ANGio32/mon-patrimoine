@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X } from 'lucide-react';
+import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getMealSuggestions, generateRecipeFromIngredients } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
@@ -63,6 +63,61 @@ function parseAiSuggestions(text: string): AiSuggestion[] {
   return results;
 }
 
+// ── Smart Basket ──────────────────────────────────────────────────────────────
+function extractIngredientName(ing: string): string {
+  return ing
+    .replace(/^\d+(?:[,.]\d+)?(?:\/\d+)?\s*/g, '')
+    .replace(/^(?:g|kg|ml|l|cl|dl)\b\s*/i, '')
+    .replace(/^(?:cuillères?\s+à\s+(?:café|soupe)|c\.s\.|c\.c\.)\s*/i, '')
+    .replace(/^(?:de\s+|d'|du\s+|des\s+|une?\s+)/i, '')
+    .replace(/^(?:grands?|petits?|moyens?|gros|belle?s?)\s+/i, '')
+    .split(',')[0]
+    .trim();
+}
+
+function ShoppingListModal({ recipe, servings, onClose }: { recipe: Recipe; servings: number; onClose: () => void }) {
+  const scale = servings / recipe.servings;
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(28,28,30,0.55)', backdropFilter: 'blur(12px)' }}>
+      <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0">
+          <div>
+            <h3 className="text-text font-black text-lg flex items-center gap-2"><ShoppingCart size={18} className="text-purple" /> Liste de courses</h3>
+            <p className="text-muted text-xs mt-0.5">{recipe.name} · {servings} portion{servings > 1 ? 's' : ''}</p>
+          </div>
+          <button onClick={onClose} className="w-9 h-9 rounded-2xl bg-section border border-border flex items-center justify-center">
+            <X size={16} className="text-muted" />
+          </button>
+        </div>
+        <div className="overflow-y-auto px-6 pb-10 space-y-2.5">
+          {recipe.ingredients.map((ing, i) => {
+            const scaled = scaleIngredient(ing, scale);
+            const name = extractIngredientName(ing);
+            return (
+              <div key={i} className="bg-section rounded-2xl p-3 flex items-center gap-3">
+                <span className="text-purple font-bold flex-shrink-0 text-sm">·</span>
+                <span className="text-dim text-sm flex-1 leading-snug">{scaled}</span>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => window.open(`https://www.iga.net/fr/recherche?q=${encodeURIComponent(name)}`, '_blank')}
+                    className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold active:scale-95 transition-all"
+                    style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
+                  >IGA</button>
+                  <button
+                    onClick={() => window.open(`https://www.metro.ca/fr/recherche?term=${encodeURIComponent(name)}`, '_blank')}
+                    className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold active:scale-95 transition-all"
+                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                  >Metro</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Recipe data ───────────────────────────────────────────────────────────────
 interface Recipe {
   name: string;
@@ -74,13 +129,14 @@ interface Recipe {
   ingredients: string[];
   steps: string[];
   tips?: string;
+  costPerServing?: number;
 }
 
 const RECIPES: Recipe[] = [
   // ── Breakfast ──
   {
     name: 'Bowl de Skyr Fruité', emoji: '🫙', time: 5, servings: 1,
-    cal: 360, protein: 26, carbs: 38, fat: 10,
+    cal: 360, protein: 26, carbs: 38, fat: 10, costPerServing: 3.50,
     tags: ['breakfast', 'lose_weight', 'maintain', 'build_muscle'],
     ingredients: ['200g de Skyr nature', '30g de flocons d\'avoine', '15g d\'amandes ou noix concassées', '1 cuillère à café de miel', '50g de fruits rouges'],
     steps: ['Mettre le skyr au fond du bol.', 'Ajouter l\'avoine et les oléagineux pour le croquant.', 'Napper avec le miel et les fruits frais.'],
@@ -88,7 +144,7 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Omelette Fondante au Fromage', emoji: '🍳', time: 7, servings: 1,
-    cal: 340, protein: 26, carbs: 2, fat: 25,
+    cal: 340, protein: 26, carbs: 2, fat: 25, costPerServing: 2.80,
     tags: ['breakfast', 'lose_weight', 'build_muscle', 'maintain'],
     ingredients: ['3 gros œufs extra-frais', '30g de Comté ou gruyère râpé', '1 noisette de beurre', 'Sel, poivre, ciboulette'],
     steps: ['Battre vigoureusement les œufs jusqu\'à ce qu\'ils soient mousseux.', 'Chauffer la poêle à feu moyen-doux avec le beurre.', 'Ramener continuellement les bords cuits vers le centre.', 'Quand le fond est pris mais le dessus encore humide, parsemer le fromage.', 'Plier et faire glisser dans l\'assiette. La chaleur résiduelle fond le fromage.'],
@@ -96,7 +152,7 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Overnight Oats Pomme et Noix', emoji: '🍎', time: 5, servings: 1,
-    cal: 290, protein: 8, carbs: 35, fat: 14,
+    cal: 290, protein: 8, carbs: 35, fat: 14, costPerServing: 1.50,
     tags: ['breakfast', 'lose_weight', 'maintain'],
     ingredients: ['40g de flocons d\'avoine', '120ml de lait d\'amande sans sucre', '1/2 pomme coupée en petits dés', '15g de cerneaux de noix concassés', '1 cuillère à café de cannelle'],
     steps: ['La veille, mélanger l\'avoine, la cannelle et le lait dans un récipient.', 'Ajouter les dés de pomme et les noix.', 'Fermer et laisser au réfrigérateur toute la nuit.', 'Déguster frais le lendemain matin.'],
@@ -104,7 +160,7 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Pudding de Chia Mangue', emoji: '🥭', time: 5, servings: 1,
-    cal: 310, protein: 20, carbs: 24, fat: 12,
+    cal: 310, protein: 20, carbs: 24, fat: 12, costPerServing: 2.20,
     tags: ['breakfast', 'lose_weight', 'maintain'],
     ingredients: ['25g de graines de chia', '180ml de lait de soja nature', '100g de fromage blanc 0%', '50g de dés de mangue fraîche'],
     steps: ['Mélanger vigoureusement les graines de chia, le lait de soja et le fromage blanc.', 'Laisser reposer au réfrigérateur au moins 4 heures (ou toute la nuit).', 'Au moment de servir, ajouter les dés de mangue.'],
@@ -112,14 +168,14 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Œufs Brouillés Crémeux Toast', emoji: '🍞', time: 10, servings: 1,
-    cal: 390, protein: 24, carbs: 18, fat: 22,
+    cal: 390, protein: 24, carbs: 18, fat: 22, costPerServing: 2.50,
     tags: ['breakfast', 'build_muscle', 'maintain'],
     ingredients: ['3 gros œufs', '20g de fromage frais (chèvre ou fromage blanc)', '1 tranche de pain de seigle ou complet', 'Ciboulette fraîche'],
     steps: ['Battre les œufs.', 'Cuire à feu doux en remuant constamment pour garder le côté moelleux.', 'Hors du feu, incorporer le fromage frais et la ciboulette.', 'Servir sur le toast grillé.'],
   },
   {
     name: 'Overnight Oats aux Fruits Rouges', emoji: '🫙', time: 10, servings: 1,
-    cal: 420, protein: 20, carbs: 58, fat: 10,
+    cal: 420, protein: 20, carbs: 58, fat: 10, costPerServing: 1.80,
     tags: ['breakfast', 'lose_weight', 'maintain', 'build_muscle'],
     ingredients: ['80g de flocons d\'avoine', '200ml de lait d\'amande non sucré', '100g de fruits rouges (frais ou surgelés)', '1 cuillère à soupe de graines de chia', '1 cuillère à café de miel', 'Cannelle'],
     steps: ['Mélanger l\'avoine, le lait, les graines de chia et la cannelle.', 'Couvrir et réfrigérer toute la nuit.', 'Le matin, garnir avec les fruits rouges et le miel.', 'Remuer avant de manger et ajuster la consistance avec un peu de lait.'],
@@ -129,7 +185,7 @@ const RECIPES: Recipe[] = [
   // ── Lunch ──
   {
     name: 'Salade Quinoa Thon Pois Chiches', emoji: '🌾', time: 15, servings: 1,
-    cal: 490, protein: 42, carbs: 48, fat: 12,
+    cal: 490, protein: 42, carbs: 48, fat: 12, costPerServing: 5.20,
     tags: ['lunch', 'lose_weight', 'build_muscle', 'maintain'],
     ingredients: ['150g de thon au naturel égoutté', '100g de quinoa cuit', '100g de pois chiches rincés', 'Tomates cerises', 'Concombre', '1 cuillère à café d\'huile d\'olive', 'Jus de citron'],
     steps: ['Cuire le quinoa si nécessaire.', 'Égoutter et rincer les pois chiches et le thon.', 'Couper les tomates et le concombre.', 'Mélanger tous les ingrédients dans un grand bol.', 'Assaisonner avec l\'huile d\'olive et le jus de citron.'],
@@ -137,7 +193,7 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Wrap Poulet Hummus Épinards', emoji: '🌯', time: 5, servings: 1,
-    cal: 420, protein: 38, carbs: 34, fat: 12,
+    cal: 420, protein: 38, carbs: 34, fat: 12, costPerServing: 4.80,
     tags: ['lunch', 'lose_weight', 'build_muscle', 'maintain'],
     ingredients: ['1 grand wrap de blé complet', '120g de blanc de poulet cuit et effiloché', '30g de hummus nature', '1 poignée de jeunes pousses d\'épinards', '1/4 de poivron rouge en lanières'],
     steps: ['Étaler le hummus uniformément sur le wrap.', 'Disposer les épinards, le poivron et le poulet au centre.', 'Plier les bords et rouler le wrap serré.', 'Couper en deux pour servir.'],
@@ -145,28 +201,28 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Dinde Patate Douce Avocat', emoji: '🍠', time: 20, servings: 1,
-    cal: 440, protein: 38, carbs: 35, fat: 14,
+    cal: 440, protein: 38, carbs: 35, fat: 14, costPerServing: 5.50,
     tags: ['lunch', 'dinner', 'build_muscle', 'maintain'],
     ingredients: ['150g de filet de dinde', '150g de patate douce en dés', '1/4 d\'avocat', 'Herbes de Provence', 'Sel, poivre'],
     steps: ['Couper la patate douce en dés, cuire au four 20 min à 200°C (ou 8 min micro-ondes).', 'Saisir la dinde à la poêle avec les épices.', 'Servir avec les dés de patate douce chauds et les lamelles d\'avocat frais.'],
   },
   {
     name: 'Bowl Méditerranéen Poulet & Feta', emoji: '🫒', time: 20, servings: 1,
-    cal: 470, protein: 42, carbs: 40, fat: 16,
+    cal: 470, protein: 42, carbs: 40, fat: 16, costPerServing: 5.80,
     tags: ['lunch', 'build_muscle', 'maintain'],
     ingredients: ['150g de filet de poulet en dés', '100g de boulgour cuit', '1/2 concombre en dés', '5 tomates cerises', '30g de vraie feta émiettée', '5 olives kalamata', 'Origan, paprika'],
     steps: ['Saisir les dés de poulet avec l\'origan et le paprika.', 'Disposer le boulgour dans une assiette creuse.', 'Ajouter le poulet chaud, le concombre, les tomates et les olives.', 'Parsemer de feta et servir.'],
   },
   {
     name: 'Patate Douce Farcie Pois Chiches', emoji: '🌱', time: 50, servings: 1,
-    cal: 360, protein: 12, carbs: 60, fat: 5,
+    cal: 360, protein: 12, carbs: 60, fat: 5, costPerServing: 2.50,
     tags: ['lunch', 'dinner', 'lose_weight', 'maintain'],
     ingredients: ['1 patate douce moyenne (~200g)', '100g de pois chiches', '2 cuillères à soupe de yaourt grec', '1 cuillère à café de cumin et paprika fumé', 'Jus d\'un demi-citron vert'],
     steps: ['Cuire la patate douce au four 45 min à 200°C (ou 8-10 min micro-ondes).', 'Mélanger les pois chiches avec les épices.', 'Fendre la patate douce en deux, garnir des pois chiches.', 'Napper avec le yaourt mélangé au jus de citron vert.'],
   },
   {
     name: 'Grilled Chicken Power Bowl', emoji: '🥗', time: 25, servings: 1,
-    cal: 510, protein: 48, carbs: 38, fat: 14,
+    cal: 510, protein: 48, carbs: 38, fat: 14, costPerServing: 6.50,
     tags: ['lunch', 'dinner', 'build_muscle', 'maintain', 'lose_weight'],
     ingredients: ['200g de filet de poulet', '100g de quinoa cuit', '80g de jeunes pousses', '1/2 avocat tranché', '100g de tomates cerises', '2 cuillères à soupe d\'huile d\'olive', 'Jus de citron, ail, sel'],
     steps: ['Assaisonner le poulet et cuire à la poêle 6-7 min de chaque côté.', 'Préparer la vinaigrette huile d\'olive + citron + ail.', 'Assembler le bol : quinoa, salade, tomates, avocat, poulet tranché.', 'Arroser de vinaigrette et servir.'],
@@ -176,14 +232,14 @@ const RECIPES: Recipe[] = [
   // ── Dinner ──
   {
     name: 'Papillote de Cabillaud & Lentilles', emoji: '🐟', time: 25, servings: 1,
-    cal: 340, protein: 36, carbs: 28, fat: 8,
+    cal: 340, protein: 36, carbs: 28, fat: 8, costPerServing: 7.50,
     tags: ['dinner', 'lose_weight', 'build_muscle', 'maintain'],
     ingredients: ['150g de dos de cabillaud', '120g de lentilles vertes cuites', '1 courgette en rondelles', 'Jus de citron', 'Huile d\'olive', 'Sel, poivre'],
     steps: ['Préchauffer le four à 180°C.', 'Placer le poisson et les courgettes dans du papier cuisson avec le citron et l\'huile.', 'Fermer la papillote et enfourner 15 min.', 'Réchauffer les lentilles et servir le poisson dessus.'],
   },
   {
     name: 'Chili Bœuf & Haricots Rouges', emoji: '🌶️', time: 25, servings: 1,
-    cal: 410, protein: 38, carbs: 32, fat: 12,
+    cal: 410, protein: 38, carbs: 32, fat: 12, costPerServing: 5.20,
     tags: ['dinner', 'build_muscle', 'maintain'],
     ingredients: ['130g de bœuf haché 5% MG', '100g de haricots rouges cuits', '150ml de coulis de tomate', 'Oignons, poivrons', 'Épices chili, cumin'],
     steps: ['Faire revenir l\'oignon et le poivron.', 'Ajouter la viande et dorer.', 'Ajouter les haricots rouges et le coulis de tomate.', 'Laisser mijoter 10-15 minutes. Assaisonner.'],
@@ -191,21 +247,21 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Frittata Thon & Courgettes', emoji: '🥚', time: 25, servings: 1,
-    cal: 380, protein: 41, carbs: 8, fat: 19,
+    cal: 380, protein: 41, carbs: 8, fat: 19, costPerServing: 4.50,
     tags: ['dinner', 'lose_weight', 'maintain'],
     ingredients: ['3 œufs entiers', '1 boîte de thon au naturel (130g égoutté)', '1 courgette moyenne râpée', '1/2 oignon émincé', '1 cuillère à café d\'huile d\'olive'],
     steps: ['Faire revenir l\'oignon et la courgette 5 min.', 'Battre les œufs avec le thon émietté, sel et poivre.', 'Verser sur les légumes, couvrir et cuire à feu doux 8-10 min.'],
   },
   {
     name: 'Salade Lentilles & Saumon Fumé', emoji: '🐠', time: 5, servings: 1,
-    cal: 340, protein: 27, carbs: 30, fat: 9,
+    cal: 340, protein: 27, carbs: 30, fat: 9, costPerServing: 6.80,
     tags: ['dinner', 'lose_weight', 'maintain'],
     ingredients: ['150g de lentilles vertes cuites', '80g de saumon fumé en lanières', '1/4 de concombre en dés', 'Aneth fraîche', '1 cuillère à café de moutarde + jus de citron'],
     steps: ['Réchauffer légèrement les lentilles si désirées.', 'Mélanger avec le concombre et la sauce citron-moutarde.', 'Disposer les lanières de saumon fumé et parsemer d\'aneth.'],
   },
   {
     name: 'Zoodles Crevettes & Ail', emoji: '🦐', time: 15, servings: 1,
-    cal: 260, protein: 30, carbs: 8, fat: 12,
+    cal: 260, protein: 30, carbs: 8, fat: 12, costPerServing: 7.20,
     tags: ['dinner', 'lose_weight', 'maintain'],
     ingredients: ['1 belle courgette spiralisée ou en julienne', '150g de crevettes décortiquées', '2 gousses d\'ail hachées', '1 cuillère à soupe d\'huile d\'olive', 'Persil frais'],
     steps: ['Chauffer l\'huile, faire dorer l\'ail et les crevettes 3 min.', 'Ajouter les zoodles, sauter 2 min (ne pas trop cuire).', 'Saupoudrer de persil et servir.'],
@@ -213,14 +269,14 @@ const RECIPES: Recipe[] = [
   },
   {
     name: 'Fondue de Poireaux & Saumon', emoji: '🫳', time: 30, servings: 1,
-    cal: 380, protein: 30, carbs: 10, fat: 24,
+    cal: 380, protein: 30, carbs: 10, fat: 24, costPerServing: 8.50,
     tags: ['dinner', 'build_muscle', 'maintain'],
     ingredients: ['1 pavé de saumon frais (~130g)', '2 blancs de poireaux émincés finement', '1 cuillère à soupe de crème fraîche 15%', 'Sel, poivre, jus de citron'],
     steps: ['Faire suer les poireaux à couvert à feu doux 15 min avec un fond d\'eau.', 'En fin de cuisson, ajouter la crème, saler et poivrer.', 'Cuire le saumon à la poêle (côté peau en premier) ou à la vapeur.', 'Dresser le saumon sur les poireaux avec un filet de citron.'],
   },
   {
     name: 'Baked Salmon & Sweet Potato', emoji: '🐟', time: 30, servings: 1,
-    cal: 540, protein: 40, carbs: 42, fat: 18,
+    cal: 540, protein: 40, carbs: 42, fat: 18, costPerServing: 9.50,
     tags: ['dinner', 'build_muscle', 'maintain'],
     ingredients: ['180g filet de saumon', '250g patate douce en cubes', '200g brocoli', '2 cuillères à soupe huile d\'olive', '1 cuillère à soupe sauce soja', '1 cuillère à café miel', 'Ail, gingembre'],
     steps: ['Préchauffer le four à 200°C.', 'Rôtir la patate douce 15 min.', 'Préparer la marinade soja-miel-ail-gingembre.', 'Ajouter le brocoli et badigeonner le saumon. Cuire 12-15 min.', 'Servir avec le jus de marinade restant.'],
@@ -230,21 +286,21 @@ const RECIPES: Recipe[] = [
   // ── Snack ──
   {
     name: 'Tartines Cottage Cheese Seigle', emoji: '🧀', time: 3, servings: 1,
-    cal: 160, protein: 11, carbs: 18, fat: 3,
+    cal: 160, protein: 11, carbs: 18, fat: 3, costPerServing: 1.80,
     tags: ['snack', 'lose_weight', 'maintain', 'build_muscle'],
     ingredients: ['2 crackers de seigle complet (type Wasa)', '60g de cottage cheese', '1/2 concombre tranché finement', 'Sel, poivre, graines de sésame'],
     steps: ['Tartiner généreusement les crackers avec le cottage cheese.', 'Disposer les tranches de concombre.', 'Assaisonner et saupoudrer de graines de sésame.'],
   },
   {
     name: 'Houmous Betterave & Carottes', emoji: '🥕', time: 5, servings: 1,
-    cal: 140, protein: 5, carbs: 16, fat: 5,
+    cal: 140, protein: 5, carbs: 16, fat: 5, costPerServing: 1.50,
     tags: ['snack', 'lose_weight', 'maintain'],
     ingredients: ['50g de pois chiches en conserve', '50g de betterave rouge cuite', '1/2 cuillère à café de tahin', '1 carotte coupée en bâtonnets'],
     steps: ['Mixer les pois chiches, la betterave et le tahin avec un filet d\'eau.', 'Mixer jusqu\'à obtenir un houmous lisse et rose vif.', 'Servir avec les bâtonnets de carotte.'],
   },
   {
     name: 'Yaourt Grec & Fruits Rouges', emoji: '🍯', time: 8, servings: 1,
-    cal: 320, protein: 24, carbs: 35, fat: 7,
+    cal: 320, protein: 24, carbs: 35, fat: 7, costPerServing: 3.20,
     tags: ['breakfast', 'snack', 'lose_weight', 'maintain'],
     ingredients: ['200g de yaourt grec 2%', '80g de granola faible en sucre', '100g de fruits rouges', '1 cuillère à café de miel', '1 cuillère à soupe de graines de lin'],
     steps: ['Mélanger l\'extrait de vanille au yaourt.', 'Dans un verre, alterner couches de yaourt, granola et fruits rouges.', 'Arroser de miel et saupoudrer de graines de lin.', 'Servir immédiatement pour garder le granola croquant.'],
@@ -353,6 +409,7 @@ export default function Nutrition() {
   const [servingsMap, setServingsMap] = useState<Record<string, number>>({});
   const [favs, setFavs] = useState<Set<string>>(() => loadFavs());
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(() => loadSavedIdeas());
+  const [shoppingRecipe, setShoppingRecipe] = useState<{ recipe: Recipe; servings: number } | null>(null);
 
   // AI state
   const [aiMode, setAiMode] = useState<'suggestions' | 'from_ingredients'>('suggestions');
@@ -415,6 +472,13 @@ export default function Nutrition() {
     <>
       {generatedRecipe && (
         <GeneratedRecipeCard recipe={generatedRecipe} onClose={() => setGeneratedRecipe(null)} />
+      )}
+      {shoppingRecipe && (
+        <ShoppingListModal
+          recipe={shoppingRecipe.recipe}
+          servings={shoppingRecipe.servings}
+          onClose={() => setShoppingRecipe(null)}
+        />
       )}
 
       <div className="page bg-bg">
@@ -553,10 +617,36 @@ export default function Nutrition() {
                         </div>
 
                         {r.tips && (
-                          <div className="mx-5 mb-4 bg-card-yellow rounded-2xl p-3">
+                          <div className="mx-5 mb-3 bg-card-yellow rounded-2xl p-3">
                             <p className="text-amber-800 text-xs leading-relaxed">💡 {r.tips}</p>
                           </div>
                         )}
+
+                        {/* ROI Nutritionnel + Smart Basket */}
+                        <div className="mx-5 mb-4 space-y-2.5">
+                          {r.costPerServing && (
+                            <div className="bg-section rounded-2xl p-3 flex items-center gap-3">
+                              <TrendingUp size={14} className="text-green flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-text text-xs font-bold">ROI Nutritionnel</p>
+                                <p className="text-muted text-[10px]">~{(r.costPerServing * scale).toFixed(2)} $ / portion · {Math.round(r.protein * scale / (r.costPerServing * scale))}g prot/$</p>
+                              </div>
+                              <div className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                r.protein / r.costPerServing >= 6 ? 'bg-card-mint text-green' :
+                                r.protein / r.costPerServing >= 4 ? 'bg-card-yellow text-amber-700' :
+                                'bg-card-orange text-orange'
+                              }`}>
+                                {r.protein / r.costPerServing >= 6 ? '⭐ Top valeur' : r.protein / r.costPerServing >= 4 ? '✓ Bon rapport' : 'Budget élevé'}
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setShoppingRecipe({ recipe: r, servings })}
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-[#1C1C1E] rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
+                          >
+                            <ShoppingCart size={16} /> Générer ma liste de courses
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>

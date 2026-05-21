@@ -95,3 +95,15 @@ export interface SportTimingAdvice {
   hydration: string;
   tip: string;
 }
+
+export interface WeeklyChallenge {
+  id: string;
+  weekStart: string;
+  title: string;
+  description: string;
+  targetDays: number;
+  completedDays: string[];
+  emoji: string;
+  reward: string;
+  createdAt: string;
+}

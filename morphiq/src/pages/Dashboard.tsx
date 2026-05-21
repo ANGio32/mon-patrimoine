@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE } from '../utils/calculations';
-import { getLogForDate, getTodayKey } from '../utils/storage';
-import type { DailyLog } from '../types';
-import { Flame, TrendingDown, TrendingUp, Minus } from 'lucide-react';
+import { getLogForDate, getTodayKey, getLast7DaysLogs, loadChallenge, saveChallenge, clearChallenge, generateId } from '../utils/storage';
+import type { DailyLog, WeeklyChallenge } from '../types';
+import { generateWeeklyChallenge } from '../utils/gemini';
+import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X } from 'lucide-react';
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: string) => void }) {
@@ -86,6 +87,115 @@ const MEAL_CARD_COLORS = [
 const MEAL_EMOJI: Record<string, string> = {
   breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎',
 };
+
+// ── Weekly Challenge Card ─────────────────────────────────────────────────────
+function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }) {
+  const [challenge, setChallenge] = useState<WeeklyChallenge | null>(() => loadChallenge());
+  const [loading, setLoading] = useState(false);
+  const todayKey = getTodayKey();
+  const alreadyDoneToday = challenge?.completedDays.includes(todayKey) ?? false;
+
+  async function generate() {
+    if (!apiKey) return;
+    setLoading(true);
+    try {
+      const logs = getLast7DaysLogs();
+      const result = await generateWeeklyChallenge(apiKey, goal as Parameters<typeof generateWeeklyChallenge>[1], logs);
+      const monday = new Date();
+      monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+      const c: WeeklyChallenge = {
+        id: generateId(),
+        weekStart: monday.toISOString().slice(0, 10),
+        title: result.title,
+        description: result.description,
+        targetDays: result.targetDays,
+        completedDays: [],
+        emoji: result.emoji,
+        reward: result.reward,
+        createdAt: new Date().toISOString(),
+      };
+      saveChallenge(c);
+      setChallenge(c);
+    } catch { /* silently fail */ }
+    finally { setLoading(false); }
+  }
+
+  function markToday() {
+    if (!challenge || alreadyDoneToday) return;
+    const updated = { ...challenge, completedDays: [...challenge.completedDays, todayKey] };
+    saveChallenge(updated);
+    setChallenge(updated);
+  }
+
+  function dismiss() {
+    clearChallenge();
+    setChallenge(null);
+  }
+
+  const progress = challenge ? Math.min(challenge.completedDays.length / challenge.targetDays, 1) : 0;
+  const completed = challenge ? challenge.completedDays.length >= challenge.targetDays : false;
+
+  if (!challenge) {
+    if (!apiKey) return null;
+    return (
+      <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-2xl bg-card-yellow flex items-center justify-center text-xl">🎯</div>
+          <div>
+            <p className="text-text font-black text-sm">Défi de la Semaine</p>
+            <p className="text-muted text-xs">L'IA analyse votre semaine et crée un défi personnalisé</p>
+          </div>
+        </div>
+        <button onClick={generate} disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-3">
+          {loading ? <><Loader size={15} className="animate-spin" /> Analyse en cours...</> : <><Sparkles size={15} /> Générer mon défi</>}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mx-5 mb-4 rounded-3xl p-5 ${completed ? 'bg-card-yellow' : 'bg-white shadow-card'}`}>
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{challenge.emoji}</span>
+          <div>
+            <p className="text-text font-black text-sm">{challenge.title}</p>
+            <p className="text-muted text-xs mt-0.5">{challenge.completedDays.length}/{challenge.targetDays} jours complétés</p>
+          </div>
+        </div>
+        <button onClick={dismiss} className="w-7 h-7 rounded-xl bg-section border border-border flex items-center justify-center flex-shrink-0">
+          <X size={13} className="text-muted" />
+        </button>
+      </div>
+
+      <p className="text-dim text-xs leading-relaxed mb-3">{challenge.description}</p>
+
+      {/* Progress bar */}
+      <div className="h-2 bg-section rounded-full mb-3 overflow-hidden">
+        <div className="h-full bg-purple rounded-full transition-all duration-700" style={{ width: `${progress * 100}%` }} />
+      </div>
+
+      {completed ? (
+        <div className="bg-white/70 rounded-2xl p-3 flex items-center gap-2">
+          <Trophy size={16} className="text-amber-600 flex-shrink-0" />
+          <div>
+            <p className="text-amber-800 font-bold text-xs">Défi relevé ! 🏆</p>
+            <p className="text-amber-700 text-[10px] mt-0.5">{challenge.reward}</p>
+          </div>
+        </div>
+      ) : alreadyDoneToday ? (
+        <div className="flex items-center gap-2 py-2.5 px-4 bg-card-mint rounded-2xl">
+          <CheckCircle size={15} className="text-green flex-shrink-0" />
+          <p className="text-green text-xs font-bold">Journée validée !</p>
+        </div>
+      ) : (
+        <button onClick={markToday} className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple rounded-2xl text-white text-sm font-bold active:scale-95 transition-all">
+          <CheckCircle size={15} /> Valider aujourd'hui ✓
+        </button>
+      )}
+    </div>
+  );
+}
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -185,6 +295,11 @@ export default function Dashboard() {
           </div>
         ))}
       </div>
+
+      {/* Weekly Challenge */}
+      {isToday && (
+        <WeeklyChallengeCard apiKey={profile.geminiApiKey} goal={profile.goal} />
+      )}
 
       {/* Meals for selected day */}
       <div className="mx-5 mb-4">

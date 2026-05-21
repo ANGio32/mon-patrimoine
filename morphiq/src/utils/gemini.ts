@@ -1,4 +1,4 @@
-import type { FoodItem, MealType, SportTimingAdvice, Goal, Equipment, AiProgramSession } from '../types';
+import type { FoodItem, MealType, SportTimingAdvice, Goal, Equipment, AiProgramSession, DailyLog } from '../types';
 
 interface GeminiFoodResult {
   mealType: MealType;
@@ -146,6 +146,130 @@ Return ONLY a raw JSON object (no markdown):
 
   const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 2048, 0.5);
   return JSON.parse(extractJSON(raw)) as GeneratedRecipe;
+}
+
+export interface MenuDish {
+  name: string;
+  description: string;
+  estimatedCalories: number;
+  estimatedProtein: number;
+  estimatedCarbs: number;
+  estimatedFat: number;
+  recommendation: 'best' | 'good' | 'avoid';
+  recommendationReason: string;
+}
+
+export interface MenuAnalysis {
+  restaurantType: string;
+  dishes: MenuDish[];
+  topPicks: string[];
+  generalTip: string;
+}
+
+export async function analyzeRestaurantMenu(
+  apiKey: string,
+  imageDataUrl: string,
+  goal: Goal,
+  targets: { calories: number; protein: number; carbs: number; fat: number }
+): Promise<MenuAnalysis> {
+  const base64 = imageDataUrl.split(',')[1];
+  const mimeType = imageDataUrl.split(';')[0].split(':')[1];
+
+  const prompt = `You are a nutrition expert. Analyze this restaurant menu photo. The user's goal is "${goal.replace('_', ' ')}" with daily targets: ${targets.calories} kcal, ${targets.protein}g protein, ${targets.carbs}g carbs, ${targets.fat}g fat.
+
+Identify every visible dish/item on the menu, estimate nutritional values, and recommend the best options for the user's goal.
+
+Return ONLY a raw JSON object (no markdown, no explanation):
+{"restaurantType":"e.g. French bistro, Italian, Sushi","dishes":[{"name":"dish name","description":"brief description of ingredients","estimatedCalories":450,"estimatedProtein":35,"estimatedCarbs":30,"estimatedFat":15,"recommendation":"best|good|avoid","recommendationReason":"short reason e.g. High protein, fits goal"}],"topPicks":["Dish Name 1","Dish Name 2"],"generalTip":"one practical tip for eating here aligned with the goal"}
+
+Rules:
+- recommendation "best": excellent for the goal (high protein, right calories, good macros)
+- recommendation "good": acceptable, minor adjustments needed
+- recommendation "avoid": high calories, poor macros for goal
+- Estimate macros realistically based on typical restaurant portions
+- topPicks: exactly 2-3 dish names from the "best" category`;
+
+  const raw = await callGemini(
+    apiKey,
+    [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64 } }] }],
+    3000,
+    0.1
+  );
+
+  return JSON.parse(extractJSON(raw)) as MenuAnalysis;
+}
+
+export async function getAdaptedSession(
+  apiKey: string,
+  sessionName: string,
+  energyLevel: number, // 1 (exhausted) to 5 (full energy)
+  originalExercises: string[]
+): Promise<AiProgramSession> {
+  const intensity = energyLevel <= 2 ? 'gentle recovery and mobility (no cardio, no weights, only stretching, foam rolling, breathing, light yoga)'
+    : 'light active recovery (bodyweight only, low intensity, gentle cardio like walking, light stretching)';
+
+  const prompt = `The user planned "${sessionName}" but their energy level is ${energyLevel}/5 today. Adapt it to ${intensity}.
+
+Original exercises were: ${originalExercises.join(', ')}.
+
+Return ONLY a raw JSON object:
+{"name":"Recovery - ${sessionName}","durationMin":25,"exercises":[{"name":"exercise name","sets":2,"durationSec":45,"restSec":30,"muscleGroups":["mobility"]}]}
+
+Rules: 4-6 gentle exercises, max 30 min, no heavy compound lifts, focus on recovery`;
+
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 1024, 0.4);
+  const parsed = JSON.parse(extractJSON(raw)) as RawAiSession;
+  return {
+    name: parsed.name ?? `Récupération — ${sessionName}`,
+    durationMin: parsed.durationMin ?? 25,
+    exercises: (parsed.exercises ?? []).map(e => ({
+      name: e.name ?? 'Stretching',
+      sets: e.sets ?? 2,
+      reps: e.reps,
+      durationSec: e.durationSec,
+      restSec: e.restSec ?? 30,
+      muscleGroups: e.muscleGroups ?? ['mobility'],
+    })),
+  };
+}
+
+export interface WeeklyChallengeResult {
+  title: string;
+  description: string;
+  targetDays: number;
+  emoji: string;
+  reward: string;
+}
+
+export async function generateWeeklyChallenge(
+  apiKey: string,
+  goal: Goal,
+  logs: DailyLog[]
+): Promise<WeeklyChallengeResult> {
+  const daysLogged = logs.filter(l => l.meals.length > 0).length;
+  const avg = (fn: (l: DailyLog) => number) => {
+    const active = logs.filter(l => l.meals.length > 0);
+    if (!active.length) return 0;
+    return Math.round(active.reduce((s, l) => s + fn(l), 0) / active.length);
+  };
+  const avgCal = avg(l => l.meals.reduce((s, m) => s + m.totalCalories, 0));
+  const avgPro = avg(l => l.meals.reduce((s, m) => s + m.totalProtein, 0));
+  const avgCarb = avg(l => l.meals.reduce((s, m) => s + m.totalCarbs, 0));
+  const avgFat = avg(l => l.meals.reduce((s, m) => s + m.totalFat, 0));
+  const avgMeals = avg(l => l.meals.length);
+
+  const prompt = `Fitness coach analyzing 7-day nutrition log. Goal: "${goal.replace('_', ' ')}".
+Stats (days logged: ${daysLogged}/7): avg ${avgCal} kcal/day, ${avgPro}g protein, ${avgCarb}g carbs, ${avgFat}g fat, ${avgMeals} meals/day.
+
+Identify ONE recurring weakness (low protein, too few meals, excess calories at night, etc.) and create a motivating 7-day challenge.
+
+Return ONLY a raw JSON object (no markdown):
+{"title":"Challenge title (max 5 words)","description":"2 sentences: what to do and why it helps","targetDays":3,"emoji":"🎯","reward":"Recette Secrète : Smoothie Bol Protéiné"}
+
+Rules: targetDays must be 3-5, reward must start with "Recette Secrète : " followed by a creative French recipe name, title must be specific and motivating`;
+
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 512, 0.6);
+  return JSON.parse(extractJSON(raw)) as WeeklyChallengeResult;
 }
 
 interface RawAiSession {
