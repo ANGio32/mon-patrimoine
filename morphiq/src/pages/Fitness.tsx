@@ -160,8 +160,8 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
   if (done) {
     return (
-      <div className="fixed inset-0 bg-card z-50 flex flex-col items-center justify-center px-8 text-center">
-        <Trophy size={64} className="text-yellow-400 mb-6" />
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center px-8 text-center">
+        <Trophy size={64} className="text-amber-400 mb-6" />
         <h2 className="text-3xl font-black text-text mb-2">Workout done!</h2>
         <p className="text-dim mb-2">{session.name}</p>
         <p className="text-muted text-sm mb-10">{session.durationMin} min · {exercises.length} exercises</p>
@@ -171,10 +171,10 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-card z-50 flex flex-col">
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 pt-14 pb-3">
-        <button onClick={onClose} className="w-9 h-9 rounded-xl bg-section border border-border flex items-center justify-center">
+        <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-section border border-border flex items-center justify-center">
           <X size={18} className="text-text" />
         </button>
         <p className="text-dim text-sm font-medium">{session.name}</p>
@@ -183,13 +183,13 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
       {/* Overall progress */}
       <div className="mx-5 h-1 bg-section rounded-full mb-6">
-        <div className="h-full bg-green rounded-full transition-all duration-500" style={{ width: `${overallProgress * 100}%` }} />
+        <div className="h-full bg-purple rounded-full transition-all duration-500" style={{ width: `${overallProgress * 100}%` }} />
       </div>
 
       {/* Main display */}
       <div className="flex-1 flex flex-col items-center justify-center px-5">
         {/* Phase label */}
-        <div className={`pill mb-6 ${phase === 'rest' ? 'bg-orange-bg text-orange border border-border' : 'bg-green-bg text-green-dark border border-border'}`}>
+        <div className={`pill mb-6 ${phase === 'rest' ? 'bg-card-orange text-orange' : 'bg-purple-bg text-purple'}`}>
           {phase === 'rest' ? '😮‍💨 Rest' : `Set ${setIdx + 1} / ${totalSets}`}
         </div>
 
@@ -217,7 +217,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           <svg width={112} height={112} className="-rotate-90">
             <circle cx={56} cy={56} r={42} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={7} />
             <circle cx={56} cy={56} r={42} fill="none"
-              stroke={phase === 'rest' ? '#F97316' : '#2FB960'}
+              stroke={phase === 'rest' ? '#EA580C' : '#7C3AED'}
               strokeWidth={7}
               strokeDasharray={`${progress * c} ${c}`}
               strokeLinecap="round"
@@ -231,7 +231,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
         {/* Upcoming */}
         {exIdx < exercises.length - 1 && phase === 'rest' && (
-          <div className="bg-section border border-border rounded-2xl px-5 py-3 flex items-center gap-3">
+          <div className="bg-purple-bg rounded-2xl px-5 py-3 flex items-center gap-3">
             <StickFigure exercise={exercises[exIdx + 1]?.name ?? ''} size={40} />
             <div>
               <p className="text-muted text-xs">Up next</p>
@@ -251,7 +251,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
         </button>
         <button
           onClick={skip}
-          className="w-14 h-14 rounded-full bg-green flex items-center justify-center shadow-lg"
+          className="w-14 h-14 rounded-full bg-[#1C1C1E] flex items-center justify-center shadow-lg"
         >
           <SkipForward size={22} className="text-white" />
         </button>
@@ -320,7 +320,7 @@ export default function Fitness() {
         {todayWorkouts.length > 0 && (
           <div className="px-5 mb-5">
             {todayWorkouts.map(w => (
-              <div key={w.id} className="bg-green-bg border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div key={w.id} className="bg-card-mint rounded-2xl p-4 flex items-center gap-3">
                 <CheckCircle size={20} className="text-green flex-shrink-0" />
                 <div>
                   <p className="text-text font-medium text-sm">{w.name}</p>
@@ -333,10 +333,10 @@ export default function Fitness() {
 
         {/* Tabs */}
         <div className="px-5 mb-5">
-          <div className="flex bg-card shadow-card border border-border rounded-2xl p-1 gap-1">
+          <div className="flex bg-white shadow-card rounded-2xl p-1 gap-1">
             {(['program', 'ai'] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${tab === t ? 'bg-green text-white' : 'text-muted'}`}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === t ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
               >
                 {t === 'program' ? <><Dumbbell size={15} /> My Program</> : <><Sparkles size={15} /> AI Plan</>}
               </button>
@@ -347,7 +347,7 @@ export default function Fitness() {
         {tab === 'program' && (
           <div className="px-5 space-y-4">
             {program.sessions.map((session, si) => (
-              <div key={si} className="bg-card shadow-card border border-border rounded-3xl overflow-hidden">
+              <div key={si} className="bg-white shadow-card rounded-3xl overflow-hidden">
                 {/* Session header */}
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-4">
@@ -357,7 +357,7 @@ export default function Fitness() {
                     </div>
                     <button
                       onClick={() => setActivePlayer(session)}
-                      className="flex items-center gap-2 bg-green px-4 py-2 rounded-xl text-white text-sm font-semibold shadow-lg active:scale-95 transition-all"
+                      className="flex items-center gap-2 bg-[#1C1C1E] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
                     >
                       <Play size={14} fill="white" /> Start
                     </button>
@@ -367,7 +367,7 @@ export default function Fitness() {
                   <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
                     {session.exercises.map((ex, ei) => (
                       <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1 w-16">
-                        <div className="w-14 h-14 rounded-2xl bg-section border border-border flex items-center justify-center">
+                        <div className="w-14 h-14 rounded-2xl bg-purple-bg flex items-center justify-center">
                           <StickFigure exercise={ex.name} size={44} />
                         </div>
                         <p className="text-muted text-[9px] text-center leading-tight line-clamp-2">{ex.name}</p>
@@ -380,7 +380,7 @@ export default function Fitness() {
                 <div className="border-t border-border">
                   {session.exercises.map((ex, ei) => (
                     <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
-                      <div className="w-8 h-8 rounded-xl bg-section flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-xl bg-purple-bg flex items-center justify-center flex-shrink-0">
                         <StickFigure exercise={ex.name} size={28} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -405,8 +405,8 @@ export default function Fitness() {
         {tab === 'ai' && (
           <div className="px-5">
             {!state.profile?.geminiApiKey ? (
-              <div className="bg-card shadow-card border border-border rounded-2xl p-6 text-center">
-                <Sparkles size={32} className="text-green mx-auto mb-3" />
+              <div className="bg-white shadow-card rounded-2xl p-6 text-center">
+                <Sparkles size={32} className="text-purple mx-auto mb-3" />
                 <p className="text-text font-medium mb-1 text-sm">Requires Gemini API key</p>
                 <p className="text-muted text-xs">Add it in Profile — it's free.</p>
               </div>
@@ -418,7 +418,7 @@ export default function Fitness() {
                   <div className="flex gap-2">
                     {[2, 3, 4, 5, 6].map(d => (
                       <button key={d} onClick={() => setAiDays(d)}
-                        className={`w-11 h-11 rounded-2xl border font-bold text-sm transition-all ${aiDays === d ? 'border-green bg-green-bg text-green-dark' : 'border-border text-muted bg-card'}`}
+                        className={`w-11 h-11 rounded-2xl border-2 font-bold text-sm transition-all ${aiDays === d ? 'border-purple bg-purple-bg text-purple' : 'border-border text-muted bg-white'}`}
                       >{d}</button>
                     ))}
                   </div>
@@ -427,7 +427,7 @@ export default function Fitness() {
                   {loading ? <><Loader size={16} className="animate-spin" /> Generating...</> : <><Sparkles size={16} /> Generate Plan</>}
                 </button>
                 {aiResult && (
-                  <div className="bg-card shadow-card border border-border rounded-2xl p-4">
+                  <div className="bg-white shadow-card rounded-2xl p-4">
                     <p className="text-dim text-sm whitespace-pre-wrap leading-relaxed">{aiResult}</p>
                   </div>
                 )}

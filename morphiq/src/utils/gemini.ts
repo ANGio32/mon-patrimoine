@@ -12,6 +12,11 @@ interface GeminiFoodResult {
   healthNotes: string;
 }
 
+// Gemini 2.5 Flash: multimodal (image input) — used for food photo analysis
+const MODEL_VISION = 'gemini-2.5-flash';
+// Gemini 2.5 Flash Lite: text only, 10 RPM — used for text-based advice
+const MODEL_TEXT = 'gemini-2.5-flash-lite-preview-06-17';
+
 const FOOD_ANALYSIS_PROMPT = `Analyze this food image. Return ONLY valid JSON with this exact structure (no markdown, no explanation):
 {
   "mealType": "breakfast|lunch|dinner|snack",
@@ -34,28 +39,15 @@ const FOOD_ANALYSIS_PROMPT = `Analyze this food image. Return ONLY valid JSON wi
   "healthNotes": "brief nutritional insight"
 }`;
 
-export async function analyzeFoodPhoto(
-  apiKey: string,
-  imageDataUrl: string
-): Promise<GeminiFoodResult> {
-  const base64 = imageDataUrl.split(',')[1];
-  const mimeType = imageDataUrl.split(';')[0].split(':')[1];
-
+async function callGemini(apiKey: string, model: string, contents: unknown[], maxTokens = 1024, temperature = 0.1): Promise<string> {
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              { text: FOOD_ANALYSIS_PROMPT },
-              { inline_data: { mime_type: mimeType, data: base64 } },
-            ],
-          },
-        ],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+        contents,
+        generationConfig: { temperature, maxOutputTokens: maxTokens },
       }),
     }
   );
@@ -68,7 +60,25 @@ export async function analyzeFoodPhoto(
   const data = await response.json() as {
     candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
   };
-  const text = data.candidates[0]?.content?.parts[0]?.text ?? '';
+  return data.candidates[0]?.content?.parts[0]?.text ?? '';
+}
+
+export async function analyzeFoodPhoto(
+  apiKey: string,
+  imageDataUrl: string
+): Promise<GeminiFoodResult> {
+  const base64 = imageDataUrl.split(',')[1];
+  const mimeType = imageDataUrl.split(';')[0].split(':')[1];
+
+  const text = await callGemini(apiKey, MODEL_VISION, [
+    {
+      parts: [
+        { text: FOOD_ANALYSIS_PROMPT },
+        { inline_data: { mime_type: mimeType, data: base64 } },
+      ],
+    },
+  ], 1024, 0.1);
+
   const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(clean) as GeminiFoodResult;
 }
@@ -87,24 +97,7 @@ export async function getSportTimingAdvice(
   "tip": "one personalized tip"
 }`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
-      }),
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-
-  const data = await response.json() as {
-    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-  };
-  const text = data.candidates[0]?.content?.parts[0]?.text ?? '';
+  const text = await callGemini(apiKey, MODEL_TEXT, [{ parts: [{ text: prompt }] }], 512, 0.3);
   const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
   return JSON.parse(clean) as SportTimingAdvice;
 }
@@ -117,24 +110,7 @@ export async function getMealSuggestions(
 ): Promise<string> {
   const prompt = `Suggest 3 ${mealType} ideas for someone with a "${goal.replace('_', ' ')}" goal who has ${remainingCalories} calories remaining today. Be concise, practical, and include rough calorie counts. Format as a numbered list.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
-      }),
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-
-  const data = await response.json() as {
-    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-  };
-  return data.candidates[0]?.content?.parts[0]?.text ?? '';
+  return callGemini(apiKey, MODEL_TEXT, [{ parts: [{ text: prompt }] }], 512, 0.7);
 }
 
 export async function getWorkoutPlan(
@@ -144,22 +120,5 @@ export async function getWorkoutPlan(
 ): Promise<string> {
   const prompt = `Create a ${daysPerWeek}-day/week workout plan for someone wanting to "${goal.replace('_', ' ')}". Include exercise names, sets, reps, and rest times. Be specific and practical. Format clearly.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.5, maxOutputTokens: 1024 },
-      }),
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-
-  const data = await response.json() as {
-    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
-  };
-  return data.candidates[0]?.content?.parts[0]?.text ?? '';
+  return callGemini(apiKey, MODEL_TEXT, [{ parts: [{ text: prompt }] }], 1024, 0.5);
 }

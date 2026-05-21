@@ -29,9 +29,9 @@ export default function WaterReminder() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4" style={{ background: 'rgba(28,28,30,0.5)', backdropFilter: 'blur(12px)' }}>
       <div
-        className="w-full max-w-sm bg-card border border-border rounded-3xl p-6 shadow-2xl"
+        className="w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl"
         style={{ animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
       >
         {!answered ? (
@@ -44,13 +44,13 @@ export default function WaterReminder() {
             <div className="flex gap-3">
               <button
                 onClick={() => handleResponse('no')}
-                className="flex-1 py-3.5 rounded-2xl bg-section border border-border text-text font-semibold text-sm active:scale-95 transition-all"
+                className="flex-1 py-3.5 rounded-2xl bg-section border border-border text-text font-bold text-sm active:scale-95 transition-all"
               >
                 Not yet 😅
               </button>
               <button
                 onClick={() => handleResponse('yes')}
-                className="flex-1 py-3.5 rounded-2xl bg-green text-white font-semibold text-sm active:scale-95 transition-all shadow-lg"
+                className="flex-1 py-3.5 rounded-2xl bg-[#1C1C1E] text-white font-bold text-sm active:scale-95 transition-all shadow-lg"
               >
                 Yes! 💪
               </button>

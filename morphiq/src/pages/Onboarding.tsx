@@ -4,10 +4,10 @@ import type { UserProfile, Goal, ActivityLevel, Sex } from '../types';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
-const GOALS: { value: Goal; emoji: string; label: string; desc: string }[] = [
-  { value: 'lose_weight', emoji: '🔥', label: 'Lose Weight', desc: 'Burn fat & feel lighter' },
-  { value: 'build_muscle', emoji: '💪', label: 'Build Muscle', desc: 'Gain strength & mass' },
-  { value: 'maintain', emoji: '⚡', label: 'Stay Healthy', desc: 'Balance & maintain' },
+const GOALS: { value: Goal; emoji: string; label: string; desc: string; bg: string; color: string }[] = [
+  { value: 'lose_weight', emoji: '🔥', label: 'Lose Weight', desc: 'Burn fat & feel lighter', bg: 'bg-card-orange', color: 'text-orange' },
+  { value: 'build_muscle', emoji: '💪', label: 'Build Muscle', desc: 'Gain strength & mass', bg: 'bg-card-blue', color: 'text-blue' },
+  { value: 'maintain', emoji: '⚡', label: 'Stay Healthy', desc: 'Balance & maintain', bg: 'bg-card-mint', color: 'text-green' },
 ];
 
 const ACTIVITIES: { value: ActivityLevel; label: string; sub: string }[] = [
@@ -53,10 +53,10 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-bg flex flex-col">
-      {/* Progress */}
+      {/* Progress bar */}
       {step !== 'splash' && step !== 'ready' && (
         <div className="fixed top-0 left-0 right-0 h-1 bg-border z-50" style={{ top: 'env(safe-area-inset-top)' }}>
-          <div className="h-full bg-green transition-all duration-500" style={{ width: `${(idx / (STEPS.length - 1)) * 100}%` }} />
+          <div className="h-full bg-purple transition-all duration-500" style={{ width: `${(idx / (STEPS.length - 1)) * 100}%` }} />
         </div>
       )}
 
@@ -64,7 +64,7 @@ export default function Onboarding() {
 
         {step === 'splash' && (
           <div className="text-center">
-            <div className="w-24 h-24 rounded-[28px] bg-green flex items-center justify-center mx-auto mb-8 shadow-green">
+            <div className="w-24 h-24 rounded-[28px] bg-purple flex items-center justify-center mx-auto mb-8 shadow-purple">
               <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
                 <path d="M22 5L27 17H39L29.5 24L33 36L22 29L11 36L14.5 24L5 17H17L22 5Z" fill="white" />
               </svg>
@@ -80,23 +80,25 @@ export default function Onboarding() {
 
         {step === 'goal' && (
           <div>
-            <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-2">Step 1 of 4</p>
+            <p className="text-muted text-xs font-bold uppercase tracking-widest mb-2">Step 1 of 4</p>
             <h2 className="text-3xl font-black text-text mb-1">What's your goal?</h2>
             <p className="text-muted mb-8">Everything will adapt to your answer.</p>
             <div className="space-y-3 mb-10">
               {GOALS.map(g => (
                 <button key={g.value} onClick={() => setGoal(g.value)}
-                  className={`w-full flex items-center gap-4 p-5 rounded-3xl border-2 transition-all shadow-sm text-left ${
-                    goal === g.value ? 'border-green bg-green-bg shadow-green' : 'border-border bg-card'
+                  className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all text-left ${
+                    goal === g.value
+                      ? `${g.bg} border-2 border-transparent`
+                      : 'bg-white border-2 border-border shadow-card'
                   }`}
                 >
                   <span className="text-3xl">{g.emoji}</span>
                   <div className="flex-1">
-                    <p className="text-text font-bold">{g.label}</p>
+                    <p className={`font-black ${goal === g.value ? g.color : 'text-text'}`}>{g.label}</p>
                     <p className="text-muted text-sm mt-0.5">{g.desc}</p>
                   </div>
                   {goal === g.value && (
-                    <div className="w-6 h-6 rounded-full bg-green flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center flex-shrink-0">
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
                   )}
@@ -109,7 +111,7 @@ export default function Onboarding() {
 
         {step === 'body' && (
           <div>
-            <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-2">Step 2 of 4</p>
+            <p className="text-muted text-xs font-bold uppercase tracking-widest mb-2">Step 2 of 4</p>
             <h2 className="text-3xl font-black text-text mb-1">About you</h2>
             <p className="text-muted mb-8">To calculate your personal calorie target.</p>
             <div className="space-y-3 mb-10">
@@ -117,7 +119,9 @@ export default function Onboarding() {
               <div className="flex gap-2">
                 {(['male', 'female'] as Sex[]).map(s => (
                   <button key={s} onClick={() => setSex(s)}
-                    className={`flex-1 py-3.5 rounded-2xl border-2 font-semibold text-sm transition-all ${sex === s ? 'border-green bg-green-bg text-green-dark' : 'border-border bg-card text-muted'}`}
+                    className={`flex-1 py-4 rounded-2xl border-2 font-bold text-sm transition-all ${
+                      sex === s ? 'border-purple bg-purple-bg text-purple' : 'border-border bg-white text-muted'
+                    }`}
                   >{s === 'male' ? '♂ Male' : '♀ Female'}</button>
                 ))}
               </div>
@@ -125,11 +129,11 @@ export default function Onboarding() {
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <input className="input-field pr-12" type="number" placeholder="Weight" value={weight} onChange={e => setWeight(e.target.value)} />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted text-sm">kg</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted text-sm font-medium">kg</span>
                 </div>
                 <div className="flex-1 relative">
                   <input className="input-field pr-12" type="number" placeholder="Height" value={height} onChange={e => setHeight(e.target.value)} />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted text-sm">cm</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted text-sm font-medium">cm</span>
                 </div>
               </div>
             </div>
@@ -142,15 +146,17 @@ export default function Onboarding() {
 
         {step === 'activity' && (
           <div>
-            <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-2">Step 3 of 4</p>
+            <p className="text-muted text-xs font-bold uppercase tracking-widest mb-2">Step 3 of 4</p>
             <h2 className="text-3xl font-black text-text mb-1">Activity level</h2>
             <p className="text-muted mb-8">Be honest — it impacts your calorie needs.</p>
             <div className="space-y-2 mb-10">
               {ACTIVITIES.map(a => (
                 <button key={a.value} onClick={() => setActivity(a.value)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${activity === a.value ? 'border-green bg-green-bg' : 'border-border bg-card shadow-sm'}`}
+                  className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
+                    activity === a.value ? 'border-purple bg-purple-bg' : 'border-border bg-white shadow-card'
+                  }`}
                 >
-                  <span className={`font-semibold text-sm ${activity === a.value ? 'text-green-dark' : 'text-text'}`}>{a.label}</span>
+                  <span className={`font-bold text-sm ${activity === a.value ? 'text-purple' : 'text-text'}`}>{a.label}</span>
                   <span className="text-muted text-xs">{a.sub}</span>
                 </button>
               ))}
@@ -164,15 +170,15 @@ export default function Onboarding() {
 
         {step === 'api' && (
           <div>
-            <p className="text-muted text-xs font-semibold uppercase tracking-widest mb-2">Step 4 of 4</p>
+            <p className="text-muted text-xs font-bold uppercase tracking-widest mb-2">Step 4 of 4</p>
             <h2 className="text-3xl font-black text-text mb-1">AI Setup</h2>
-            <p className="text-muted mb-6">Google Gemini analyzes your meal photos. 100% free.</p>
-            <div className="bg-green-bg border border-green/20 rounded-2xl p-4 mb-5 space-y-2 text-sm">
-              <p className="text-green-dark font-semibold mb-1">Get your free key in 30s</p>
+            <p className="text-muted mb-6">Google Gemini 2.5 Flash analyzes your meal photos. 100% free.</p>
+            <div className="bg-purple-bg rounded-2xl p-4 mb-5 space-y-2.5 text-sm">
+              <p className="text-purple font-black mb-1">Get your free key in 30s</p>
               {['Go to aistudio.google.com', 'Sign in with Google', 'Click "Get API Key" → "Create API Key"', 'Paste below'].map((s, i) => (
                 <div key={i} className="flex items-center gap-2.5">
-                  <span className="w-5 h-5 rounded-full bg-green text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
-                  <span className="text-dim">{s}</span>
+                  <span className="w-5 h-5 rounded-full bg-purple text-white text-xs font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                  <span className="text-dim text-sm">{s}</span>
                 </div>
               ))}
             </div>

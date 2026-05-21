@@ -1,58 +1,46 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Utensils, Dumbbell, User } from 'lucide-react';
+import { Home, Utensils, Dumbbell, User, Plus } from 'lucide-react';
 
 export default function NavBar() {
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 border-t border-border safe-bottom"
-      style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
+      style={{ paddingBottom: 'max(1.75rem, env(safe-area-inset-bottom))' }}
     >
-      <div className="flex items-center max-w-lg mx-auto px-4 pt-2 pb-1 relative">
-        <NavLink to="/" end className={({ isActive }) =>
-          `flex-1 flex flex-col items-center gap-0.5 py-1 transition-colors ${isActive ? 'text-green' : 'text-muted'}`
-        }>
-          {({ isActive }) => <>
-            <Home size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-            <span className={`text-[10px] font-medium ${isActive ? 'text-green' : 'text-muted'}`}>Home</span>
-          </>}
-        </NavLink>
-
-        <NavLink to="/nutrition" className={({ isActive }) =>
-          `flex-1 flex flex-col items-center gap-0.5 py-1 transition-colors ${isActive ? 'text-green' : 'text-muted'}`
-        }>
-          {({ isActive }) => <>
-            <Utensils size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-            <span className={`text-[10px] font-medium ${isActive ? 'text-green' : 'text-muted'}`}>Nutrition</span>
-          </>}
-        </NavLink>
-
-        <div className="flex-1 flex justify-center -mt-5">
-          <NavLink to="/log">
-            <div className="w-13 h-13 rounded-full bg-green flex items-center justify-center shadow-green active:scale-95 transition-all" style={{ width: 52, height: 52 }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M10 3v14M3 10h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-              </svg>
-            </div>
+      <div className="bg-[#1C1C1E] rounded-full px-2 py-2 flex items-center gap-1 shadow-nav">
+        {[
+          { to: '/', Icon: Home, end: true },
+          { to: '/nutrition', Icon: Utensils, end: false },
+        ].map(({ to, Icon, end }) => (
+          <NavLink key={to} to={to} end={end}>
+            {({ isActive }) => (
+              <div className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 ${isActive ? 'bg-white' : ''}`}>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} className={isActive ? 'text-[#1C1C1E]' : 'text-white/70'} />
+              </div>
+            )}
           </NavLink>
-        </div>
+        ))}
 
-        <NavLink to="/fitness" className={({ isActive }) =>
-          `flex-1 flex flex-col items-center gap-0.5 py-1 transition-colors ${isActive ? 'text-green' : 'text-muted'}`
-        }>
-          {({ isActive }) => <>
-            <Dumbbell size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-            <span className={`text-[10px] font-medium ${isActive ? 'text-green' : 'text-muted'}`}>Fitness</span>
-          </>}
+        <NavLink to="/log">
+          {({ isActive }) => (
+            <div className={`w-12 h-12 flex items-center justify-center rounded-full mx-1 transition-all active:scale-90 ${isActive ? 'bg-purple-light' : 'bg-white'}`}>
+              <Plus size={22} strokeWidth={2.5} className="text-[#1C1C1E]" />
+            </div>
+          )}
         </NavLink>
 
-        <NavLink to="/profile" className={({ isActive }) =>
-          `flex-1 flex flex-col items-center gap-0.5 py-1 transition-colors ${isActive ? 'text-green' : 'text-muted'}`
-        }>
-          {({ isActive }) => <>
-            <User size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-            <span className={`text-[10px] font-medium ${isActive ? 'text-green' : 'text-muted'}`}>Profile</span>
-          </>}
-        </NavLink>
+        {[
+          { to: '/fitness', Icon: Dumbbell, end: false },
+          { to: '/profile', Icon: User, end: false },
+        ].map(({ to, Icon, end }) => (
+          <NavLink key={to} to={to} end={end}>
+            {({ isActive }) => (
+              <div className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-200 ${isActive ? 'bg-white' : ''}`}>
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} className={isActive ? 'text-[#1C1C1E]' : 'text-white/70'} />
+              </div>
+            )}
+          </NavLink>
+        ))}
       </div>
     </nav>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Key, Target, ChevronRight, Check, Info } from 'lucide-react';
+import { Key, ChevronRight, Check, Info, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
 import type { Goal, ActivityLevel } from '../types';
@@ -20,8 +20,8 @@ const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
 
 interface BMIInfo {
   emoji: string;
-  color: string;
-  bg: string;
+  cardBg: string;
+  textColor: string;
   title: string;
   message: string;
 }
@@ -29,38 +29,38 @@ interface BMIInfo {
 function getBMIInfo(bmi: number): BMIInfo {
   if (bmi < 18.5) return {
     emoji: '🌱',
-    color: 'text-blue-300',
-    bg: 'bg-blue-400/8 border-blue-400/15',
+    cardBg: 'bg-card-sky',
+    textColor: 'text-blue',
     title: 'A little light',
-    message: `At ${bmi}, your body is still growing into its full potential. Nourishing yourself well will help you feel energized and strong — you're already on a great path.`,
+    message: `At ${bmi}, your body is still growing into its full potential. Nourishing yourself well will help you feel energized and strong.`,
   };
   if (bmi < 25) return {
     emoji: '✨',
-    color: 'text-green',
-    bg: 'bg-green/8 border-green/15',
+    cardBg: 'bg-card-mint',
+    textColor: 'text-green',
     title: 'Looking great!',
-    message: `A BMI of ${bmi} puts you in the healthy range — well done! Your body is in a great place. Keep up your good habits and enjoy how you feel.`,
+    message: `A BMI of ${bmi} puts you in the healthy range — well done! Your body is in a great place. Keep up your good habits!`,
   };
   if (bmi < 27) return {
     emoji: '💪',
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-400/8 border-yellow-400/15',
+    cardBg: 'bg-card-yellow',
+    textColor: 'text-amber-700',
     title: 'Almost there',
-    message: `You're at ${bmi}, just a little above the ideal range — totally normal and very common. Small consistent steps in nutrition and movement go a long way. You've got this!`,
+    message: `You're at ${bmi}, just a little above ideal — totally normal. Small consistent steps in nutrition and movement go a long way!`,
   };
   if (bmi < 30) return {
     emoji: '🌟',
-    color: 'text-orange',
-    bg: 'bg-orange/8 border-orange/15',
+    cardBg: 'bg-card-orange',
+    textColor: 'text-orange',
     title: 'On your journey',
-    message: `Your BMI is ${bmi}. Your body has been working hard and it's time to give it a little extra love. Every healthy choice you make today is a gift to your future self.`,
+    message: `Your BMI is ${bmi}. Every healthy choice you make today is a gift to your future self. You're on the right path!`,
   };
   return {
     emoji: '🤗',
-    color: 'text-red-400',
-    bg: 'bg-red-400/8 border-red-400/15',
-    title: 'Let\'s do this together',
-    message: `At ${bmi}, your body would benefit from some extra care and attention — and that's exactly why you're here! You took the first step by opening Morphiq. Let's build healthy habits one day at a time.`,
+    cardBg: 'bg-card-pink',
+    textColor: 'text-pink-700',
+    title: "Let's do this together",
+    message: `At ${bmi}, your body would benefit from some extra care — and that's exactly why you're here! You took the first step. Let's build healthy habits one day at a time.`,
   };
 }
 
@@ -107,99 +107,100 @@ export default function Profile() {
 
   return (
     <div className="page bg-bg">
-      <div className="px-5 pt-14 pb-6">
-        <h1 className="text-2xl font-black text-text tracking-tight">Profile</h1>
-        <p className="text-dim text-sm mt-0.5">{GOAL_LABELS[p.goal]}</p>
+      <div className="px-5 pt-14 pb-5">
+        <h1 className="text-3xl font-black text-text tracking-tight">Profile</h1>
       </div>
 
-      {/* Identity */}
-      <div className="mx-5 mb-4 bg-card shadow-card border border-border rounded-3xl p-5">
+      {/* Identity card */}
+      <div className="mx-5 mb-4 bg-white shadow-card rounded-[2rem] p-5">
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-green-bg border border-border flex items-center justify-center text-2xl font-black text-green-dark">
+          <div className="w-16 h-16 rounded-[1.25rem] bg-card-purple flex items-center justify-center text-2xl font-black text-purple">
             {p.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <p className="text-text font-bold text-lg">{p.name}</p>
-            <p className="text-muted text-xs">{p.sex === 'male' ? '♂' : '♀'} {p.age} yo · {p.weightKg} kg · {p.heightCm} cm</p>
+          <div className="flex-1">
+            <p className="text-text font-black text-xl">{p.name}</p>
+            <p className="text-muted text-xs mt-0.5">{p.sex === 'male' ? '♂' : '♀'} {p.age} yo · {p.weightKg} kg · {p.heightCm} cm</p>
+            <span className="inline-block mt-1.5 px-2.5 py-1 bg-purple-bg text-purple text-[10px] font-bold rounded-full">{GOAL_LABELS[p.goal]}</span>
+          </div>
+        </div>
+
+        {/* Colorful stat chips — inspired by the design */}
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          <div className="bg-card-mint rounded-2xl p-3 text-center">
+            <p className="text-green font-black text-base leading-none">{p.weightKg} kg</p>
+            <p className="text-text/50 text-[10px] mt-1 font-semibold">Current</p>
+          </div>
+          <div className="bg-card-blue rounded-2xl p-3 text-center">
+            <p className="text-blue font-black text-base leading-none">{ACTIVITY_LABELS[p.activityLevel]}</p>
+            <p className="text-text/50 text-[10px] mt-1 font-semibold">Activity</p>
+          </div>
+          <div className="bg-card-yellow rounded-2xl p-3 text-center">
+            <p className="text-amber-700 font-black text-base leading-none">{targets.calories}</p>
+            <p className="text-text/50 text-[10px] mt-1 font-semibold">kcal/day</p>
           </div>
         </div>
       </div>
 
-      {/* BMI card — kind messaging */}
-      <div className={`mx-5 mb-4 rounded-3xl border p-5 ${bmiInfo.bg}`}>
+      {/* BMI card */}
+      <div className={`mx-5 mb-4 ${bmiInfo.cardBg} rounded-[2rem] p-5`}>
         <div className="flex items-start gap-3">
           <span className="text-3xl">{bmiInfo.emoji}</span>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <p className={`font-bold ${bmiInfo.color}`}>{bmiInfo.title}</p>
-              <span className={`pill text-[10px] ${bmiInfo.bg} ${bmiInfo.color}`}>BMI {bmi}</span>
+              <p className={`font-black text-base ${bmiInfo.textColor}`}>{bmiInfo.title}</p>
+              <span className={`px-2.5 py-0.5 bg-white/50 rounded-full text-[10px] font-bold ${bmiInfo.textColor}`}>BMI {bmi}</span>
             </div>
-            <p className="text-dim text-xs leading-relaxed">{bmiInfo.message}</p>
+            <p className="text-text/60 text-xs leading-relaxed">{bmiInfo.message}</p>
           </div>
         </div>
-      </div>
-
-      {/* Stats grid */}
-      <div className="mx-5 grid grid-cols-2 gap-2.5 mb-4">
-        {[
-          { label: 'Daily Target', value: `${targets.calories} kcal` },
-          { label: 'TDEE', value: `${tdee} kcal` },
-          { label: 'Activity', value: ACTIVITY_LABELS[p.activityLevel] },
-          { label: 'BMI', value: `${bmi}` },
-        ].map(s => (
-          <div key={s.label} className="bg-card shadow-card border border-border rounded-2xl p-4">
-            <p className="text-muted text-xs mb-1">{s.label}</p>
-            <p className="text-text font-bold text-sm">{s.value}</p>
-          </div>
-        ))}
       </div>
 
       {/* Macro targets */}
-      <div className="mx-5 bg-card shadow-card border border-border rounded-2xl p-4 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Target size={16} className="text-green" />
-          <p className="text-text text-sm font-semibold">Daily Macro Targets</p>
-        </div>
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
+        <p className="text-text font-black text-sm mb-3">Daily Macro Targets</p>
         <div className="grid grid-cols-3 gap-2 text-center">
           {[
-            { label: 'Protein', value: `${targets.protein}g`, color: 'text-green' },
-            { label: 'Carbs', value: `${targets.carbs}g`, color: 'text-blue' },
-            { label: 'Fat', value: `${targets.fat}g`, color: 'text-orange' },
+            { label: 'Protein', value: `${targets.protein}g`, bg: 'bg-card-mint', color: 'text-green' },
+            { label: 'Carbs', value: `${targets.carbs}g`, bg: 'bg-card-blue', color: 'text-blue' },
+            { label: 'Fat', value: `${targets.fat}g`, bg: 'bg-card-orange', color: 'text-orange' },
           ].map(m => (
-            <div key={m.label} className="bg-section rounded-xl py-3">
-              <p className={`font-bold text-sm ${m.color}`}>{m.value}</p>
-              <p className="text-muted text-xs mt-0.5">{m.label}</p>
+            <div key={m.label} className={`${m.bg} rounded-2xl py-3`}>
+              <p className={`font-black text-sm ${m.color}`}>{m.value}</p>
+              <p className="text-text/50 text-[10px] mt-0.5 font-semibold">{m.label}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border flex justify-between text-xs text-muted">
+          <span>TDEE: <strong className="text-text">{tdee} kcal</strong></span>
+          <span>Target: <strong className="text-text">{targets.calories} kcal</strong></span>
         </div>
       </div>
 
       {/* Update weight */}
-      <div className="mx-5 bg-card shadow-card border border-border rounded-2xl p-4 mb-4">
-        <p className="text-text text-sm font-semibold mb-3">Update Weight</p>
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
+        <p className="text-text font-black text-sm mb-3">Update Weight</p>
         <div className="flex gap-2">
           <input className="input-field flex-1" type="number" placeholder="Weight (kg)" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
-          <button onClick={saveWeight} className="btn-primary px-5">
+          <button onClick={saveWeight} className="btn-primary px-5 py-3">
             {savedWeight ? <Check size={16} /> : <ChevronRight size={16} />}
           </button>
         </div>
       </div>
 
       {/* Water reminder toggle */}
-      <div className="mx-5 bg-card shadow-card border border-border rounded-2xl p-4 mb-4">
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-section flex items-center justify-center">
-              💧
-            </div>
+            <div className="w-10 h-10 rounded-2xl bg-card-sky flex items-center justify-center text-xl">💧</div>
             <div>
-              <p className="text-text text-sm font-semibold">Hydration Reminder</p>
-              <p className="text-muted text-xs">Ask if you've had water on app open</p>
+              <p className="text-text font-bold text-sm">Hydration Reminder</p>
+              <p className="text-muted text-xs">Ask when you open the app</p>
             </div>
           </div>
           <button
             onClick={toggleWaterReminder}
-            className={`w-12 h-6 rounded-full transition-all duration-200 flex items-center ${waterReminder ? 'bg-green justify-end' : 'bg-section justify-start'} border border-border px-0.5`}
+            className={`w-13 h-7 rounded-full transition-all duration-200 flex items-center ${waterReminder ? 'bg-purple justify-end' : 'bg-section justify-start'} border border-border px-0.5`}
+            style={{ width: 52, height: 28 }}
           >
             <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
           </button>
@@ -207,44 +208,44 @@ export default function Profile() {
       </div>
 
       {/* API Key */}
-      <div className="mx-5 bg-card shadow-card border border-border rounded-2xl p-4 mb-4">
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <Key size={16} className="text-green" />
-          <p className="text-text text-sm font-semibold">Gemini API Key</p>
+          <Key size={16} className="text-purple" />
+          <p className="text-text font-black text-sm">Gemini API Key</p>
         </div>
-        <p className="text-muted text-xs mb-3">Free AI at aistudio.google.com</p>
+        <p className="text-muted text-xs mb-3">Free AI at aistudio.google.com · 2.5 Flash</p>
         <div className="flex gap-2 mb-2.5">
           <input className="input-field flex-1" type={showKey ? 'text' : 'password'} placeholder="AIza..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
-          <button onClick={() => setShowKey(!showKey)} className="px-3 bg-section border border-border rounded-2xl text-muted text-xs flex-shrink-0">
-            {showKey ? 'Hide' : 'Show'}
+          <button onClick={() => setShowKey(!showKey)} className="w-11 bg-section border border-border rounded-2xl flex items-center justify-center text-muted flex-shrink-0">
+            {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
-        <button onClick={saveApiKey} className="btn-primary w-full flex items-center justify-center gap-2 text-sm">
+        <button onClick={saveApiKey} className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-3.5">
           {savedKey ? <><Check size={15} /> Saved!</> : 'Save API Key'}
         </button>
         {p.geminiApiKey ? (
-          <div className="mt-2.5 flex gap-2 text-green text-xs bg-green-bg px-3 py-2 rounded-xl border border-border">
+          <div className="mt-2.5 flex gap-2 text-green text-xs bg-green-bg px-3 py-2 rounded-xl">
             <Check size={12} className="mt-0.5 flex-shrink-0" /> AI features enabled
           </div>
         ) : (
-          <div className="mt-2.5 flex gap-2 text-orange text-xs bg-orange-bg px-3 py-2 rounded-xl border border-border">
+          <div className="mt-2.5 flex gap-2 text-orange text-xs bg-orange-bg px-3 py-2 rounded-xl">
             <Info size={12} className="mt-0.5 flex-shrink-0" /> No key — AI features disabled. Tracking still works.
           </div>
         )}
       </div>
 
       {/* How to get key */}
-      <div className="mx-5 bg-card shadow-card border border-border rounded-2xl p-4 mb-8">
-        <p className="text-text text-xs font-semibold mb-2">How to get a free Gemini key</p>
-        <ol className="space-y-1 text-muted text-xs">
+      <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-8">
+        <p className="text-text font-bold text-xs mb-2">How to get a free Gemini key</p>
+        <ol className="space-y-1.5 text-muted text-xs">
           {['Visit aistudio.google.com', 'Sign in with Google', 'Click "Get API Key" → "Create API Key"', 'Copy key (starts with AIza...)', 'Paste above and save'].map((s, i) => (
             <li key={i} className="flex gap-2">
-              <span className="text-green">{i + 1}.</span>
+              <span className="text-purple font-bold">{i + 1}.</span>
               <span>{s}</span>
             </li>
           ))}
         </ol>
-        <p className="text-muted text-xs mt-2 pt-2 border-t border-border">Free tier: 15 req/min · 1M tokens/day</p>
+        <p className="text-muted text-xs mt-2 pt-2 border-t border-border">2.5 Flash: 5 req/min · 250K tokens/day (free)</p>
       </div>
     </div>
   );
