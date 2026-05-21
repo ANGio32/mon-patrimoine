@@ -101,7 +101,7 @@ const GOAL_PROGRAMS = {
 // ─── Workout Player ─────────────────────────────────────────────────────────
 
 interface PlayerProps {
-  session: typeof GOAL_PROGRAMS.lose_weight.sessions[0];
+  session: AiProgramSession;
   onDone: () => void;
   onClose: () => void;
 }
@@ -162,15 +162,16 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   function skip() { advance(); }
 
   const progress = timer / phaseDuration;
-  const c = 2 * Math.PI * 42;
   const totalExercises = exercises.length;
   const overallProgress = (exIdx + setIdx / totalSets) / totalExercises;
 
   if (done) {
     return (
       <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center px-8 text-center">
-        <Trophy size={64} className="text-amber-400 mb-6" />
-        <h2 className="text-3xl font-black text-text mb-2">Workout done!</h2>
+        <div className="w-24 h-24 rounded-3xl bg-card-yellow flex items-center justify-center mb-6">
+          <Trophy size={48} className="text-amber-500" />
+        </div>
+        <h2 className="text-3xl font-black text-text mb-2">Workout done! 🎉</h2>
         <p className="text-dim mb-2">{session.name}</p>
         <p className="text-muted text-sm mb-10">{session.durationMin} min · {exercises.length} exercises</p>
         <button onClick={onDone} className="btn-primary w-full max-w-xs">Save & Continue</button>
@@ -179,96 +180,123 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-3">
-        <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-section border border-border flex items-center justify-center">
-          <X size={18} className="text-text" />
-        </button>
-        <p className="text-dim text-sm font-medium">{session.name}</p>
-        <div className="text-xs text-muted">{exIdx + 1}/{totalExercises}</div>
-      </div>
-
-      {/* Overall progress */}
-      <div className="mx-5 h-1 bg-section rounded-full mb-6">
-        <div className="h-full bg-purple rounded-full transition-all duration-500" style={{ width: `${overallProgress * 100}%` }} />
-      </div>
-
-      {/* Main display */}
-      <div className="flex-1 flex flex-col items-center justify-center px-5">
-        {/* Phase label */}
-        <div className={`pill mb-6 ${phase === 'rest' ? 'bg-card-orange text-orange' : 'bg-purple-bg text-purple'}`}>
-          {phase === 'rest' ? '😮‍💨 Rest' : `Set ${setIdx + 1} / ${totalSets}`}
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(160deg, #EDE9FE 0%, #DDD6FE 60%, #C4B5FD 100%)' }}>
+      {/* Hero: stick figure display */}
+      <div className="relative flex-1 flex flex-col">
+        {/* Top controls */}
+        <div className="flex items-center justify-between px-5 pt-14 pb-4">
+          <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/60 backdrop-blur-sm flex items-center justify-center shadow-sm">
+            <X size={18} className="text-text" />
+          </button>
+          <p className="text-dim text-sm font-semibold bg-white/40 backdrop-blur-sm px-4 py-1.5 rounded-full">{session.name}</p>
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl px-3 py-1.5 shadow-sm">
+            <span className="text-text text-sm font-bold">{exIdx + 1}/{totalExercises}</span>
+          </div>
         </div>
 
-        {/* Exercise name */}
-        <h2 className="text-2xl font-black text-text mb-1 text-center tracking-tight">{ex?.name}</h2>
-        <p className="text-dim text-sm mb-8 text-center">
-          {ex?.reps ? `${ex.reps} reps` : `${exDuration}s`} · {ex?.muscleGroups.join(', ')}
-        </p>
+        {/* Overall progress bar */}
+        <div className="mx-5 h-1 bg-white/30 rounded-full mb-4">
+          <div className="h-full bg-purple rounded-full transition-all duration-700" style={{ width: `${overallProgress * 100}%` }} />
+        </div>
 
-        {/* Stick figure with ground + instruction */}
-        <div className="mb-6 flex flex-col items-center">
+        {/* Figure / rest display — centered in remaining hero space */}
+        <div className="flex-1 flex items-center justify-center px-4">
           {phase === 'rest' ? (
-            <div className="flex flex-col items-center gap-3">
-              <span className="text-6xl">💧</span>
-              <p className="text-muted text-sm text-center px-6">Breathe, hydrate, prepare for the next set</p>
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-28 h-28 rounded-3xl bg-white/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <span className="text-6xl">💧</span>
+              </div>
+              <p className="text-purple/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
             </div>
           ) : (
-            <>
-              <ExerciseAnimation exercise={ex?.name ?? ''} size={110} />
-              {/* Instruction cue */}
-              <div className="flex items-start gap-2 bg-card-yellow rounded-2xl px-4 py-2.5 max-w-xs mt-3">
-                <span className="text-base flex-shrink-0">💡</span>
-                <p className="text-amber-800 text-xs leading-relaxed font-medium">{getExerciseCue(ex?.name ?? '')}</p>
-              </div>
-            </>
+            <div className="w-full max-w-xs">
+              <ExerciseAnimation exercise={ex?.name ?? ''} size={120} />
+            </div>
           )}
         </div>
-
-        {/* Timer ring */}
-        <div className="relative w-28 h-28 mb-8">
-          <svg width={112} height={112} className="-rotate-90">
-            <circle cx={56} cy={56} r={42} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={7} />
-            <circle cx={56} cy={56} r={42} fill="none"
-              stroke={phase === 'rest' ? '#EA580C' : '#7C3AED'}
-              strokeWidth={7}
-              strokeDasharray={`${progress * c} ${c}`}
-              strokeLinecap="round"
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-black text-text">{timer}</span>
-            <span className="text-muted text-xs">sec</span>
-          </div>
-        </div>
-
-        {/* Upcoming */}
-        {exIdx < exercises.length - 1 && phase === 'rest' && (
-          <div className="bg-purple-bg rounded-2xl px-5 py-3 flex items-center gap-3">
-            <StickFigure exercise={exercises[exIdx + 1]?.name ?? ''} size={40} />
-            <div>
-              <p className="text-muted text-xs">Up next</p>
-              <p className="text-text text-sm font-medium">{exercises[exIdx + 1]?.name}</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4 px-5 pb-10">
-        <button
-          onClick={() => setRunning(r => !r)}
-          className="w-14 h-14 rounded-full bg-section border border-border flex items-center justify-center"
-        >
-          {running ? <Pause size={22} className="text-text" /> : <Play size={22} className="text-text" />}
-        </button>
-        <button
-          onClick={skip}
-          className="w-14 h-14 rounded-full bg-[#1C1C1E] flex items-center justify-center shadow-lg"
-        >
-          <SkipForward size={22} className="text-white" />
-        </button>
+      {/* Bottom sheet */}
+      <div className="bg-white rounded-t-[2.5rem] shadow-2xl" style={{ minHeight: '46%' }}>
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 bg-border rounded-full" />
+        </div>
+
+        <div className="px-5 pt-2 pb-4">
+          {/* Phase badge + counter */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className={`pill text-xs font-bold ${phase === 'rest' ? 'bg-card-orange text-orange' : 'bg-purple-bg text-purple'}`}>
+              {phase === 'rest' ? '😮‍💨 Repos' : `Série ${setIdx + 1} / ${totalSets}`}
+            </span>
+            {phase === 'exercise' && (
+              <span className="pill bg-section text-dim border border-border text-xs">
+                {ex?.reps ? `${ex.reps} reps` : `${exDuration}s`}
+              </span>
+            )}
+            {phase === 'exercise' && ex?.muscleGroups.slice(0, 2).map(m => (
+              <span key={m} className="pill bg-section text-muted border border-border text-[10px]">{m}</span>
+            ))}
+          </div>
+
+          {/* Exercise name */}
+          <h2 className="text-2xl font-black text-text tracking-tight mb-3">
+            {phase === 'rest' ? 'Temps de repos' : ex?.name}
+          </h2>
+
+          {/* Instruction cue or up-next */}
+          {phase === 'exercise' ? (
+            <div className="bg-purple-bg rounded-2xl px-4 py-3 mb-4">
+              <p className="text-purple text-sm leading-relaxed">{getExerciseCue(ex?.name ?? '')}</p>
+            </div>
+          ) : (
+            exIdx < exercises.length - 1 ? (
+              <div className="flex items-center gap-3 bg-section rounded-2xl px-4 py-3 mb-4">
+                <div className="bg-white rounded-xl flex items-center justify-center flex-shrink-0" style={{ width: 48, height: 48 }}>
+                  <StickFigure exercise={exercises[exIdx + 1]?.name ?? ''} size={40} />
+                </div>
+                <div>
+                  <p className="text-muted text-xs font-medium">Prochain exercice</p>
+                  <p className="text-text text-sm font-bold">{exercises[exIdx + 1]?.name}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-card-mint rounded-2xl px-4 py-3 mb-4">
+                <p className="text-green text-sm font-medium">🏆 Dernier exercice — courage !</p>
+              </div>
+            )
+          )}
+
+          {/* Timer bar */}
+          <div className="mb-5">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-muted text-xs font-medium">{phase === 'rest' ? 'Repos' : 'Exercice'}</span>
+              <span className="text-text font-black text-2xl leading-none">{timer}<span className="text-sm font-bold text-muted ml-1">s</span></span>
+            </div>
+            <div className="h-2.5 bg-section rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-1000 ${phase === 'rest' ? 'bg-orange' : 'bg-purple'}`}
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => setRunning(r => !r)}
+              className="w-14 h-14 rounded-full bg-section border border-border flex items-center justify-center"
+            >
+              {running ? <Pause size={22} className="text-text" /> : <Play size={22} className="text-text" />}
+            </button>
+            <button
+              onClick={skip}
+              className="w-16 h-16 rounded-full bg-[#1C1C1E] flex items-center justify-center shadow-xl"
+            >
+              <SkipForward size={24} className="text-white" />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
