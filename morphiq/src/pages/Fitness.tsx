@@ -425,7 +425,7 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
           {session.exercises.map((ex, ei) => (
             <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
-              <div className="rounded-2xl bg-purple-bg flex items-center justify-center" style={{ width: 72, height: 72 }}>
+              <div className="rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center" style={{ width: 72, height: 72 }}>
                 <StickFigure exercise={ex.name} size={60} showGround />
               </div>
               <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
@@ -436,7 +436,7 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
       <div className="border-t border-border">
         {session.exercises.map((ex, ei) => (
           <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
-            <div className="w-8 h-8 rounded-xl bg-purple-bg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
               <StickFigure exercise={ex.name} size={28} />
             </div>
             <div className="flex-1 min-w-0">

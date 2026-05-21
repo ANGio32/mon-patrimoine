@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getMealSuggestions, generateRecipeFromIngredients } from '../utils/gemini';
+import { getMealSuggestions, generateRecipeFromIngredients, generateRecipeFromSuggestion } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
 import { calculateTargets } from '../utils/calculations';
 import type { MealType } from '../types';
@@ -77,10 +77,32 @@ function extractIngredientName(ing: string): string {
 
 function ShoppingListModal({ recipe, servings, onClose }: { recipe: Recipe; servings: number; onClose: () => void }) {
   const scale = servings / recipe.servings;
+  const [copied, setCopied] = useState(false);
+  const [store, setStore] = useState<'iga' | 'metro'>('iga');
+
+  function copyAll() {
+    const lines = recipe.ingredients.map(ing => `• ${scaleIngredient(ing, scale)}`).join('\n');
+    const text = `Liste de courses – ${recipe.name} (${servings} portion${servings > 1 ? 's' : ''})\n\n${lines}`;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function openAll() {
+    recipe.ingredients.forEach((ing, i) => {
+      const name = extractIngredientName(ing);
+      const url = store === 'iga'
+        ? `https://www.iga.ca/fr/recherche?q=${encodeURIComponent(name)}`
+        : `https://www.metro.ca/epicerie-en-ligne/recherche?filter=${encodeURIComponent(name)}`;
+      setTimeout(() => window.open(url, '_blank'), i * 300);
+    });
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(28,28,30,0.55)', backdropFilter: 'blur(12px)' }}>
-      <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl" style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 flex-shrink-0">
+      <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl" style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="flex items-center justify-between px-6 pt-6 pb-3 flex-shrink-0">
           <div>
             <h3 className="text-text font-black text-lg flex items-center gap-2"><ShoppingCart size={18} className="text-purple" /> Liste de courses</h3>
             <p className="text-muted text-xs mt-0.5">{recipe.name} · {servings} portion{servings > 1 ? 's' : ''}</p>
@@ -89,27 +111,36 @@ function ShoppingListModal({ recipe, servings, onClose }: { recipe: Recipe; serv
             <X size={16} className="text-muted" />
           </button>
         </div>
-        <div className="overflow-y-auto px-6 pb-10 space-y-2.5">
+
+        {/* Store selector + bulk actions */}
+        <div className="px-6 pb-3 flex-shrink-0 space-y-2">
+          <div className="flex gap-2">
+            <button onClick={() => setStore('iga')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'iga' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'iga' ? { background: '#b91c1c' } : {}}>🏪 IGA</button>
+            <button onClick={() => setStore('metro')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'metro' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'metro' ? { background: '#1d4ed8' } : {}}>🏪 Metro</button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={copyAll} className="flex-1 py-2.5 rounded-xl bg-section border border-border text-xs font-bold text-text flex items-center justify-center gap-1.5 active:scale-95 transition-all">
+              {copied ? '✓ Copié !' : '📋 Copier la liste'}
+            </button>
+            <button onClick={openAll} className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all" style={{ background: store === 'iga' ? '#b91c1c' : '#1d4ed8' }}>
+              🛒 Ouvrir tout
+            </button>
+          </div>
+        </div>
+
+        <div className="overflow-y-auto px-6 pb-10 space-y-2" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
           {recipe.ingredients.map((ing, i) => {
             const scaled = scaleIngredient(ing, scale);
             const name = extractIngredientName(ing);
+            const url = store === 'iga'
+              ? `https://www.iga.ca/fr/recherche?q=${encodeURIComponent(name)}`
+              : `https://www.metro.ca/epicerie-en-ligne/recherche?filter=${encodeURIComponent(name)}`;
             return (
-              <div key={i} className="bg-section rounded-2xl p-3 flex items-center gap-3">
+              <button key={i} onClick={() => window.open(url, '_blank')} className="w-full bg-section rounded-2xl p-3 flex items-center gap-3 text-left active:scale-[0.98] transition-all">
                 <span className="text-purple font-bold flex-shrink-0 text-sm">·</span>
                 <span className="text-dim text-sm flex-1 leading-snug">{scaled}</span>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => window.open(`https://www.iga.net/fr/recherche?q=${encodeURIComponent(name)}`, '_blank')}
-                    className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold active:scale-95 transition-all"
-                    style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}
-                  >IGA</button>
-                  <button
-                    onClick={() => window.open(`https://www.metro.ca/fr/recherche?term=${encodeURIComponent(name)}`, '_blank')}
-                    className="px-2.5 py-1.5 rounded-xl text-[10px] font-bold active:scale-95 transition-all"
-                    style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
-                  >Metro</button>
-                </div>
-              </div>
+                <span className="text-muted text-[10px] font-bold flex-shrink-0">Chercher →</span>
+              </button>
             );
           })}
         </div>
@@ -307,6 +338,175 @@ const RECIPES: Recipe[] = [
   },
 ];
 
+// ── Detailed recipe steps ─────────────────────────────────────────────────────
+const DETAILED_STEPS: Record<string, string[]> = {
+  'Bowl de Skyr Fruité': [
+    'Versez le skyr nature au fond d\'un grand bol — il doit recouvrir généreusement le fond en couche épaisse.',
+    'Saupoudrez les flocons d\'avoine directement sur le skyr. Ils vont légèrement s\'hydrater au contact et offrir une texture entre le croquant et le fondant.',
+    'Sur une planche, concassez grossièrement les amandes (ou noix) au couteau en morceaux irréguliers — évitez de les réduire en poudre, les gros morceaux apportent plus de croquant et de satisfaction.',
+    'Disposez les fruits rouges en surface. S\'ils sont surgelés, laissez-les décongeler 5 min à température ambiante pour qu\'ils libèrent leur jus et colorent naturellement le bol.',
+    'Terminez avec la cuillère à café de miel en filet en spirale. Servez immédiatement pour profiter du contraste textures croquant-crémeux.',
+  ],
+  'Omelette Fondante au Fromage': [
+    'Sortez les œufs du réfrigérateur 10 min avant — à température ambiante, ils cuisent plus uniformément et la texture finale est plus soyeuse.',
+    'Cassez les 3 œufs dans un bol, ajoutez une pincée de sel et de poivre, puis battez vigoureusement à la fourchette pendant 1 min jusqu\'à obtenir un mélange mousseux et d\'une couleur homogène.',
+    'Râpez le Comté finement et posez-le à portée de main — vous devrez l\'ajouter rapidement au bon moment.',
+    'Chauffez une poêle antiadhésive de 22-24 cm à feu moyen-doux. Ajoutez la noisette de beurre et attendez qu\'elle fonde et mousse légèrement, sans jamais grésiller fort.',
+    'Versez les œufs battus d\'un coup. Avec une spatule souple, ramenez immédiatement les bords cuits vers le centre en faisant des petits cercles et en inclinant légèrement la poêle pour que l\'œuf liquide s\'écoule vers les bords libres.',
+    'Quand le fond est bien pris (≈ 1 min 30) et que le dessus reste encore légèrement brillant et humide, parsemez le fromage râpé sur une seule moitié de l\'omelette.',
+    'Pliez délicatement l\'omelette en deux sur elle-même à l\'aide de la spatule. Inclinez la poêle et faites glisser l\'omelette dans l\'assiette — la chaleur résiduelle terminera de fondre le fromage à cœur.',
+    'Ciselez la ciboulette par-dessus et servez immédiatement : une omelette n\'attend pas !',
+  ],
+  'Overnight Oats Pomme et Noix': [
+    'La veille au soir : dans un bocal hermétique ou un bol avec couvercle, versez les 40 g de flocons d\'avoine.',
+    'Ajoutez la cuillère à café de cannelle et mélangez rapidement aux flocons pour bien les enrober d\'épices.',
+    'Versez les 120 ml de lait d\'amande sur les flocons et remuez pour homogénéiser. Le liquide doit dépasser légèrement le niveau de l\'avoine.',
+    'Pelez la demi-pomme et coupez-la en petits dés réguliers d\'environ 1 cm. Ajoutez les dés et les cerneaux de noix concassés dans le bocal. Mélangez une dernière fois.',
+    'Fermez hermétiquement et placez au réfrigérateur pour la nuit (min 6 heures). Le matin, les flocons auront absorbé tout le liquide. Remuez avant de déguster — ajoutez un filet de lait si la consistance vous semble trop épaisse.',
+  ],
+  'Pudding de Chia Mangue': [
+    'Dans un bocal ou un bol, versez le lait de soja et le fromage blanc 0%. Fouettez vigoureusement pour dissoudre le fromage blanc sans grumeaux.',
+    'Ajoutez les graines de chia d\'un seul coup. Remuez énergiquement pendant 30 secondes, puis attendez 2 min et remuez à nouveau — cette deuxième fois empêche les graines de coller en bloc au fond.',
+    'Couvrez et réfrigérez minimum 4 heures, idéalement toute la nuit. Les graines vont gonfler et former une texture gélatineuse et crémeuse.',
+    'Le matin, coupez la mangue en petits dés réguliers. Si vous utilisez une mangue fraîche, pelez-la et découpez les deux joues, puis grillage en cubes.',
+    'Sortez le pudding, remuez-le et vérifiez la consistance — si trop épais, ajoutez un peu de lait de soja. Disposez les dés de mangue fraîche sur le dessus et servez.',
+  ],
+  'Œufs Brouillés Crémeux Toast': [
+    'Glissez la tranche de pain dans le grille-pain — il doit être bien doré et croustillant. Pendant ce temps, préparez les œufs.',
+    'Cassez les 3 œufs dans un bol, battez-les brièvement avec une fourchette — juste assez pour mélanger le jaune et le blanc, sans trop incorporer d\'air.',
+    'Chauffez une petite casserole à fond épais à feu TRÈS doux (c\'est le secret absolu des œufs brouillés parfaits). Versez les œufs battus et commencez à remuer en 8 avec une spatule souple, sans jamais arrêter.',
+    'Remuez constamment en raclant bien le fond et les bords pendant 4-5 min. Les œufs doivent cuire très lentement en formant de petits flocons crémeux et soyeux.',
+    'Dès que les œufs forment des plis mous mais sont encore légèrement sous-cuits, retirez du feu. Incorporez le fromage frais hors du feu — la chaleur résiduelle termine la cuisson à la perfection.',
+    'Disposez les œufs brouillés sur le toast chaud et croquant. Ciselez la ciboulette par-dessus et servez sans attendre.',
+  ],
+  'Overnight Oats aux Fruits Rouges': [
+    'La veille, dans un grand bocal, versez les 80 g de flocons d\'avoine, la cuillère de graines de chia et une bonne pincée de cannelle. Mélangez les ingrédients secs ensemble.',
+    'Versez les 200 ml de lait d\'amande. Si vous utilisez des fruits rouges surgelés, ajoutez-les dès maintenant — ils décongèleront toute la nuit en parfumant le liquide. Remuez bien.',
+    'Ajoutez la cuillère à café de miel et remuez une dernière fois. La texture sera assez liquide — c\'est normal, l\'avoine et les graines de chia absorberont tout.',
+    'Fermez et réfrigérez au moins 6 heures. Le matin, sortez le bocal et laissez 2 min à température ambiante.',
+    'Si les fruits rouges étaient frais, ajoutez-les maintenant. Remuez légèrement et ajustez la consistance avec un peu de lait d\'amande si besoin.',
+  ],
+  'Salade Quinoa Thon Pois Chiches': [
+    'Rincez le quinoa sous l\'eau froide dans une passoire fine (enlève le goût amer). Mettez dans une casserole avec 2× son volume d\'eau froide et une pincée de sel. Portez à ébullition, couvrez, réduisez à feu doux 15 min jusqu\'à absorption complète.',
+    'Pendant la cuisson du quinoa, ouvrez et égouttez la boîte de thon dans une passoire en pressant légèrement. Émiettez grossièrement. Rincez les pois chiches à l\'eau froide.',
+    'Coupez les tomates cerises en deux et le concombre en petits dés. Dans un petit bol, préparez la vinaigrette : huile d\'olive + jus de citron + sel + poivre.',
+    'Étalez le quinoa au fond d\'un grand bol. Disposez le thon, les pois chiches, les tomates et le concombre par-dessus en sections séparées pour une belle présentation.',
+    'Versez la vinaigrette et mélangez délicatement. Goûtez et ajustez l\'assaisonnement. Se conserve 3-4 jours au frais en boîte hermétique.',
+  ],
+  'Wrap Poulet Hummus Épinards': [
+    'Posez le wrap à plat sur une planche. Chauffez-le 20 sec dans une poêle sèche ou au micro-ondes pour le rendre plus souple et facile à rouler.',
+    'Étalez le hummus au centre du wrap avec le dos d\'une cuillère, en laissant 3 cm libres sur les bords. Une couche généreuse évite que la garniture sèche.',
+    'Disposez d\'abord les épinards sur le hummus pour former une base verte, puis les lanières de poivron rouge, et enfin le poulet effiloché au centre.',
+    'Repliez les deux bords latéraux vers le centre (2-3 cm), puis roulez le wrap fermement en partant du bas, comme un burrito. Maintenez bien serré.',
+    'Coupez le wrap en deux en diagonale d\'un seul mouvement net. Servez immédiatement ou emballez dans du film alimentaire pour emporter.',
+  ],
+  'Dinde Patate Douce Avocat': [
+    'Préchauffez le four à 200°C. Pendant ce temps, pelez la patate douce et coupez-la en dés réguliers de 2 cm — taille uniforme pour une cuisson homogène.',
+    'Disposez les dés sur une plaque avec papier cuisson. Arrosez d\'un filet d\'huile d\'olive, salez, poivrez et mélangez. Enfournez 20-25 min en retournant à mi-cuisson — ils doivent être tendres et légèrement caramélisés.',
+    'Pendant la cuisson de la patate, préparez la dinde : saupoudrez généreusement d\'herbes de Provence des deux côtés, salez et poivrez.',
+    '10 min avant la fin, chauffez une poêle antiadhésive à feu moyen-vif. Saisissez la dinde 4-5 min de chaque côté jusqu\'à belle coloration dorée. Elle est cuite quand il n\'y a plus de partie rosée visible.',
+    'Laissez la dinde reposer 2 min sur une planche avant de la trancher — ce temps de repos redistribue les jus pour une viande plus moelleuse.',
+    'Dressez dans l\'assiette : dés de patate douce rôtis, tranches de dinde dorées, et lamelles d\'avocat en éventail. Servez sans attendre.',
+  ],
+  'Bowl Méditerranéen Poulet & Feta': [
+    'Découpez le filet de poulet en dés de 2-3 cm. Dans un bol, mélangez avec l\'origan, le paprika, sel et poivre pour bien les enrober. Laissez mariner 5 min.',
+    'Pendant ce temps, coupez le concombre en petits dés, les tomates cerises en deux, dénoyautez et coupez les olives en deux.',
+    'Chauffez un filet d\'huile d\'olive dans une poêle à feu moyen-vif. Faites sauter les dés de poulet 6-8 min en remuant régulièrement jusqu\'à belle coloration dorée sur toutes les faces et cuisson à cœur.',
+    'Réchauffez le boulgour au micro-ondes 1 min avec une cuillère d\'eau, ou dans une petite casserole à feu doux avec un fond d\'eau.',
+    'Montez le bowl : boulgour chaud au fond, dés de poulet d\'un côté, concombre et tomates de l\'autre, olives réparties.',
+    'Émiettez généreusement la feta sur l\'ensemble. Terminez avec un filet d\'huile d\'olive et une pincée d\'origan supplémentaire.',
+  ],
+  'Patate Douce Farcie Pois Chiches': [
+    'Préchauffez le four à 200°C. Lavez la patate douce, piquez-la 5-6 fois avec une fourchette (important pour éviter qu\'elle n\'éclate) et enveloppez-la dans du papier aluminium.',
+    'Enfournez 45-50 min. Vérifiez la cuisson en plantant un couteau au centre — il doit s\'enfoncer sans résistance. En micro-ondes : 8-10 min à puissance maximale.',
+    'Pendant la cuisson, égouttez et rincez les pois chiches. Dans un bol, mélangez-les avec le cumin, le paprika fumé, sel et poivre. Faites-les sauter à sec dans une poêle 3-4 min à feu moyen-vif jusqu\'à légère croustillance.',
+    'Préparez la sauce : mélangez le yaourt grec avec le jus de citron vert et une pincée de sel. La sauce doit être lisse et légèrement acidulée.',
+    'Sortez la patate du four (attention à la vapeur). Fendez-la en deux avec un couteau. Ouvrez-la délicatement en appuyant sur les côtés — la chair doit être fondante et orangée.',
+    'Garnissez généreusement avec les pois chiches épicés et nappez de sauce yaourt-citron vert. Servez immédiatement.',
+  ],
+  'Grilled Chicken Power Bowl': [
+    'Préparez la marinade : huile d\'olive + jus de citron + ail haché finement + sel + poivre. Plongez les filets de poulet et retournez-les. Laissez mariner au moins 15 min (ou 2 h au frais).',
+    'Pendant la marinade, cuisez le quinoa : rincez-le, couvrez de 2× son volume d\'eau froide salée, portez à ébullition puis couvrez et laissez absorber 12-15 min à feu doux.',
+    'Chauffez une poêle-gril à feu vif. Égouttez légèrement le poulet et cuisez 6-7 min de chaque côté sans le bouger — développez de belles traces de gril. Vérifiez la cuisson à cœur.',
+    'Laissez le poulet reposer 3 min sur une planche puis tranchez en lamelles de biais — cette découpe met en valeur la chair.',
+    'Coupez les tomates cerises en deux, tranchez l\'avocat et arrosez-le d\'un peu de citron pour éviter l\'oxydation.',
+    'Assemblez : quinoa en base, jeunes pousses, tomates, avocat, puis poulet tranché par-dessus. Arrosez du reste de marinade et servez immédiatement.',
+  ],
+  'Papillote de Cabillaud & Lentilles': [
+    'Préchauffez le four à 200°C. Découpez une grande feuille de papier cuisson (40 × 40 cm) — assez grande pour former un sachet hermétique.',
+    'Lavez et coupez la courgette en rondelles de 5 mm. Disposez-les au centre de la feuille de papier cuisson en couche légèrement superposée.',
+    'Posez le dos de cabillaud sur les courgettes. Arrosez d\'un filet d\'huile d\'olive et du jus de citron, salez et poivrez. Ajoutez une branche de thym ou aneth si disponible.',
+    'Fermez hermétiquement la papillote en repliant les bords plusieurs fois pour créer une enveloppe étanche. Placez sur une plaque et enfournez 15-18 min selon l\'épaisseur du filet.',
+    'Pendant la cuisson, réchauffez les lentilles dans une petite casserole avec un fond d\'eau, sel, poivre et une gousse d\'ail. Chauffez à feu doux en remuant.',
+    'Sortez la papillote — attention à la vapeur en l\'ouvrant ! Vérifiez que le poisson s\'effiloche facilement. Versez les lentilles dans une assiette creuse et déposez le poisson par-dessus avec ses jus de cuisson.',
+  ],
+  'Chili Bœuf & Haricots Rouges': [
+    'Émincez finement l\'oignon et coupez le poivron en petits dés réguliers de 1 cm. Ces deux légumes forment la base aromatique du chili.',
+    'Chauffez un filet d\'huile dans une cocotte à feu moyen-vif. Faites revenir l\'oignon 3-4 min jusqu\'à transparence, puis ajoutez le poivron et continuez 2 min.',
+    'Ajoutez la viande hachée et faites-la dorer en l\'émiettant avec une cuillère en bois. Elle doit être bien colorée, sans partie rosée — comptez 5-6 min.',
+    'Incorporez le cumin et les épices chili, remuez 30 secondes pour les faire revenir dans la matière grasse et libérer leurs arômes. Ajoutez ensuite le coulis de tomate et les haricots rouges égouttés et rincés.',
+    'Mélangez bien, portez à ébullition puis baissez à feu doux-moyen. Laissez mijoter à découvert 15-20 min en remuant de temps en temps — la sauce doit réduire et s\'épaissir.',
+    'Goûtez et ajustez l\'assaisonnement. Servez chaud. Ce chili est encore meilleur réchauffé le lendemain !',
+  ],
+  'Frittata Thon & Courgettes': [
+    'Émincez finement le demi-oignon. Lavez et râpez grossièrement la courgette. Pressez la courgette râpée dans vos mains au-dessus de l\'évier pour extraire le maximum d\'eau — sinon la frittata sera détrempée.',
+    'Chauffez l\'huile d\'olive dans une poêle allant au four de 22-24 cm à feu moyen. Faites revenir l\'oignon 3 min, puis ajoutez la courgette essorée et poursuivez 3-4 min en remuant.',
+    'Pendant ce temps, cassez les œufs dans un bol. Égouttez le thon et émiettez-le. Salez légèrement (le thon est déjà salé), poivrez et battez l\'ensemble.',
+    'Réduisez le feu à moyen-doux. Versez le mélange œuf-thon sur les légumes sans mélanger. Avec une spatule, ramenez légèrement les bords vers le centre une seule fois.',
+    'Couvrez la poêle et laissez cuire 8-10 min à feu doux — la frittata est prête quand les bords et le centre sont pris mais que la surface reste légèrement humide.',
+    'Pour dorer la surface, passez 2-3 min sous le gril du four préchauffé en surveillant. Laissez tiédir 2 min avant de glisser sur une assiette de service.',
+  ],
+  'Salade Lentilles & Saumon Fumé': [
+    'Si vous utilisez des lentilles en conserve, égouttez-les et rincez-les abondamment à l\'eau froide. Si fraîches, cuisez-les à l\'eau non salée 25-30 min jusqu\'à tendreté sans qu\'elles s\'écrasent.',
+    'Préparez la vinaigrette dans un petit bol : mélangez la moutarde, le jus de citron, sel, poivre et un filet d\'huile d\'olive. Elle doit être légèrement acidulée pour contraster avec le gras du saumon.',
+    'Pendant que les lentilles sont encore tièdes, versez la vinaigrette et mélangez. Laissez reposer 2 min pour qu\'elles s\'imprègnent bien.',
+    'Coupez le concombre en petits dés réguliers. Détaillez le saumon fumé en lanières de 2-3 cm.',
+    'Dressez dans une assiette creuse : les lentilles assaisonnées, les dés de concombre frais, puis les lanières de saumon fumé disposées avec soin. Parsemez d\'aneth fraîche ciselée et servez.',
+  ],
+  'Zoodles Crevettes & Ail': [
+    'Préparez les zoodles avec un spiraliseur ou coupez la courgette en julienne au couteau. Réservez dans une passoire légèrement salée pendant 5 min pour dégorger l\'excès d\'eau, puis séchez avec du papier absorbant.',
+    'Hachez finement les 2 gousses d\'ail. Décortiquez les crevettes si besoin et retirez le boyau noir en faisant une incision le long du dos.',
+    'Chauffez l\'huile d\'olive dans une grande poêle à feu moyen-vif. Ajoutez l\'ail haché et faites-le dorer 30 secondes en remuant constamment — il ne doit pas brûler.',
+    'Ajoutez immédiatement les crevettes en une seule couche. Cuisez 1 min 30 de chaque côté — dès qu\'elles sont roses de chaque côté, elles sont prêtes. Salez, poivrez.',
+    'Ajoutez les zoodles séchés dans la poêle. Sautez 1-2 min maximum à feu vif en remuant — ils doivent rester al dente et légèrement croquants, jamais mous. Parsemez de persil frais et servez immédiatement.',
+  ],
+  'Fondue de Poireaux & Saumon': [
+    'Coupez la base et le vert foncé des poireaux. Fendez-les en deux dans la longueur, lavez soigneusement entre les feuilles (le sable se cache entre les couches), puis émincez finement en demi-rondelles.',
+    'Dans une sauteuse, versez 4-5 cm d\'eau, ajoutez les poireaux, couvrez hermétiquement et étuvez à feu très doux 15-20 min. Ils doivent devenir très tendres et translucides, sans coloration.',
+    'Pendant la cuisson des poireaux, vérifiez que le saumon n\'a pas d\'arêtes (passez le doigt et retirez-les avec une pince). Salez et poivrez les deux faces.',
+    'Quand les poireaux sont fondants et l\'eau presque évaporée, incorporez la crème fraîche. Remuez doucement, salez, poivrez et ajoutez un filet de jus de citron. Maintenez à feu très doux.',
+    'Chauffez une poêle antiadhésive à feu moyen-vif. Déposez le saumon côté peau en premier et cuisez 4-5 min sans le toucher — la peau doit être bien croustillante. Retournez délicatement, cuisez encore 2-3 min. L\'intérieur doit rester légèrement nacré.',
+    'Dressez la fondue de poireaux en base dans une assiette creuse. Posez le pavé de saumon par-dessus côté peau visible. Un trait de jus de citron sur le poisson et servez aussitôt.',
+  ],
+  'Baked Salmon & Sweet Potato': [
+    'Préchauffez le four à 200°C. Pelez et coupez la patate douce en cubes de 2-3 cm. Disposez-les sur une plaque avec papier cuisson, arrosez d\'huile d\'olive, salez et poivrez. Enfournez pour 15 min.',
+    'Pendant ce temps, détaillez le brocoli en fleurettes uniformes. Préparez la marinade : sauce soja + miel + ail haché + gingembre râpé. Fouettez pour bien mélanger.',
+    'Au bout des 15 premières min, sortez la plaque. Ajoutez les fleurettes de brocoli autour des cubes de patate. Déposez le filet de saumon au centre.',
+    'Badigeonnez généreusement le saumon de marinade avec un pinceau. Versez le reste de marinade sur les légumes. Réenfournez 12-15 min.',
+    'Le saumon est cuit quand il s\'effiloche facilement à la fourchette mais que l\'intérieur reste légèrement nacré — ne jamais trop cuire le saumon.',
+    'Sortez la plaque, laissez reposer 1-2 min. Dressez dans une assiette avec les légumes rôtis et arrosez du jus de cuisson caramélisé.',
+  ],
+  'Tartines Cottage Cheese Seigle': [
+    'Posez les 2 crackers de seigle sur une planche. Avec le dos d\'une cuillère, étalez le cottage cheese généreusement en couvrant bien jusqu\'aux bords — une base épaisse est importante pour que les légumes tiennent.',
+    'Lavez le concombre et tranchez-le très finement au couteau (2-3 mm) — des tranches fines et régulières sont plus jolies et faciles à croquer.',
+    'Disposez les rondelles de concombre en les chevauchant légèrement sur le cottage cheese pour couvrir toute la surface.',
+    'Assaisonnez avec sel, poivre fraîchement moulu et parsemez de graines de sésame. Servez immédiatement — les crackers restent croquants seulement quelques minutes après garnissage.',
+  ],
+  'Houmous Betterave & Carottes': [
+    'Égouttez et rincez les pois chiches. Coupez la betterave cuite en petits morceaux pour faciliter le mixage.',
+    'Dans un blender, combinez pois chiches, betterave, tahin et 2-3 cuillères à soupe d\'eau froide. Mixez à pleine puissance pendant 1 min.',
+    'Ouvrez, raclez les parois et goûtez. Ajoutez sel, jus de citron et éventuellement un peu plus d\'eau pour la texture. Mixez encore 30 secondes. La couleur doit être rose-magenta intense et la texture très lisse.',
+    'Épluchez la carotte et coupez-la en bâtonnets réguliers de 8-10 cm. Servez l\'houmous dans un bol avec un léger tourbillon décoratif et les bâtonnets disposés à côté.',
+  ],
+  'Yaourt Grec & Fruits Rouges': [
+    'Versez le yaourt grec dans un grand bol. Travaillez-le légèrement à la cuillère pour l\'assouplir — il doit être ferme mais crémeux.',
+    'Si vous utilisez des fruits rouges surgelés, laissez-les décongeler 15 min à température ambiante pour qu\'ils libèrent leur jus sans être trop mous.',
+    'Dans un verre ou une coupe transparente, alternez les couches : yaourt, granola, fruits rouges. Les couches visibles à travers le verre sont un plus visuel appréciable.',
+    'Parsemez les graines de lin sur le dessus. Terminez par un filet de miel en spirale.',
+    'Servez immédiatement — le granola va ramollir rapidement au contact du yaourt. Si vous préparez à l\'avance, gardez le granola séparé et incorporez-le au dernier moment.',
+  ],
+};
+
 const SUGGESTION_COLORS = ['bg-card-orange', 'bg-card-mint', 'bg-card-blue', 'bg-card-yellow', 'bg-card-pink'];
 const SUGGESTION_TEXT = ['text-orange', 'text-green', 'text-blue', 'text-amber-700', 'text-pink-700'];
 
@@ -418,6 +618,7 @@ export default function Nutrition() {
   const [ingredientsText, setIngredientsText] = useState('');
   const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingSuggestion, setLoadingSuggestion] = useState<string | null>(null);
 
   const goal = state.profile?.goal ?? 'maintain';
   const targets = state.profile ? calculateTargets(state.profile) : null;
@@ -461,6 +662,16 @@ export default function Nutrition() {
       setGeneratedRecipe(recipe);
     } catch { alert('Erreur de génération. Vérifiez votre clé API.'); }
     finally { setLoading(false); }
+  }
+
+  async function openSuggestionRecipe(suggestion: AiSuggestion) {
+    if (!state.profile?.geminiApiKey) return;
+    setLoadingSuggestion(suggestion.name);
+    try {
+      const recipe = await generateRecipeFromSuggestion(state.profile.geminiApiKey, suggestion.name, suggestion.description, goal);
+      setGeneratedRecipe(recipe);
+    } catch { /* silently fail */ }
+    finally { setLoadingSuggestion(null); }
   }
 
   function saveIdea(idea: AiSuggestion) {
@@ -553,7 +764,7 @@ export default function Nutrition() {
                   <div key={r.name} className="bg-white shadow-card rounded-3xl overflow-hidden">
                     <button onClick={() => setExpanded(isExpanded ? null : r.name)} className="w-full text-left p-5">
                       <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-purple-bg flex items-center justify-center text-3xl flex-shrink-0">{r.emoji}</div>
+                        <div className="w-14 h-14 rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center text-3xl flex-shrink-0">{r.emoji}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h3 className="text-text font-bold text-sm leading-tight">{r.name}</h3>
@@ -607,7 +818,7 @@ export default function Nutrition() {
                         <div className="px-5 pb-4 border-t border-border pt-4">
                           <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Préparation</p>
                           <ol className="space-y-3">
-                            {r.steps.map((step, si) => (
+                            {(DETAILED_STEPS[r.name] ?? r.steps).map((step, si) => (
                               <li key={si} className="flex gap-3 text-sm">
                                 <span className="w-6 h-6 rounded-full bg-purple-bg text-purple text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
                                 <span className="text-dim leading-relaxed">{step}</span>
@@ -701,7 +912,7 @@ export default function Nutrition() {
                       <div className="space-y-3">
                         {aiResult.map((s, i) => (
                           <div key={i} className={`${SUGGESTION_COLORS[i % SUGGESTION_COLORS.length]} rounded-3xl p-4`}>
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start justify-between gap-3 mb-3">
                               <div className="flex-1 min-w-0">
                                 <p className={`font-black text-base ${SUGGESTION_TEXT[i % SUGGESTION_TEXT.length]}`}>{s.name}</p>
                                 <p className="text-text/70 text-xs mt-1 leading-relaxed">{s.description}</p>
@@ -717,6 +928,16 @@ export default function Nutrition() {
                                 <Heart size={16} className={savedIdeas.find(id => id.name === s.name) ? 'fill-pink-500 text-pink-500' : 'text-text/50'} />
                               </button>
                             </div>
+                            <button
+                              onClick={() => openSuggestionRecipe(s)}
+                              disabled={loadingSuggestion === s.name}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/70 rounded-2xl text-sm font-bold text-text active:scale-95 transition-all"
+                            >
+                              {loadingSuggestion === s.name
+                                ? <><Loader size={14} className="animate-spin" /> Génération de la recette...</>
+                                : <><ChefHat size={14} /> Voir la recette complète</>
+                              }
+                            </button>
                           </div>
                         ))}
                       </div>

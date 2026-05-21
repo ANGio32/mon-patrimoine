@@ -139,12 +139,31 @@ export async function generateRecipeFromIngredients(
   ingredients: string,
   goal: Goal
 ): Promise<GeneratedRecipe> {
-  const prompt = `You are a nutritionist chef. Create one healthy recipe using these available ingredients: "${ingredients}". Goal: "${goal.replace('_', ' ')}".
+  const prompt = `You are a professional chef and nutritionist. Create one healthy, delicious recipe using these available ingredients: "${ingredients}". Goal: "${goal.replace('_', ' ')}".
+
+Write VERY DETAILED step-by-step instructions — mention exact temperatures, parallel tasks (e.g. "while the oven preheats, dice the vegetables"), visual cues ("until golden"), timing precision, and technique tips. Each step should be a complete sentence of 1-2 lines.
 
 Return ONLY a raw JSON object (no markdown):
-{"name":"Recipe Name","emoji":"🍳","description":"brief description","prepMin":10,"cookMin":20,"servings":2,"ingredients":["200g ingredient","etc"],"steps":["Step 1","Step 2"],"tips":"one helpful tip","macros":{"calories":400,"protein":30,"carbs":35,"fat":12}}`;
+{"name":"Recipe Name","emoji":"🍳","description":"appealing 1-sentence description","prepMin":10,"cookMin":20,"servings":2,"ingredients":["200g ingredient with prep note","etc"],"steps":["Detailed step 1 with temperature/timing/technique","Detailed step 2","etc — minimum 5 steps"],"tips":"one professional chef tip","macros":{"calories":400,"protein":30,"carbs":35,"fat":12}}`;
 
-  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 2048, 0.5);
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 3000, 0.5);
+  return JSON.parse(extractJSON(raw)) as GeneratedRecipe;
+}
+
+export async function generateRecipeFromSuggestion(
+  apiKey: string,
+  mealName: string,
+  mealDescription: string,
+  goal: Goal
+): Promise<GeneratedRecipe> {
+  const prompt = `You are a professional chef and nutritionist. Create a complete, detailed recipe for: "${mealName}" — ${mealDescription}. Goal: "${goal.replace('_', ' ')}".
+
+Write VERY DETAILED step-by-step instructions — mention exact temperatures (°C), parallel tasks (e.g. "pendant que le four préchauffe, coupez les légumes"), visual cues ("jusqu'à coloration dorée"), precise timing, and pro techniques. Each step should be a complete sentence of 1-2 lines. Write steps in French.
+
+Return ONLY a raw JSON object (no markdown):
+{"name":"${mealName}","emoji":"🍳","description":"appétissante description d'une phrase","prepMin":10,"cookMin":20,"servings":1,"ingredients":["quantité + ingrédient + note de préparation","etc"],"steps":["Étape 1 détaillée avec température/timing/technique","Étape 2","etc — minimum 6 étapes"],"tips":"un conseil de chef professionnel","macros":{"calories":400,"protein":30,"carbs":35,"fat":12}}`;
+
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 3000, 0.5);
   return JSON.parse(extractJSON(raw)) as GeneratedRecipe;
 }
 
