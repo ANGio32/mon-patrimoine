@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { User, Key, Target, Activity, ChevronRight, Check, Info } from 'lucide-react';
+import { Key, Target, ChevronRight, Check, Info } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { calculateTargets, calculateTDEE, getBMI, getBMICategory } from '../utils/calculations';
+import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
 import type { Goal, ActivityLevel } from '../types';
 
 const GOAL_LABELS: Record<Goal, string> = {
-  lose_weight: '🔥 Lose Weight',
-  build_muscle: '💪 Build Muscle',
-  maintain: '⚖️ Maintain',
+  lose_weight: '🔥 Fat Loss',
+  build_muscle: '💪 Muscle Gain',
+  maintain: '⚡ Maintenance',
 };
 
 const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
@@ -18,6 +18,52 @@ const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
   very_active: 'Very Active',
 };
 
+interface BMIInfo {
+  emoji: string;
+  color: string;
+  bg: string;
+  title: string;
+  message: string;
+}
+
+function getBMIInfo(bmi: number): BMIInfo {
+  if (bmi < 18.5) return {
+    emoji: '🌱',
+    color: 'text-blue-300',
+    bg: 'bg-blue-400/8 border-blue-400/15',
+    title: 'A little light',
+    message: `At ${bmi}, your body is still growing into its full potential. Nourishing yourself well will help you feel energized and strong — you're already on a great path.`,
+  };
+  if (bmi < 25) return {
+    emoji: '✨',
+    color: 'text-green',
+    bg: 'bg-green/8 border-green/15',
+    title: 'Looking great!',
+    message: `A BMI of ${bmi} puts you in the healthy range — well done! Your body is in a great place. Keep up your good habits and enjoy how you feel.`,
+  };
+  if (bmi < 27) return {
+    emoji: '💪',
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-400/8 border-yellow-400/15',
+    title: 'Almost there',
+    message: `You're at ${bmi}, just a little above the ideal range — totally normal and very common. Small consistent steps in nutrition and movement go a long way. You've got this!`,
+  };
+  if (bmi < 30) return {
+    emoji: '🌟',
+    color: 'text-orange',
+    bg: 'bg-orange/8 border-orange/15',
+    title: 'On your journey',
+    message: `Your BMI is ${bmi}. Your body has been working hard and it's time to give it a little extra love. Every healthy choice you make today is a gift to your future self.`,
+  };
+  return {
+    emoji: '🤗',
+    color: 'text-red-400',
+    bg: 'bg-red-400/8 border-red-400/15',
+    title: 'Let\'s do this together',
+    message: `At ${bmi}, your body would benefit from some extra care and attention — and that's exactly why you're here! You took the first step by opening Morphiq. Let's build healthy habits one day at a time.`,
+  };
+}
+
 export default function Profile() {
   const { state, setProfile } = useApp();
   const profile = state.profile;
@@ -26,16 +72,18 @@ export default function Profile() {
   const [editWeight, setEditWeight] = useState(String(profile?.weightKg ?? ''));
   const [savedKey, setSavedKey] = useState(false);
   const [savedWeight, setSavedWeight] = useState(false);
-  const [showKeyValue, setShowKeyValue] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const [waterReminder, setWaterReminder] = useState(
+    localStorage.getItem('morphiq_water_reminder') !== 'false'
+  );
 
   if (!profile) return null;
-
-  const targets = calculateTargets(profile);
-  const tdee = calculateTDEE(profile);
-  const bmi = getBMI(profile);
-  const bmiCat = getBMICategory(bmi);
-
   const p = profile;
+
+  const targets = calculateTargets(p);
+  const tdee = calculateTDEE(p);
+  const bmi = getBMI(p);
+  const bmiInfo = getBMIInfo(bmi);
 
   function saveApiKey() {
     setProfile({ ...p, geminiApiKey: apiKey.trim() });
@@ -51,75 +99,109 @@ export default function Profile() {
     setTimeout(() => setSavedWeight(false), 2000);
   }
 
+  function toggleWaterReminder() {
+    const next = !waterReminder;
+    setWaterReminder(next);
+    localStorage.setItem('morphiq_water_reminder', String(next));
+  }
+
   return (
-    <div className="page-scroll pb-28">
-      <div className="px-5 pt-8 pb-6">
+    <div className="page">
+      <div className="px-5 pt-14 pb-6">
+        <h1 className="text-2xl font-black text-white tracking-tight">Profile</h1>
+        <p className="text-dim text-sm mt-0.5">{GOAL_LABELS[p.goal]}</p>
+      </div>
+
+      {/* Identity */}
+      <div className="mx-5 mb-4 bg-card border border-border rounded-3xl p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-3xl bg-primary/20 flex items-center justify-center">
-            <User size={30} className="text-primary" />
+          <div className="w-14 h-14 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-2xl font-black text-primary-light">
+            {p.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">{profile.name}</h1>
-            <p className="text-muted text-sm">{GOAL_LABELS[profile.goal]}</p>
+            <p className="text-white font-bold text-lg">{p.name}</p>
+            <p className="text-muted text-xs">{p.sex === 'male' ? '♂' : '♀'} {p.age} yo · {p.weightKg} kg · {p.heightCm} cm</p>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="px-5 mb-5 grid grid-cols-2 gap-3">
+      {/* BMI card — kind messaging */}
+      <div className={`mx-5 mb-4 rounded-3xl border p-5 ${bmiInfo.bg}`}>
+        <div className="flex items-start gap-3">
+          <span className="text-3xl">{bmiInfo.emoji}</span>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className={`font-bold ${bmiInfo.color}`}>{bmiInfo.title}</p>
+              <span className={`pill text-[10px] ${bmiInfo.bg} ${bmiInfo.color}`}>BMI {bmi}</span>
+            </div>
+            <p className="text-dim text-xs leading-relaxed">{bmiInfo.message}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats grid */}
+      <div className="mx-5 grid grid-cols-2 gap-2.5 mb-4">
         {[
-          { label: 'Weight', value: `${profile.weightKg} kg` },
-          { label: 'Height', value: `${profile.heightCm} cm` },
-          { label: 'TDEE', value: `${tdee} kcal` },
-          { label: 'BMI', value: `${bmi} · ${bmiCat}` },
           { label: 'Daily Target', value: `${targets.calories} kcal` },
-          { label: 'Activity', value: ACTIVITY_LABELS[profile.activityLevel] },
-        ].map((s) => (
+          { label: 'TDEE', value: `${tdee} kcal` },
+          { label: 'Activity', value: ACTIVITY_LABELS[p.activityLevel] },
+          { label: 'BMI', value: `${bmi}` },
+        ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-2xl p-4">
-            <p className="text-muted text-xs">{s.label}</p>
-            <p className="text-white font-bold mt-1">{s.value}</p>
+            <p className="text-muted text-xs mb-1">{s.label}</p>
+            <p className="text-white font-bold text-sm">{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* Macro Targets */}
+      {/* Macro targets */}
       <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <Target size={18} className="text-primary" />
-          <h3 className="text-white font-semibold">Daily Macro Targets</h3>
+          <Target size={16} className="text-primary-light" />
+          <p className="text-white text-sm font-semibold">Daily Macro Targets</p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-bg rounded-xl p-3">
-            <p className="text-secondary font-bold">{targets.protein}g</p>
-            <p className="text-muted text-xs">Protein</p>
-          </div>
-          <div className="bg-bg rounded-xl p-3">
-            <p className="text-blue-400 font-bold">{targets.carbs}g</p>
-            <p className="text-muted text-xs">Carbs</p>
-          </div>
-          <div className="bg-bg rounded-xl p-3">
-            <p className="text-accent font-bold">{targets.fat}g</p>
-            <p className="text-muted text-xs">Fat</p>
-          </div>
+          {[
+            { label: 'Protein', value: `${targets.protein}g`, color: 'text-primary-light' },
+            { label: 'Carbs', value: `${targets.carbs}g`, color: 'text-green' },
+            { label: 'Fat', value: `${targets.fat}g`, color: 'text-orange' },
+          ].map(m => (
+            <div key={m.label} className="bg-surface rounded-xl py-3">
+              <p className={`font-bold text-sm ${m.color}`}>{m.value}</p>
+              <p className="text-muted text-xs mt-0.5">{m.label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Update Weight */}
+      {/* Update weight */}
       <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity size={18} className="text-secondary" />
-          <h3 className="text-white font-semibold">Update Weight</h3>
+        <p className="text-white text-sm font-semibold mb-3">Update Weight</p>
+        <div className="flex gap-2">
+          <input className="input-field flex-1" type="number" placeholder="Weight (kg)" value={editWeight} onChange={e => setEditWeight(e.target.value)} />
+          <button onClick={saveWeight} className="btn-primary px-5">
+            {savedWeight ? <Check size={16} /> : <ChevronRight size={16} />}
+          </button>
         </div>
-        <div className="flex gap-3">
-          <input
-            className="input-field flex-1"
-            type="number"
-            placeholder="Weight (kg)"
-            value={editWeight}
-            onChange={(e) => setEditWeight(e.target.value)}
-          />
-          <button onClick={saveWeight} className="btn-primary px-5 flex items-center gap-2">
-            {savedWeight ? <Check size={18} /> : <ChevronRight size={18} />}
+      </div>
+
+      {/* Water reminder toggle */}
+      <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-400/10 flex items-center justify-center">
+              💧
+            </div>
+            <div>
+              <p className="text-white text-sm font-semibold">Hydration Reminder</p>
+              <p className="text-muted text-xs">Ask if you've had water on app open</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleWaterReminder}
+            className={`w-12 h-6 rounded-full transition-all duration-200 flex items-center ${waterReminder ? 'bg-primary justify-end' : 'bg-surface justify-start'} border border-border px-0.5`}
+          >
+            <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
           </button>
         </div>
       </div>
@@ -127,54 +209,42 @@ export default function Profile() {
       {/* API Key */}
       <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <Key size={18} className="text-primary" />
-          <h3 className="text-white font-semibold">Gemini API Key</h3>
+          <Key size={16} className="text-primary-light" />
+          <p className="text-white text-sm font-semibold">Gemini API Key</p>
         </div>
-        <p className="text-muted text-xs mb-3">Required for AI food analysis & suggestions. Free at aistudio.google.com</p>
-        <div className="flex gap-2 mb-3">
-          <input
-            className="input-field flex-1"
-            type={showKeyValue ? 'text' : 'password'}
-            placeholder="AIza..."
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
-          <button
-            onClick={() => setShowKeyValue(!showKeyValue)}
-            className="px-3 bg-bg border border-border rounded-xl text-muted text-xs"
-          >
-            {showKeyValue ? 'Hide' : 'Show'}
+        <p className="text-muted text-xs mb-3">Free AI at aistudio.google.com</p>
+        <div className="flex gap-2 mb-2.5">
+          <input className="input-field flex-1" type={showKey ? 'text' : 'password'} placeholder="AIza..." value={apiKey} onChange={e => setApiKey(e.target.value)} />
+          <button onClick={() => setShowKey(!showKey)} className="px-3 bg-surface border border-border rounded-2xl text-muted text-xs flex-shrink-0">
+            {showKey ? 'Hide' : 'Show'}
           </button>
         </div>
-        <button onClick={saveApiKey} className="btn-primary w-full flex items-center justify-center gap-2">
-          {savedKey ? <><Check size={18} /> Saved!</> : 'Save API Key'}
+        <button onClick={saveApiKey} className="btn-primary w-full flex items-center justify-center gap-2 text-sm">
+          {savedKey ? <><Check size={15} /> Saved!</> : 'Save API Key'}
         </button>
-        {!profile.geminiApiKey && (
-          <div className="mt-3 flex gap-2 text-amber-400 text-xs bg-amber-400/10 px-3 py-2 rounded-xl">
-            <Info size={14} className="flex-shrink-0 mt-0.5" />
-            <span>No key set — AI features are disabled. Calorie tracking still works without it.</span>
+        {p.geminiApiKey ? (
+          <div className="mt-2.5 flex gap-2 text-green text-xs bg-green/8 px-3 py-2 rounded-xl border border-green/15">
+            <Check size={12} className="mt-0.5 flex-shrink-0" /> AI features enabled
           </div>
-        )}
-        {profile.geminiApiKey && (
-          <div className="mt-3 flex gap-2 text-secondary text-xs bg-secondary/10 px-3 py-2 rounded-xl">
-            <Check size={14} className="flex-shrink-0 mt-0.5" />
-            <span>AI features enabled!</span>
+        ) : (
+          <div className="mt-2.5 flex gap-2 text-orange/80 text-xs bg-orange/8 px-3 py-2 rounded-xl border border-orange/15">
+            <Info size={12} className="mt-0.5 flex-shrink-0" /> No key — AI features disabled. Tracking still works.
           </div>
         )}
       </div>
 
-      {/* How to get API key */}
-      <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-5">
-        <p className="text-white text-sm font-medium mb-2">How to get a free Gemini key</p>
-        <ol className="space-y-1 text-muted text-sm">
-          <li>1. Visit <span className="text-secondary">aistudio.google.com</span></li>
-          <li>2. Sign in with your Google account</li>
-          <li>3. Click <strong className="text-white">"Get API Key"</strong></li>
-          <li>4. Click <strong className="text-white">"Create API Key"</strong></li>
-          <li>5. Copy the key (starts with "AIza...")</li>
-          <li>6. Paste it above and save</li>
+      {/* How to get key */}
+      <div className="mx-5 bg-card border border-border rounded-2xl p-4 mb-8">
+        <p className="text-white text-xs font-semibold mb-2">How to get a free Gemini key</p>
+        <ol className="space-y-1 text-muted text-xs">
+          {['Visit aistudio.google.com', 'Sign in with Google', 'Click "Get API Key" → "Create API Key"', 'Copy key (starts with AIza...)', 'Paste above and save'].map((s, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="text-primary-light">{i + 1}.</span>
+              <span>{s}</span>
+            </li>
+          ))}
         </ol>
-        <p className="text-muted text-xs mt-2">Free tier: 15 requests/min, 1M tokens/day — more than enough!</p>
+        <p className="text-muted text-xs mt-2 pt-2 border-t border-border">Free tier: 15 req/min · 1M tokens/day</p>
       </div>
     </div>
   );

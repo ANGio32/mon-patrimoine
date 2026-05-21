@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './context/AppContext';
 import NavBar from './components/NavBar';
+import WaterReminder from './components/WaterReminder';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import LogMeal from './pages/LogMeal';
@@ -22,6 +23,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg">
+      <WaterReminder />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/log" element={<LogMeal />} />
