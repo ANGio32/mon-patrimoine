@@ -29,7 +29,7 @@ export default function WaterReminder() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
       <div
         className="w-full max-w-sm bg-card border border-border rounded-3xl p-6 shadow-2xl"
         style={{ animation: 'slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1)' }}
@@ -37,20 +37,20 @@ export default function WaterReminder() {
         {!answered ? (
           <>
             <div className="text-4xl text-center mb-4">💧</div>
-            <h3 className="text-white font-bold text-lg text-center mb-1">Hey, quick check-in!</h3>
+            <h3 className="text-text font-bold text-lg text-center mb-1">Hey, quick check-in!</h3>
             <p className="text-dim text-sm text-center mb-6 leading-relaxed">
               Have you had a glass of water recently?<br />Staying hydrated makes a big difference!
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => handleResponse('no')}
-                className="flex-1 py-3.5 rounded-2xl bg-surface border border-border text-white font-semibold text-sm active:scale-95 transition-all"
+                className="flex-1 py-3.5 rounded-2xl bg-section border border-border text-text font-semibold text-sm active:scale-95 transition-all"
               >
                 Not yet 😅
               </button>
               <button
                 onClick={() => handleResponse('yes')}
-                className="flex-1 py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm active:scale-95 transition-all shadow-lg shadow-primary/20"
+                className="flex-1 py-3.5 rounded-2xl bg-green text-white font-semibold text-sm active:scale-95 transition-all shadow-lg"
               >
                 Yes! 💪
               </button>
@@ -61,13 +61,13 @@ export default function WaterReminder() {
             {response === 'yes' ? (
               <>
                 <div className="text-4xl mb-3">🎉</div>
-                <p className="text-white font-semibold">Awesome, keep it up!</p>
+                <p className="text-text font-semibold">Awesome, keep it up!</p>
                 <p className="text-dim text-sm mt-1">Great habit — your body thanks you.</p>
               </>
             ) : (
               <>
                 <div className="text-4xl mb-3">🚰</div>
-                <p className="text-white font-semibold">Time to hydrate!</p>
+                <p className="text-text font-semibold">Time to hydrate!</p>
                 <p className="text-dim text-sm mt-1">Go grab a glass — you'll feel better.</p>
               </>
             )}

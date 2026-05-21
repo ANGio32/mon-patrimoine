@@ -135,9 +135,9 @@ export default function Nutrition() {
   }
 
   return (
-    <div className="page">
+    <div className="page bg-bg">
       <div className="px-5 pt-14 pb-4">
-        <h1 className="text-2xl font-black text-white tracking-tight">Nutrition</h1>
+        <h1 className="text-2xl font-black text-text tracking-tight">Nutrition</h1>
         <p className="text-dim text-sm mt-1">
           {remaining > 0 ? `${Math.round(remaining)} kcal remaining` : '🎯 Daily goal reached!'}
         </p>
@@ -145,11 +145,11 @@ export default function Nutrition() {
 
       {/* Tabs */}
       <div className="px-5 mb-5">
-        <div className="flex bg-card border border-border rounded-2xl p-1 gap-1">
-          <button onClick={() => setTab('recipes')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === 'recipes' ? 'bg-primary/90 text-white' : 'text-muted'}`}>
+        <div className="flex bg-card shadow-card border border-border rounded-2xl p-1 gap-1">
+          <button onClick={() => setTab('recipes')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === 'recipes' ? 'bg-green text-white' : 'text-muted'}`}>
             Recipes
           </button>
-          <button onClick={() => setTab('ai')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${tab === 'ai' ? 'bg-primary/90 text-white' : 'text-muted'}`}>
+          <button onClick={() => setTab('ai')} className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${tab === 'ai' ? 'bg-green text-white' : 'text-muted'}`}>
             <Sparkles size={14} /> AI Suggestions
           </button>
         </div>
@@ -163,7 +163,7 @@ export default function Nutrition() {
               {mealFilters.map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={`flex-shrink-0 px-4 py-2 rounded-xl border text-xs font-medium capitalize transition-all ${
-                    filter === f ? 'border-primary/40 bg-primary/10 text-primary-light' : 'border-border text-muted bg-card'
+                    filter === f ? 'border-green bg-green-bg text-green-dark' : 'border-border text-muted bg-card'
                   }`}
                 >{f === 'all' ? 'All' : f}</button>
               ))}
@@ -175,20 +175,20 @@ export default function Nutrition() {
               <div className="text-center py-8 text-muted text-sm">No recipes found for this filter.</div>
             )}
             {filtered.map((r, i) => (
-              <div key={i} className="bg-card border border-border rounded-3xl overflow-hidden">
+              <div key={i} className="bg-card shadow-card border border-border rounded-3xl overflow-hidden">
                 <button onClick={() => setExpanded(expanded === i ? null : i)} className="w-full text-left p-5">
                   <div className="flex items-start gap-4">
                     <span className="text-4xl">{r.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold leading-tight">{r.name}</h3>
+                      <h3 className="text-text font-bold leading-tight">{r.name}</h3>
                       <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
                         <span className="flex items-center gap-1"><Clock size={11} /> {r.time}m</span>
                         <span className="flex items-center gap-1"><Users size={11} /> {r.servings}</span>
                       </div>
                       <div className="flex gap-3 mt-2 text-xs">
                         <span className="text-orange font-semibold">{r.cal} kcal</span>
-                        <span className="text-primary-light">P {r.protein}g</span>
-                        <span className="text-green">C {r.carbs}g</span>
+                        <span className="text-green">P {r.protein}g</span>
+                        <span className="text-blue">C {r.carbs}g</span>
                         <span className="text-dim">F {r.fat}g</span>
                       </div>
                     </div>
@@ -204,7 +204,7 @@ export default function Nutrition() {
                       <ul className="space-y-1.5">
                         {r.ingredients.map((ing, ii) => (
                           <li key={ii} className="flex items-start gap-2 text-sm">
-                            <span className="text-primary-light mt-0.5 flex-shrink-0">·</span>
+                            <span className="text-green mt-0.5 flex-shrink-0">·</span>
                             <span className="text-dim">{ing}</span>
                           </li>
                         ))}
@@ -217,7 +217,7 @@ export default function Nutrition() {
                       <ol className="space-y-3">
                         {r.steps.map((step, si) => (
                           <li key={si} className="flex gap-3 text-sm">
-                            <span className="w-6 h-6 rounded-full bg-primary/15 text-primary-light text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
+                            <span className="w-6 h-6 rounded-full bg-green-bg text-green-dark text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
                             <span className="text-dim leading-relaxed">{step}</span>
                           </li>
                         ))}
@@ -226,8 +226,8 @@ export default function Nutrition() {
 
                     {/* Tips */}
                     {r.tips && (
-                      <div className="mx-5 mb-4 bg-primary/5 border border-primary/15 rounded-2xl p-3">
-                        <p className="text-primary-light text-xs leading-relaxed">💡 {r.tips}</p>
+                      <div className="mx-5 mb-4 bg-green-bg border border-border rounded-2xl p-3">
+                        <p className="text-green-dark text-xs leading-relaxed">💡 {r.tips}</p>
                       </div>
                     )}
                   </div>
@@ -241,9 +241,9 @@ export default function Nutrition() {
       {tab === 'ai' && (
         <div className="px-5">
           {!state.profile?.geminiApiKey ? (
-            <div className="bg-card border border-border rounded-2xl p-6 text-center">
-              <Sparkles size={32} className="text-primary mx-auto mb-3" />
-              <p className="text-white font-medium mb-1 text-sm">Requires Gemini API key</p>
+            <div className="bg-card shadow-card border border-border rounded-2xl p-6 text-center">
+              <Sparkles size={32} className="text-green mx-auto mb-3" />
+              <p className="text-text font-medium mb-1 text-sm">Requires Gemini API key</p>
               <p className="text-muted text-xs">Add it in Profile — it's free.</p>
             </div>
           ) : (
@@ -252,7 +252,7 @@ export default function Nutrition() {
               <div className="flex gap-2 mb-5 flex-wrap">
                 {MEAL_TYPE_OPTIONS.map(t => (
                   <button key={t.value} onClick={() => setAiMealType(t.value)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${aiMealType === t.value ? 'border-primary/40 bg-primary/10 text-primary-light' : 'border-border text-muted bg-card'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${aiMealType === t.value ? 'border-green bg-green-bg text-green-dark' : 'border-border text-muted bg-card'}`}
                   >{t.label}</button>
                 ))}
               </div>
@@ -260,7 +260,7 @@ export default function Nutrition() {
                 {loading ? <><Loader size={16} className="animate-spin" /> Thinking...</> : <><Sparkles size={16} /> Get Suggestions</>}
               </button>
               {aiResult && (
-                <div className="bg-card border border-border rounded-2xl p-4">
+                <div className="bg-card shadow-card border border-border rounded-2xl p-4">
                   <p className="text-dim text-sm whitespace-pre-wrap leading-relaxed">{aiResult}</p>
                 </div>
               )}

@@ -198,7 +198,7 @@ interface Props {
   size?: number;
 }
 
-export default function StickFigure({ exercise, color = '#8B5CF6', size = 96 }: Props) {
+export default function StickFigure({ exercise, color = '#2FB960', size = 96 }: Props) {
   const poses = getPoses(exercise);
   const [t, setT] = useState(0);
   const [frameDir, setFrameDir] = useState(1);
