@@ -121,6 +121,33 @@ export async function getWorkoutPlan(
   return callGemini(apiKey, [{ parts: [{ text: prompt }] }], 2048, 0.5);
 }
 
+export interface GeneratedRecipe {
+  name: string;
+  emoji: string;
+  description: string;
+  prepMin: number;
+  cookMin: number;
+  servings: number;
+  ingredients: string[];
+  steps: string[];
+  tips: string;
+  macros: { calories: number; protein: number; carbs: number; fat: number };
+}
+
+export async function generateRecipeFromIngredients(
+  apiKey: string,
+  ingredients: string,
+  goal: Goal
+): Promise<GeneratedRecipe> {
+  const prompt = `You are a nutritionist chef. Create one healthy recipe using these available ingredients: "${ingredients}". Goal: "${goal.replace('_', ' ')}".
+
+Return ONLY a raw JSON object (no markdown):
+{"name":"Recipe Name","emoji":"🍳","description":"brief description","prepMin":10,"cookMin":20,"servings":2,"ingredients":["200g ingredient","etc"],"steps":["Step 1","Step 2"],"tips":"one helpful tip","macros":{"calories":400,"protein":30,"carbs":35,"fat":12}}`;
+
+  const raw = await callGemini(apiKey, [{ parts: [{ text: prompt }] }], 2048, 0.5);
+  return JSON.parse(extractJSON(raw)) as GeneratedRecipe;
+}
+
 interface RawAiSession {
   name?: string;
   durationMin?: number;
