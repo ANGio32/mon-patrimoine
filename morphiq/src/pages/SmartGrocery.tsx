@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, ChevronDown, ChevronUp,
   Check, Copy, ExternalLink, RefreshCw, Package, Sparkles,
-  MapPin, Leaf, Star, Tag, X,
+  MapPin, Leaf, Star, Tag, X, Share2,
 } from 'lucide-react';
 import {
   STORES, buildGroceryCart, exportCartAsText, matchIngredient, parseIngredient,
@@ -319,6 +319,7 @@ export default function SmartGrocery() {
   const [mode, setMode]             = useState<OptimizationMode>('cheapest');
   const [replacingItem, setReplacingItem] = useState<GroceryLineItem | null>(null);
   const [copied, setCopied]         = useState(false);
+  const [shared, setShared]         = useState(false);
 
   // Build cart
   const cart = useMemo(() => {
@@ -357,6 +358,23 @@ export default function SmartGrocery() {
     await navigator.clipboard.writeText(text).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleShareToNotes() {
+    if (!recipe || !cart) return;
+    const text = exportCartAsText({ ...cart, items: displayItems, totalCost, costPerServing }, recipe.name);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Liste de courses — ${recipe.name}`, text });
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+        return;
+      } catch (_) { /* user cancelled or not supported */ }
+    }
+    // Fallback: copy to clipboard
+    await navigator.clipboard.writeText(text).catch(() => {});
+    setShared(true);
+    setTimeout(() => setShared(false), 2000);
   }
 
   function handleStoreLink(storeId: StoreId) {
@@ -496,13 +514,20 @@ export default function SmartGrocery() {
         )}
 
         {/* Export */}
-        <div className="flex gap-2 pb-2">
+        <div className="flex gap-2 pb-2 flex-wrap">
           <button
             onClick={handleCopy}
             className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-section border border-border text-text text-sm font-bold active:scale-95 transition-all"
           >
             {copied ? <Check size={15} className="text-green" /> : <Copy size={15} />}
-            {copied ? 'Copié !' : 'Copier la liste'}
+            {copied ? 'Copié !' : 'Copier'}
+          </button>
+          <button
+            onClick={handleShareToNotes}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-section border border-border text-text text-sm font-bold active:scale-95 transition-all"
+          >
+            {shared ? <Check size={15} className="text-green" /> : <Share2 size={15} />}
+            {shared ? 'Partagé !' : 'Notes Apple'}
           </button>
           <button
             onClick={() => {
