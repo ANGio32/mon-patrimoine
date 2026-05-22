@@ -6,7 +6,7 @@ import {
   MapPin, Leaf, Star, Tag, X, Share2,
 } from 'lucide-react';
 import {
-  STORES, buildGroceryCart, exportCartAsText, matchIngredient, parseIngredient,
+  STORES, buildGroceryCart, exportCartAsText, exportCartForNotes, matchIngredient, parseIngredient,
   type StoreId, type OptimizationMode, type GroceryLineItem, type MatchedProduct,
 } from '../utils/smartGrocery';
 
@@ -362,7 +362,7 @@ export default function SmartGrocery() {
 
   async function handleShareToNotes() {
     if (!recipe || !cart) return;
-    const text = exportCartAsText({ ...cart, items: displayItems, totalCost, costPerServing }, recipe.name);
+    const text = exportCartForNotes({ ...cart, items: displayItems, totalCost, costPerServing }, recipe.name);
     if (navigator.share) {
       try {
         await navigator.share({ title: `Liste de courses — ${recipe.name}`, text });

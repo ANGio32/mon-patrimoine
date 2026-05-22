@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Utensils, Dumbbell, User, Plus } from 'lucide-react';
+import { Home, Utensils, Dumbbell, TrendingUp, Plus } from 'lucide-react';
 
 export default function NavBar() {
   return (
@@ -31,7 +31,7 @@ export default function NavBar() {
 
         {[
           { to: '/fitness', Icon: Dumbbell, end: false },
-          { to: '/profile', Icon: User, end: false },
+          { to: '/progress', Icon: TrendingUp, end: false },
         ].map(({ to, Icon, end }) => (
           <NavLink key={to} to={to} end={end}>
             {({ isActive }) => (

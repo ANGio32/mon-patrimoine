@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE } from '../utils/calculations';
 import { getLogForDate, getTodayKey, getLast7DaysLogs, loadChallenge, saveChallenge, clearChallenge, generateId } from '../utils/storage';
 import type { DailyLog, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenge } from '../utils/gemini';
-import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed, Target } from 'lucide-react';
+import { TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed, Target } from 'lucide-react';
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: string) => void }) {
@@ -48,33 +49,6 @@ function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: s
   );
 }
 
-// ── Calorie ring ──────────────────────────────────────────────────────────────
-function CalorieRing({ consumed, target }: { consumed: number; target: number }) {
-  const pct = Math.min(consumed / target, 1.05);
-  const size = 160;
-  const stroke = 9;
-  const r = (size - stroke) / 2;
-  const circ = 2 * Math.PI * r;
-
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="white" strokeWidth={stroke}
-          strokeDasharray={`${Math.min(pct, 1) * circ} ${circ}`}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dasharray 0.9s cubic-bezier(0.4,0,0.2,1)' }}
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center text-white">
-        <span className="text-3xl font-black leading-none">{Math.round(consumed).toLocaleString()}</span>
-        <span className="text-white/55 text-[11px] mt-1">of {target.toLocaleString()} kcal</span>
-        <Flame size={13} className="mt-1 text-white/70" />
-      </div>
-    </div>
-  );
-}
 
 
 const MEAL_ICON = { breakfast: Coffee, lunch: Sun, dinner: Moon, snack: Cookie };
@@ -192,6 +166,7 @@ function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }
 export default function Dashboard() {
   const { state } = useApp();
   const { profile } = state;
+  const navigate = useNavigate();
   const todayKey = getTodayKey();
   const [selectedDate, setSelectedDate] = useState(todayKey);
 
@@ -213,21 +188,24 @@ export default function Dashboard() {
   const isGood = Math.abs(deficit) <= 50;
 
   const displayDate = isToday
-    ? new Date().toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' })
-    : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'short' });
+    ? new Date().toLocaleDateString('fr', { weekday: 'long', day: 'numeric', month: 'short' })
+    : new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr', { weekday: 'long', day: 'numeric', month: 'short' });
 
   return (
     <div className="page bg-bg">
       {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-card-purple flex items-center justify-center text-lg font-black text-purple flex-shrink-0">
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-11 h-11 rounded-2xl bg-card-purple flex items-center justify-center text-lg font-black text-purple flex-shrink-0 active:scale-90 transition-transform"
+          >
             {profile.name.charAt(0).toUpperCase()}
-          </div>
+          </button>
           <div>
-            <p className="text-muted text-xs font-medium">{displayDate}</p>
+            <p className="text-muted text-xs font-medium capitalize">{displayDate}</p>
             <h1 className="text-xl font-black text-text leading-tight">
-              {isToday ? `Hello, ${profile.name.split(' ')[0]}!` : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })}
+              {isToday ? `Bonjour, ${profile.name.split(' ')[0]} !` : new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr', { weekday: 'long' })}
             </h1>
           </div>
         </div>
@@ -238,37 +216,49 @@ export default function Dashboard() {
         <WeekStrip selected={selectedDate} onSelect={setSelectedDate} />
       </div>
 
-      {/* Calorie hero card */}
-      <div className="mx-5 mb-4 rounded-[2rem] p-5 overflow-hidden" style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #C084FC 100%)' }}>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-white/65 text-xs font-semibold mb-2">
-              {isToday ? "Today's calories" : "Calories this day"}
+      {/* Calorie hero card — white card + fp-ring */}
+      <div className="mx-5 mb-3 bg-white shadow-card rounded-[2rem] p-5">
+        <div className="flex items-center gap-4">
+          {/* fp-ring conic-gradient */}
+          <div
+            className="fp-ring"
+            style={{ '--progress': `${Math.min(consumed.cal / targets.calories, 1) * 100}%` } as React.CSSProperties}
+          >
+            <span>{Math.round(consumed.cal / targets.calories * 100)}%</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-muted text-xs font-medium mb-0.5">
+              {isToday ? 'Calories aujourd\'hui' : 'Calories ce jour'}
             </p>
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold mb-4 bg-white/20 text-white`}>
-              {isGood ? <><Minus size={11} /> On target!</> : isOver ? <><TrendingUp size={11} /> {Math.round(-deficit)} kcal over</> : <><TrendingDown size={11} /> {Math.round(deficit)} left</>}
-            </div>
-            <div className="space-y-2">
-              {[
-                { label: 'Protein', val: consumed.pro, target: targets.protein },
-                { label: 'Carbs', val: consumed.carb, target: targets.carbs },
-                { label: 'Fat', val: consumed.fat, target: targets.fat },
-              ].map(m => (
-                <div key={m.label}>
-                  <div className="flex justify-between mb-0.5">
-                    <span className="text-white/60 text-[10px]">{m.label}</span>
-                    <span className="text-white/80 text-[10px] font-semibold">{Math.round(m.val)}/{Math.round(m.target)}g</span>
-                  </div>
-                  <div className="h-1.5 bg-white/15 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${Math.min(m.val / m.target, 1) * 100}%` }} />
-                  </div>
-                </div>
-              ))}
+            <p className="text-text font-black text-2xl leading-none">{Math.round(consumed.cal).toLocaleString()}</p>
+            <p className="text-muted text-xs mt-0.5">/ {targets.calories.toLocaleString()} kcal</p>
+            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold mt-2 ${
+              isGood ? 'bg-card-mint text-green' : isOver ? 'bg-orange-bg text-orange' : 'bg-card-purple text-purple'
+            }`}>
+              {isGood ? <><Minus size={10} /> Objectif atteint</> : isOver ? <><TrendingUp size={10} /> +{Math.round(-deficit)} kcal</> : <><TrendingDown size={10} /> {Math.round(deficit)} restant</>}
             </div>
           </div>
-          <div className="ml-4 flex-shrink-0">
-            <CalorieRing consumed={consumed.cal} target={targets.calories} />
-          </div>
+        </div>
+      </div>
+
+      {/* Macros card */}
+      <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl px-5 py-4">
+        <div className="space-y-2.5">
+          {[
+            { label: 'Protéines', val: consumed.pro, target: targets.protein, color: 'bg-purple' },
+            { label: 'Glucides', val: consumed.carb, target: targets.carbs, color: 'bg-blue-400' },
+            { label: 'Lipides', val: consumed.fat, target: targets.fat, color: 'bg-orange' },
+          ].map(m => (
+            <div key={m.label}>
+              <div className="flex justify-between mb-1">
+                <span className="text-dim text-xs font-semibold">{m.label}</span>
+                <span className="text-muted text-xs">{Math.round(m.val)}<span className="text-border"> / {Math.round(m.target)}g</span></span>
+              </div>
+              <div className="h-1.5 bg-section rounded-full overflow-hidden">
+                <div className={`h-full ${m.color} rounded-full transition-all duration-700`} style={{ width: `${Math.min(m.val / m.target, 1) * 100}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -276,8 +266,8 @@ export default function Dashboard() {
       <div className="mx-5 grid grid-cols-3 gap-3 mb-4">
         {[
           { label: 'TDEE', value: tdee.toLocaleString(), unit: 'kcal', bg: 'bg-card-sky', color: 'text-blue' },
-          { label: 'Meals', value: String(log.meals.length), unit: 'logged', bg: 'bg-card-yellow', color: 'text-amber-700' },
-          { label: 'Sessions', value: String(log.workouts.length), unit: 'done', bg: 'bg-card-mint', color: 'text-green' },
+          { label: 'Consommé', value: String(log.meals.length), unit: 'repas', bg: 'bg-card-yellow', color: 'text-amber-700' },
+          { label: 'Séances', value: String(log.workouts.length), unit: 'faites', bg: 'bg-card-mint', color: 'text-green' },
         ].map(s => (
           <div key={s.label} className={`${s.bg} rounded-3xl p-4 text-center`}>
             <p className={`font-black text-xl leading-none ${s.color}`}>{s.value}</p>
@@ -295,13 +285,13 @@ export default function Dashboard() {
       {/* Meals for selected day */}
       <div className="mx-5 mb-4">
         <p className="text-text font-black text-base mb-3">
-          {isToday ? "Today's meals" : "Meals"}
+          {isToday ? 'Repas du jour' : 'Repas'}
         </p>
         {log.meals.length === 0 ? (
           <div className="bg-white rounded-3xl shadow-card p-8 text-center">
             <UtensilsCrossed size={40} strokeWidth={1} className="text-muted mx-auto mb-3" />
-            <p className="text-dim font-bold text-sm mb-1">{isToday ? 'No meals yet' : 'No meals logged'}</p>
-            <p className="text-muted text-xs">{isToday ? 'Tap + to log your first meal' : 'Nothing was logged this day'}</p>
+            <p className="text-dim font-bold text-sm mb-1">{isToday ? 'Aucun repas encore' : 'Aucun repas enregistré'}</p>
+            <p className="text-muted text-xs">{isToday ? 'Appuyez sur + pour ajouter' : 'Rien de logué ce jour'}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -327,14 +317,14 @@ export default function Dashboard() {
       {/* Workouts for selected day */}
       {log.workouts.length > 0 && (
         <div className="mx-5 mb-4">
-          <p className="text-text font-black text-base mb-3">Workouts</p>
+          <p className="text-text font-black text-base mb-3">Entraînements</p>
           <div className="space-y-2.5">
             {log.workouts.map(w => (
               <div key={w.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-dim font-bold text-sm truncate">{w.name}</p>
-                  <p className="text-muted text-xs mt-0.5">{w.durationMin} min · {w.exercises.length} exercises</p>
+                  <p className="text-muted text-xs mt-0.5">{w.durationMin} min · {w.exercises.length} exercices</p>
                 </div>
               </div>
             ))}

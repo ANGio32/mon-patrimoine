@@ -36,6 +36,22 @@ function removeSavedIdea(name: string) {
   localStorage.setItem(IDEAS_KEY, JSON.stringify(all));
 }
 
+// ── Meal color palette (FitPantry design) ─────────────────────────────────────
+const MEAL_COLORS: Record<string, { accent: string; food: string }> = {
+  breakfast: { accent: '#ffe3d3', food: '#ffd166' },
+  lunch:     { accent: '#d7f7ea', food: '#f2a65a' },
+  dinner:    { accent: '#dbeafe', food: '#f77f73' },
+  snack:     { accent: '#eadcff', food: '#8c6ff7' },
+};
+
+function getRecipeMealType(tags: string[]): string {
+  if (tags.includes('breakfast')) return 'breakfast';
+  if (tags.includes('lunch')) return 'lunch';
+  if (tags.includes('dinner')) return 'dinner';
+  if (tags.includes('snack')) return 'snack';
+  return 'lunch';
+}
+
 // ── Ingredient scaler ─────────────────────────────────────────────────────────
 function scaleIngredient(ing: string, scale: number): string {
   if (scale === 1) return ing;
@@ -678,11 +694,23 @@ export default function Nutrition() {
                 const isExpanded = expanded === r.name;
                 const servings = servingsMap[r.name] ?? r.servings;
                 const scale = servings / r.servings;
+                const mealType = getRecipeMealType(r.tags);
+                const colors = MEAL_COLORS[mealType] ?? MEAL_COLORS.lunch;
                 return (
                   <div key={r.name} className="bg-white shadow-card rounded-3xl overflow-hidden">
-                    <button onClick={() => setExpanded(isExpanded ? null : r.name)} className="w-full text-left p-5">
+                    {/* Visual accent header */}
+                    <div
+                      className="relative h-10 overflow-hidden flex-shrink-0"
+                      style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.52), transparent), ${colors.accent}` }}
+                    >
+                      <div
+                        className="absolute right-4 -top-2 w-14 h-14 rounded-full opacity-60"
+                        style={{ background: colors.food }}
+                      />
+                    </div>
+                    <button onClick={() => setExpanded(isExpanded ? null : r.name)} className="w-full text-left px-5 pb-5 pt-3">
                       <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">{getRecipeIcon(r.name)}</div>
+                        <div className="w-14 h-14 rounded-[18px] flex items-center justify-center flex-shrink-0" style={{ background: colors.accent }}>{getRecipeIcon(r.name)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h3 className="text-text font-bold text-sm leading-tight">{r.name}</h3>

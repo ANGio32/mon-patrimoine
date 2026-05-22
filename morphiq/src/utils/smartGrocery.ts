@@ -484,3 +484,21 @@ export function exportCartAsText(cart: GroceryCart, recipeName: string): string 
   lines.push('', `Généré par Morphiq le ${new Date().toLocaleDateString('fr-CA')}`);
   return lines.join('\n');
 }
+
+/** Checklist format for Apple Notes — one item per line with ○ prefix.
+ *  In Notes: sélectionne tout → icône de liste → cases interactives. */
+export function exportCartForNotes(cart: GroceryCart, _recipeName: string): string {
+  const lines: string[] = [];
+  for (const item of cart.items) {
+    if (item.selected) {
+      const store = STORES[item.selected.storeId].name;
+      lines.push(`○ ${item.ingredient.raw} → ${item.selected.name} · ${store} · ${item.selected.totalCost.toFixed(2)} $`);
+    } else {
+      lines.push(`○ ${item.ingredient.raw}`);
+    }
+  }
+  lines.push('');
+  lines.push(`Total : ${cart.totalCost.toFixed(2)} $ CAD · ${cart.costPerServing.toFixed(2)} $/portion`);
+  lines.push(`Morphiq · ${new Date().toLocaleDateString('fr-CA')}`);
+  return lines.join('\n');
+}

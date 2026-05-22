@@ -16,6 +16,14 @@ function getExerciseCue(name: string): string {
   return 'Focus on controlled movement and proper form';
 }
 
+function getMotion(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('squat') || n.includes('lunge') || n.includes('leg press')) return 'squat';
+  if (n.includes('row') || n.includes('pull') || n.includes('lat')) return 'row';
+  if (n.includes('plank') || n.includes('hold') || n.includes('bridge')) return 'plank';
+  return '';
+}
+
 const GOAL_PROGRAMS = {
   lose_weight: {
     tag: 'Fat Burn',
@@ -427,8 +435,15 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
           {session.exercises.map((ex, ei) => (
             <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
-              <div className="rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                <StickFigure exercise={ex.name} size={60} showGround />
+              <div className={`mini-stage ${getMotion(ex.name)}`}>
+                <div className="stk-person">
+                  <div className="stk-head" />
+                  <div className="stk-torso" />
+                  <div className="stk-arm left" />
+                  <div className="stk-arm right" />
+                  <div className="stk-leg left" />
+                  <div className="stk-leg right" />
+                </div>
               </div>
               <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
             </div>
@@ -438,8 +453,15 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
       <div className="border-t border-border">
         {session.exercises.map((ex, ei) => (
           <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
-            <div className="w-8 h-8 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
-              <StickFigure exercise={ex.name} size={28} />
+            <div className={`mini-stage ${getMotion(ex.name)} w-8 h-8 rounded-xl`} style={{ width: 32, height: 32, borderRadius: 10, background: '#f3f0f9' }}>
+              <div className="stk-person" style={{ left: 8, top: 4, width: 10, height: 24 }}>
+                <div className="stk-head" style={{ left: 1, width: 8, height: 8 }} />
+                <div className="stk-torso" style={{ left: 3, top: 9, width: 3, height: 12 }} />
+                <div className="stk-arm left" style={{ top: 9, left: 2, width: 3, height: 11 }} />
+                <div className="stk-arm right" style={{ top: 9, left: 5, width: 3, height: 11 }} />
+                <div className="stk-leg left" style={{ top: 20, left: 3, width: 3, height: 11 }} />
+                <div className="stk-leg right" style={{ top: 20, left: 5, width: 3, height: 11 }} />
+              </div>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-text text-sm font-medium">{ex.name}</p>
