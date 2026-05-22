@@ -39,7 +39,13 @@ const MAX_REC_SEC = 30;
 function fmt(s: number) { return `0:${String(Math.floor(s)).padStart(2, '0')}`; }
 
 function bestMimeType(): string {
-  for (const t of ['video/webm;codecs=vp9', 'video/webm', 'video/mp4']) {
+  if (typeof MediaRecorder === 'undefined') return '';
+  // iOS Safari only records as mp4
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const order = isIOS
+    ? ['video/mp4;codecs=avc1', 'video/mp4']
+    : ['video/webm;codecs=vp9', 'video/webm', 'video/mp4'];
+  for (const t of order) {
     if (MediaRecorder.isTypeSupported(t)) return t;
   }
   return '';
@@ -105,13 +111,15 @@ export default function ExerciseMedia({ exercise, paused = false, size = 120 }: 
     return () => { alive = false; };
   }, [exerciseId]);
 
-  // ── Attach stream to live video when camera view opens ──────────────────────
+  // ── Attach stream to live video (initial open + flip camera) ────────────────
   useEffect(() => {
     if (view === 'camera' && streamRef.current && liveRef.current) {
       liveRef.current.srcObject = streamRef.current;
       liveRef.current.play().catch(() => {});
     }
-  }, [view]);
+  // facingMode included so the effect re-runs after flipCamera sets a new stream
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, facingMode]);
 
   // ── Camera ───────────────────────────────────────────────────────────────────
   async function openCamera(facing: FacingMode = facingMode) {
@@ -119,7 +127,7 @@ export default function ExerciseMedia({ exercise, paused = false, size = 120 }: 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: facing },
+          facingMode: facing,
           width: { ideal: 640 },
           height: { ideal: 480 },
         },
@@ -158,7 +166,7 @@ export default function ExerciseMedia({ exercise, paused = false, size = 120 }: 
 
     recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     recorder.onstop = () => {
-      const blob = new Blob(chunksRef.current, { type: mimeType || 'video/webm' });
+      const blob = new Blob(chunksRef.current, mimeType ? { type: mimeType } : undefined);
       setPreviewBlob(blob);
       setPreviewUrl(URL.createObjectURL(blob));
       streamRef.current?.getTracks().forEach(t => t.stop());
@@ -301,6 +309,7 @@ export default function ExerciseMedia({ exercise, paused = false, size = 120 }: 
         >
           <video
             ref={liveRef}
+            autoPlay
             muted
             playsInline
             className="w-full h-full object-cover"
