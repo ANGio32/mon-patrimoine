@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader } from 'lucide-react';
+import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeFoodPhoto, getSportTimingAdvice } from '../utils/gemini';
 import { saveMealEntry, generateId, getTodayKey } from '../utils/storage';
@@ -161,7 +161,23 @@ export default function LogMeal() {
           style={{ height: photo ? 220 : 110 }}
         >
           {photo ? (
-            <img src={photo} alt="meal" className="w-full h-full object-cover" />
+            <>
+              <img src={photo} alt="meal" className="w-full h-full object-cover" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPhoto(null);
+                  setItems([]);
+                  setDescription('');
+                  setTiming(null);
+                  setAnalyzeError('');
+                  if (fileRef.current) fileRef.current.value = '';
+                }}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 active:scale-90 transition-transform"
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2">
               <Camera size={24} className="text-muted" />
