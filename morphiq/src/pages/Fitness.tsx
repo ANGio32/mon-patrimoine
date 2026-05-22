@@ -4,7 +4,8 @@ import { useApp } from '../context/AppContext';
 import { generateStructuredProgram, getAdaptedSession } from '../utils/gemini';
 import { saveWorkout, generateId, getTodayKey, saveAiProgram, loadAiPrograms, deleteAiProgram } from '../utils/storage';
 import type { WorkoutSession, Exercise, AiProgram, AiProgramSession } from '../types';
-import StickFigure, { ExerciseAnimation, EXERCISE_CUES } from '../components/StickFigure';
+import StickFigure, { EXERCISE_CUES } from '../components/StickFigure';
+import ExerciseMedia from '../components/ExerciseMedia';
 
 function getExerciseCue(name: string): string {
   const key = name.toLowerCase();
@@ -210,7 +211,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
             </div>
           ) : (
             <div className="w-full max-w-xs">
-              <ExerciseAnimation exercise={ex?.name ?? ''} size={120} paused={!running} />
+              <ExerciseMedia exercise={ex?.name ?? ''} paused={!running} />
             </div>
           )}
         </div>
