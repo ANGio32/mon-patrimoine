@@ -210,7 +210,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
             </div>
           ) : (
             <div className="w-full max-w-xs">
-              <ExerciseAnimation exercise={ex?.name ?? ''} size={120} />
+              <ExerciseAnimation exercise={ex?.name ?? ''} size={120} paused={!running} />
             </div>
           )}
         </div>

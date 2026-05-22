@@ -95,7 +95,6 @@ const FRONT_ANIMATIONS: Record<string, Pose[]> = {
 };
 
 // ── SIDE VIEW poses — figure faces RIGHT ─────────────────────────────────────
-// l = back limb (far, drawn thinner), r = front limb (near, full opacity)
 const SIDE_ANIMATIONS: Record<string, Pose[]> = {
   'jumping jacks': [
     { head:[50,8], neck:[50,16], hip:[50,40], lShoulder:[48,22], rShoulder:[52,22], lElbow:[46,32], rElbow:[54,32], lHand:[46,42], rHand:[54,42], lKnee:[48,54], rKnee:[52,54], lFoot:[46,68], rFoot:[54,68] },
@@ -152,6 +151,11 @@ function getPoses(exercise: ExerciseName, view: 'front' | 'side'): Pose[] {
 
 function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
 
+// Smooth deceleration at extremes — mimics real human inertia
+function easeInOut(t: number): number {
+  return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+}
+
 function lerpPose(a: Pose, b: Pose, t: number): Pose {
   const l = (k: keyof Pose) => [lerp(a[k][0], b[k][0], t), lerp(a[k][1], b[k][1], t)] as [number, number];
   return { head:l('head'), neck:l('neck'), hip:l('hip'), lShoulder:l('lShoulder'), rShoulder:l('rShoulder'), lElbow:l('lElbow'), rElbow:l('rElbow'), lHand:l('lHand'), rHand:l('rHand'), lKnee:l('lKnee'), rKnee:l('rKnee'), lFoot:l('lFoot'), rFoot:l('rFoot') };
@@ -168,7 +172,6 @@ function PoseRenderer({ pose, color, size, showGround, isSide }: { pose: Pose; c
     <line x1={s(a[0])} y1={s(a[1])} x2={s(b[0])} y2={s(b[1])} stroke={color} strokeWidth={w} strokeLinecap="round" opacity={op} />
   );
 
-  // In side view: l = back limb (thinner, 50% opacity), r = front limb (full)
   const backOp = isSide ? 0.45 : 1;
   const backW = isSide ? 2 : 2.5;
 
@@ -180,22 +183,15 @@ function PoseRenderer({ pose, color, size, showGround, isSide }: { pose: Pose; c
           <line x1={s(groundCX-shadowRx-4)} y1={s(groundY)+5} x2={s(groundCX+shadowRx+4)} y2={s(groundY)+5} stroke={color} strokeWidth={1.5} opacity={0.18} strokeLinecap="round" />
         </>
       )}
-      {/* Body */}
       {line(pose.neck, pose.hip, 3)}
-      {/* Head */}
       <circle cx={s(pose.head[0])} cy={s(pose.head[1])} r={s(6)} fill="none" stroke={color} strokeWidth={2.5} />
-      {/* Shoulders */}
       {line(pose.lShoulder, pose.rShoulder, 2.5)}
-      {/* Back arm (l) — drawn first so front arm appears on top */}
       {line(pose.lShoulder, pose.lElbow, backW, backOp)}
       {line(pose.lElbow, pose.lHand, backW, backOp)}
-      {/* Back leg (l) */}
       {line(pose.hip, pose.lKnee, backW, backOp)}
       {line(pose.lKnee, pose.lFoot, backW, backOp)}
-      {/* Front arm (r) */}
       {line(pose.rShoulder, pose.rElbow, 2.5)}
       {line(pose.rElbow, pose.rHand, 2.5)}
-      {/* Front leg (r) */}
       {line(pose.hip, pose.rKnee, 2.5)}
       {line(pose.rKnee, pose.rFoot, 2.5)}
     </svg>
@@ -203,19 +199,23 @@ function PoseRenderer({ pose, color, size, showGround, isSide }: { pose: Pose; c
 }
 
 // ── Animation hook ────────────────────────────────────────────────────────────
-function useAnimation(posesLength: number, exercise: string) {
+function useAnimation(posesLength: number, exercise: string, paused = false) {
   const [t, setT] = useState(0);
   const [frameDir, setFrameDir] = useState(1);
   const [frameIdx, setFrameIdx] = useState(0);
 
-  const isStatic = exercise.toLowerCase().includes('plank');
-  const speed = exercise.toLowerCase().includes('jumping') || exercise.toLowerCase().includes('high') ? 40 : 55;
+  const key = exercise.toLowerCase();
+  const isStatic = key.includes('plank');
+  // Fast explosive moves get a quicker cycle; controlled moves stay slower
+  const isFast = key.includes('jumping') || key.includes('high') || key.includes('mountain');
+  const speed = isFast ? 32 : 52;   // ms per tick
+  const inc   = isFast ? 4  : 2;    // % progress per tick
 
   useEffect(() => {
-    if (isStatic) return;
+    if (isStatic || paused) return;
     let prog = 0;
     const iv = setInterval(() => {
-      prog += 2;
+      prog += inc;
       if (prog >= 100) {
         prog = 0;
         setFrameIdx(prev => {
@@ -228,46 +228,49 @@ function useAnimation(posesLength: number, exercise: string) {
       setT(prog / 100);
     }, speed);
     return () => clearInterval(iv);
-  }, [posesLength, frameDir, isStatic, speed]);
+  }, [posesLength, frameDir, isStatic, speed, inc, paused]);
 
-  return { t, frameIdx, frameDir };
+  // Return eased t so lerpPose produces natural deceleration at pose extremes
+  return { t: easeInOut(t), frameIdx, frameDir };
 }
 
-// ── Default export: single front-view figure (for thumbnails etc.) ────────────
+// ── Default export: front-view figure (thumbnails / session cards) ─────────────
 interface Props {
   exercise: ExerciseName;
   color?: string;
   size?: number;
   showGround?: boolean;
+  paused?: boolean;
 }
 
-export default function StickFigure({ exercise, color = '#7C3AED', size = 96, showGround = true }: Props) {
+export default function StickFigure({ exercise, color = '#7C3AED', size = 96, showGround = true, paused = false }: Props) {
   const poses = getPoses(exercise, 'front');
-  const { t, frameIdx, frameDir } = useAnimation(poses.length, exercise);
+  const { t, frameIdx, frameDir } = useAnimation(poses.length, exercise, paused);
   const nextIdx = Math.max(0, Math.min(poses.length - 1, frameIdx + (frameDir > 0 ? 1 : -1)));
   const pose = lerpPose(poses[frameIdx], poses[nextIdx], t);
   return <PoseRenderer pose={pose} color={color} size={size} showGround={showGround} isSide={false} />;
 }
 
-// ── Named export: dual-view component for workout player ──────────────────────
+// ── Named export: dual front + side view for workout player ───────────────────
 interface DualProps {
   exercise: ExerciseName;
   color?: string;
   size?: number;
+  paused?: boolean;
 }
 
-export function ExerciseAnimation({ exercise, color = '#7C3AED', size = 110 }: DualProps) {
+export function ExerciseAnimation({ exercise, color = '#7C3AED', size = 110, paused = false }: DualProps) {
   const frontPoses = getPoses(exercise, 'front');
-  const sidePoses = getPoses(exercise, 'side');
-  const { t, frameIdx, frameDir } = useAnimation(Math.max(frontPoses.length, sidePoses.length), exercise);
+  const sidePoses  = getPoses(exercise, 'side');
+  const { t, frameIdx, frameDir } = useAnimation(Math.max(frontPoses.length, sidePoses.length), exercise, paused);
 
-  const fIdx = Math.min(frameIdx, frontPoses.length - 1);
-  const sIdx = Math.min(frameIdx, sidePoses.length - 1);
+  const fIdx  = Math.min(frameIdx, frontPoses.length - 1);
+  const sIdx  = Math.min(frameIdx, sidePoses.length - 1);
   const fNext = Math.max(0, Math.min(frontPoses.length - 1, fIdx + (frameDir > 0 ? 1 : -1)));
   const sNext = Math.max(0, Math.min(sidePoses.length - 1, sIdx + (frameDir > 0 ? 1 : -1)));
 
   const frontPose = lerpPose(frontPoses[fIdx], frontPoses[fNext], t);
-  const sidePose = lerpPose(sidePoses[sIdx], sidePoses[sNext], t);
+  const sidePose  = lerpPose(sidePoses[sIdx],  sidePoses[sNext],  t);
 
   return (
     <div className="flex gap-2 items-end justify-center w-full">
