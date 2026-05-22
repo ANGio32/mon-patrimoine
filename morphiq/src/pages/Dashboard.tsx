@@ -4,7 +4,7 @@ import { calculateTargets, calculateTDEE } from '../utils/calculations';
 import { getLogForDate, getTodayKey, getLast7DaysLogs, loadChallenge, saveChallenge, clearChallenge, generateId } from '../utils/storage';
 import type { DailyLog, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenge } from '../utils/gemini';
-import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed } from 'lucide-react';
+import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed, Target } from 'lucide-react';
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: string) => void }) {
@@ -131,7 +131,7 @@ function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }
     return (
       <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-2xl bg-card-yellow flex items-center justify-center text-xl">🎯</div>
+          <div className="w-10 h-10 rounded-2xl bg-card-yellow flex items-center justify-center"><Target size={20} strokeWidth={1.5} className="text-amber-700" /></div>
           <div>
             <p className="text-text font-black text-sm">Défi de la Semaine</p>
             <p className="text-muted text-xs">L'IA analyse votre semaine et crée un défi personnalisé</p>
@@ -148,7 +148,7 @@ function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }
     <div className={`mx-5 mb-4 rounded-3xl p-5 ${completed ? 'bg-card-yellow' : 'bg-white shadow-card'}`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{challenge.emoji}</span>
+          <div className="w-9 h-9 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Sparkles size={18} strokeWidth={1.5} className="text-purple" /></div>
           <div>
             <p className="text-text font-black text-sm">{challenge.title}</p>
             <p className="text-muted text-xs mt-0.5">{challenge.completedDays.length}/{challenge.targetDays} jours complétés</p>
@@ -170,7 +170,7 @@ function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }
         <div className="bg-white/70 rounded-2xl p-3 flex items-center gap-2">
           <Trophy size={16} className="text-amber-600 flex-shrink-0" />
           <div>
-            <p className="text-amber-800 font-bold text-xs">Défi relevé ! 🏆</p>
+            <p className="text-amber-800 font-bold text-xs">Défi relevé !</p>
             <p className="text-amber-700 text-[10px] mt-0.5">{challenge.reward}</p>
           </div>
         </div>
@@ -227,7 +227,7 @@ export default function Dashboard() {
           <div>
             <p className="text-muted text-xs font-medium">{displayDate}</p>
             <h1 className="text-xl font-black text-text leading-tight">
-              {isToday ? `Hello, ${profile.name.split(' ')[0]}! 👋` : `📅 ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })}`}
+              {isToday ? `Hello, ${profile.name.split(' ')[0]}!` : new Date(selectedDate + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' })}
             </h1>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function Dashboard() {
               {isToday ? "Today's calories" : "Calories this day"}
             </p>
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold mb-4 bg-white/20 text-white`}>
-              {isGood ? <><Minus size={11} /> On target! 🎯</> : isOver ? <><TrendingUp size={11} /> {Math.round(-deficit)} kcal over</> : <><TrendingDown size={11} /> {Math.round(deficit)} left</>}
+              {isGood ? <><Minus size={11} /> On target!</> : isOver ? <><TrendingUp size={11} /> {Math.round(-deficit)} kcal over</> : <><TrendingDown size={11} /> {Math.round(deficit)} left</>}
             </div>
             <div className="space-y-2">
               {[

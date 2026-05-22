@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, ArrowLeft, Loader, Star, ChevronRight, MapPin } from 'lucide-react';
+import { Camera, ArrowLeft, Loader, Star, ChevronRight, MapPin, Flame, Check, Lightbulb } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeRestaurantMenu } from '../utils/gemini';
 import { calculateTargets } from '../utils/calculations';
@@ -100,7 +100,7 @@ export default function MenuAnalyzer() {
         </button>
         <h1 className="text-xl font-black text-text flex-1">Restaurant Menu</h1>
         <span className="pill bg-card-orange text-orange text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-          🗺️ Mode Déplacement
+          <MapPin size={11} strokeWidth={1.5} /> Mode Déplacement
         </span>
       </div>
 
@@ -191,7 +191,7 @@ export default function MenuAnalyzer() {
           {/* Top picks section */}
           {topPickDishes.length > 0 && (
             <div>
-              <p className="text-text font-black text-base mb-3">🌟 Meilleurs choix</p>
+              <p className="text-text font-black text-base mb-3 flex items-center gap-2"><Star size={16} strokeWidth={1.5} className="text-green" /> Meilleurs choix</p>
               <div className="space-y-3">
                 {topPickDishes.map(dish => (
                   <div
@@ -207,8 +207,8 @@ export default function MenuAnalyzer() {
                     <p className="text-muted text-xs mb-3">{dish.description}</p>
                     {/* Macro chips */}
                     <div className="flex flex-wrap gap-1.5 mb-3">
-                      <span className="pill bg-white text-text text-xs px-2 py-0.5 rounded-full">
-                        🔥 {dish.estimatedCalories} kcal
+                      <span className="pill bg-white text-text text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Flame size={11} strokeWidth={1.5} /> {dish.estimatedCalories} kcal
                       </span>
                       <span className="pill bg-white text-purple text-xs px-2 py-0.5 rounded-full">
                         P {dish.estimatedProtein}g
@@ -220,10 +220,10 @@ export default function MenuAnalyzer() {
                         F {dish.estimatedFat}g
                       </span>
                     </div>
-                    <p className="text-green text-xs font-medium mb-3">✓ {dish.recommendationReason}</p>
+                    <p className="text-green text-xs font-medium mb-3 flex items-center gap-1"><Check size={12} strokeWidth={2} /> {dish.recommendationReason}</p>
                     {logged.includes(dish.name) ? (
                       <div className="flex items-center gap-2 text-green text-xs font-bold">
-                        <span>✓</span> Plat enregistré
+                        <Check size={12} strokeWidth={2} /> Plat enregistré
                       </div>
                     ) : (
                       <button
@@ -279,7 +279,7 @@ export default function MenuAnalyzer() {
                     {!isTop && (
                       logged.includes(dish.name) ? (
                         <div className="ml-4 flex items-center gap-1 text-green text-xs font-bold">
-                          <span>✓</span> Enregistré
+                          <Check size={12} strokeWidth={2} /> Enregistré
                         </div>
                       ) : (
                         <button
@@ -298,7 +298,7 @@ export default function MenuAnalyzer() {
 
           {/* General tip */}
           <div className="bg-card-yellow rounded-3xl p-4 shadow-card flex gap-3">
-            <span className="text-xl flex-shrink-0">💡</span>
+            <Lightbulb size={18} strokeWidth={1.5} className="text-amber-700 flex-shrink-0 mt-0.5" />
             <p className="text-dim text-sm leading-relaxed">{analysis.generalTip}</p>
           </div>
         </div>

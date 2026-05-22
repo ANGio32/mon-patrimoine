@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb } from 'lucide-react';
+import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb, Copy, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getMealSuggestions, generateRecipeFromIngredients, generateRecipeFromSuggestion } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
@@ -115,15 +115,15 @@ function ShoppingListModal({ recipe, servings, onClose }: { recipe: Recipe; serv
         {/* Store selector + bulk actions */}
         <div className="px-6 pb-3 flex-shrink-0 space-y-2">
           <div className="flex gap-2">
-            <button onClick={() => setStore('iga')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'iga' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'iga' ? { background: '#b91c1c' } : {}}>🏪 IGA</button>
-            <button onClick={() => setStore('metro')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'metro' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'metro' ? { background: '#1d4ed8' } : {}}>🏪 Metro</button>
+            <button onClick={() => setStore('iga')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'iga' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'iga' ? { background: '#b91c1c' } : {}}>IGA</button>
+            <button onClick={() => setStore('metro')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'metro' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'metro' ? { background: '#1d4ed8' } : {}}>Metro</button>
           </div>
           <div className="flex gap-2">
             <button onClick={copyAll} className="flex-1 py-2.5 rounded-xl bg-section border border-border text-xs font-bold text-text flex items-center justify-center gap-1.5 active:scale-95 transition-all">
-              {copied ? '✓ Copié !' : '📋 Copier la liste'}
+              {copied ? <><Check size={12}/> Copié !</> : <><Copy size={12}/> Copier la liste</>}
             </button>
             <button onClick={openAll} className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all" style={{ background: store === 'iga' ? '#b91c1c' : '#1d4ed8' }}>
-              🛒 Ouvrir tout
+              <ShoppingCart size={12}/> Ouvrir tout
             </button>
           </div>
         </div>
@@ -599,8 +599,9 @@ function GeneratedRecipeCard({ recipe, onClose }: { recipe: GeneratedRecipe; onC
         </div>
 
         {recipe.tips && (
-          <div className="bg-card-yellow rounded-2xl p-3">
-            <p className="text-amber-800 text-xs leading-relaxed">💡 {recipe.tips}</p>
+          <div className="bg-card-yellow rounded-2xl p-3 flex gap-2">
+            <Lightbulb size={14} strokeWidth={1.5} className="text-amber-700 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-xs leading-relaxed">{recipe.tips}</p>
           </div>
         )}
       </div>
@@ -704,7 +705,7 @@ export default function Nutrition() {
         <div className="px-5 pt-14 pb-4">
           <h1 className="text-2xl font-black text-text tracking-tight">Nutrition</h1>
           <p className="text-dim text-sm mt-1">
-            {remaining > 0 ? `${Math.round(remaining)} kcal restantes` : '🎯 Objectif journalier atteint !'}
+            {remaining > 0 ? `${Math.round(remaining)} kcal restantes` : 'Objectif journalier atteint !'}
           </p>
         </div>
 

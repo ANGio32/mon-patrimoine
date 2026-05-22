@@ -171,7 +171,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
         <div className="w-24 h-24 rounded-3xl bg-white shadow-sm border border-gray-100 flex items-center justify-center mb-6">
           <Trophy size={48} className="text-text" />
         </div>
-        <h2 className="text-3xl font-black text-text mb-2">Workout done! 🎉</h2>
+        <h2 className="text-3xl font-black text-text mb-2">Workout done!</h2>
         <p className="text-dim mb-2">{session.name}</p>
         <p className="text-muted text-sm mb-10">{session.durationMin} min · {exercises.length} exercises</p>
         <button onClick={onDone} className="btn-primary w-full max-w-xs">Save & Continue</button>
@@ -227,7 +227,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           {/* Phase badge + counter */}
           <div className="flex items-center gap-2 mb-3">
             <span className={`pill text-xs font-bold ${phase === 'rest' ? 'bg-card-orange text-orange' : 'bg-purple-bg text-purple'}`}>
-              {phase === 'rest' ? '😮‍💨 Repos' : `Série ${setIdx + 1} / ${totalSets}`}
+              {phase === 'rest' ? 'Repos' : `Série ${setIdx + 1} / ${totalSets}`}
             </span>
             {phase === 'exercise' && (
               <span className="pill bg-section text-dim border border-border text-xs">
@@ -262,7 +262,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
               </div>
             ) : (
               <div className="bg-card-mint rounded-2xl px-4 py-3 mb-4">
-                <p className="text-green text-sm font-medium">🏆 Dernier exercice — courage !</p>
+                <p className="text-green text-sm font-medium flex items-center gap-2"><Trophy size={14} className="flex-shrink-0" /> Dernier exercice — courage !</p>
               </div>
             )
           )}
@@ -304,11 +304,11 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
 // ── Energy check modal ────────────────────────────────────────────────────────
 const ENERGY_LEVELS = [
-  { value: 1, emoji: '😴', label: 'Épuisé', color: 'bg-card-pink text-pink-700', desc: 'Séance de récupération' },
-  { value: 2, emoji: '😔', label: 'Fatigué', color: 'bg-card-orange text-orange', desc: 'Circuit léger adapté' },
-  { value: 3, emoji: '😐', label: 'Moyen', color: 'bg-card-yellow text-amber-700', desc: 'Séance allégée' },
-  { value: 4, emoji: '😊', label: 'En forme', color: 'bg-card-mint text-green', desc: 'Séance normale' },
-  { value: 5, emoji: '🔥', label: 'Au top !', color: 'bg-purple-bg text-purple', desc: 'Séance complète' },
+  { value: 1, label: 'Épuisé', color: 'bg-card-pink text-pink-700', desc: 'Séance de récupération' },
+  { value: 2, label: 'Fatigué', color: 'bg-card-orange text-orange', desc: 'Circuit léger adapté' },
+  { value: 3, label: 'Moyen', color: 'bg-card-yellow text-amber-700', desc: 'Séance allégée' },
+  { value: 4, label: 'En forme', color: 'bg-card-mint text-green', desc: 'Séance normale' },
+  { value: 5, label: 'Au top !', color: 'bg-purple-bg text-purple', desc: 'Séance complète' },
 ];
 
 interface EnergyModalProps {
@@ -365,7 +365,7 @@ function EnergyCheckModal({ session, apiKey, onStart, onClose }: EnergyModalProp
                 onClick={() => setEnergy(l.value)}
                 className={`flex-1 mx-0.5 flex flex-col items-center py-3 rounded-2xl transition-all ${energy === l.value ? l.color + ' scale-105 shadow-md' : 'bg-section'}`}
               >
-                <span className="text-xl">{l.emoji}</span>
+                <span className="text-base font-black">{l.value}</span>
                 <span className={`text-[9px] font-bold mt-1 ${energy === l.value ? '' : 'text-muted'}`}>{l.label}</span>
               </button>
             ))}

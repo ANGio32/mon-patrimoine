@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { Key, ChevronRight, Check, Info, Eye, EyeOff, LogOut } from 'lucide-react';
+import { Key, ChevronRight, Check, Info, Eye, EyeOff, LogOut, Droplets, Dumbbell, Home, Zap, Leaf, Heart, Activity, Shield, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
 import type { Goal, ActivityLevel, Equipment } from '../types';
 
-const EQUIPMENT_OPTIONS: { value: Equipment; label: string; emoji: string; desc: string }[] = [
-  { value: 'home', label: 'Home', emoji: '🏠', desc: 'Bodyweight + outdoor' },
-  { value: 'gym', label: 'Gym', emoji: '🏋️', desc: 'Full equipment' },
-  { value: 'both', label: 'Both', emoji: '⚡', desc: 'Mix gym & home' },
+const EQUIPMENT_OPTIONS: { value: Equipment; label: string; icon: LucideIcon; desc: string }[] = [
+  { value: 'home', label: 'Home', icon: Home, desc: 'Bodyweight + outdoor' },
+  { value: 'gym', label: 'Gym', icon: Dumbbell, desc: 'Full equipment' },
+  { value: 'both', label: 'Both', icon: Zap, desc: 'Mix gym & home' },
 ];
 
 const GOAL_LABELS: Record<Goal, string> = {
-  lose_weight: '🔥 Fat Loss',
-  build_muscle: '💪 Muscle Gain',
-  maintain: '⚡ Maintenance',
+  lose_weight: 'Fat Loss',
+  build_muscle: 'Muscle Gain',
+  maintain: 'Maintenance',
 };
 
 const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
@@ -25,7 +25,7 @@ const ACTIVITY_LABELS: Record<ActivityLevel, string> = {
 };
 
 interface BMIInfo {
-  emoji: string;
+  icon: LucideIcon;
   cardBg: string;
   textColor: string;
   title: string;
@@ -34,35 +34,35 @@ interface BMIInfo {
 
 function getBMIInfo(bmi: number): BMIInfo {
   if (bmi < 18.5) return {
-    emoji: '🌱',
+    icon: Leaf,
     cardBg: 'bg-card-sky',
     textColor: 'text-blue',
     title: 'A little light',
     message: `At ${bmi}, your body is still growing into its full potential. Nourishing yourself well will help you feel energized and strong.`,
   };
   if (bmi < 25) return {
-    emoji: '✨',
+    icon: Heart,
     cardBg: 'bg-card-mint',
     textColor: 'text-green',
     title: 'Looking great!',
     message: `A BMI of ${bmi} puts you in the healthy range — well done! Your body is in a great place. Keep up your good habits!`,
   };
   if (bmi < 27) return {
-    emoji: '💪',
+    icon: Dumbbell,
     cardBg: 'bg-card-yellow',
     textColor: 'text-amber-700',
     title: 'Almost there',
     message: `You're at ${bmi}, just a little above ideal — totally normal. Small consistent steps in nutrition and movement go a long way!`,
   };
   if (bmi < 30) return {
-    emoji: '🌟',
+    icon: Activity,
     cardBg: 'bg-card-orange',
     textColor: 'text-orange',
     title: 'On your journey',
     message: `Your BMI is ${bmi}. Every healthy choice you make today is a gift to your future self. You're on the right path!`,
   };
   return {
-    emoji: '🤗',
+    icon: Shield,
     cardBg: 'bg-card-pink',
     textColor: 'text-pink-700',
     title: "Let's do this together",
@@ -154,7 +154,7 @@ export default function Profile() {
       {/* BMI card */}
       <div className={`mx-5 mb-4 ${bmiInfo.cardBg} rounded-[2rem] p-5`}>
         <div className="flex items-start gap-3">
-          <span className="text-3xl">{bmiInfo.emoji}</span>
+          <bmiInfo.icon size={28} strokeWidth={1.5} className={`${bmiInfo.textColor} flex-shrink-0`} />
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <p className={`font-black text-base ${bmiInfo.textColor}`}>{bmiInfo.title}</p>
@@ -208,7 +208,7 @@ export default function Profile() {
               onClick={() => setEquipment(opt.value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${p.equipment === opt.value ? 'border-purple bg-purple-bg' : 'border-border bg-section'}`}
             >
-              <span className="text-xl">{opt.emoji}</span>
+              <opt.icon size={20} strokeWidth={1.5} className={p.equipment === opt.value ? 'text-purple' : 'text-[#1C1C1E]'} />
               <span className={`text-xs font-bold ${p.equipment === opt.value ? 'text-purple' : 'text-text'}`}>{opt.label}</span>
               <span className="text-[10px] text-muted leading-tight text-center">{opt.desc}</span>
             </button>
@@ -220,7 +220,7 @@ export default function Profile() {
       <div className="mx-5 bg-white shadow-card rounded-3xl p-4 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-card-sky flex items-center justify-center text-xl">💧</div>
+            <div className="w-10 h-10 rounded-2xl bg-card-sky flex items-center justify-center"><Droplets size={20} strokeWidth={1.5} className="text-blue" /></div>
             <div>
               <p className="text-text font-bold text-sm">Hydration Reminder</p>
               <p className="text-muted text-xs">Ask when you open the app</p>

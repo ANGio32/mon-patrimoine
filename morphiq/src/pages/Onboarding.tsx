@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Flame, Dumbbell, Zap, Sparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { UserProfile, Goal, ActivityLevel, Sex } from '../types';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
-const GOALS: { value: Goal; emoji: string; label: string; desc: string; bg: string; color: string }[] = [
-  { value: 'lose_weight', emoji: '🔥', label: 'Lose Weight', desc: 'Burn fat & feel lighter', bg: 'bg-card-orange', color: 'text-orange' },
-  { value: 'build_muscle', emoji: '💪', label: 'Build Muscle', desc: 'Gain strength & mass', bg: 'bg-card-blue', color: 'text-blue' },
-  { value: 'maintain', emoji: '⚡', label: 'Stay Healthy', desc: 'Balance & maintain', bg: 'bg-card-mint', color: 'text-green' },
+const GOALS: { value: Goal; icon: LucideIcon; label: string; desc: string; bg: string; color: string }[] = [
+  { value: 'lose_weight', icon: Flame, label: 'Lose Weight', desc: 'Burn fat & feel lighter', bg: 'bg-card-orange', color: 'text-orange' },
+  { value: 'build_muscle', icon: Dumbbell, label: 'Build Muscle', desc: 'Gain strength & mass', bg: 'bg-card-blue', color: 'text-blue' },
+  { value: 'maintain', icon: Zap, label: 'Stay Healthy', desc: 'Balance & maintain', bg: 'bg-card-mint', color: 'text-green' },
 ];
 
 const ACTIVITIES: { value: ActivityLevel; label: string; sub: string }[] = [
@@ -92,7 +93,7 @@ export default function Onboarding() {
                       : 'bg-white border-2 border-border shadow-card'
                   }`}
                 >
-                  <span className="text-3xl">{g.emoji}</span>
+                  <g.icon size={28} strokeWidth={1.5} className={goal === g.value ? g.color : 'text-muted'} />
                   <div className="flex-1">
                     <p className={`font-black ${goal === g.value ? g.color : 'text-text'}`}>{g.label}</p>
                     <p className="text-muted text-sm mt-0.5">{g.desc}</p>
@@ -193,7 +194,9 @@ export default function Onboarding() {
 
         {step === 'ready' && (
           <div className="text-center">
-            <div className="text-8xl mb-6">🚀</div>
+            <div className="w-24 h-24 rounded-[28px] bg-purple flex items-center justify-center mx-auto mb-6 shadow-purple">
+              <Sparkles size={44} strokeWidth={1.5} className="text-white" />
+            </div>
             <h2 className="text-3xl font-black text-text mb-2">You're all set{name ? `, ${name}` : ''}!</h2>
             <p className="text-muted text-lg mb-12">Your personalized plan is ready.</p>
             <button onClick={finish} className="btn-primary w-full text-base">Open Morphiq</button>
