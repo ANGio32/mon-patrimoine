@@ -1,16 +1,16 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Trash2, ChevronLeft, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle } from 'lucide-react';
+import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader, X, Coffee, Sun, Moon, Cookie, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeFoodPhoto, getSportTimingAdvice } from '../utils/gemini';
 import { saveMealEntry, generateId, getTodayKey } from '../utils/storage';
 import type { MealEntry, MealType, FoodItem, SportTimingAdvice } from '../types';
 
-const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
-  { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
-  { value: 'lunch', label: 'Lunch', emoji: '☀️' },
-  { value: 'dinner', label: 'Dinner', emoji: '🌙' },
-  { value: 'snack', label: 'Snack', emoji: '🍎' },
+const TYPES = [
+  { value: 'breakfast' as MealType, label: 'Breakfast', icon: Coffee },
+  { value: 'lunch' as MealType, label: 'Lunch', icon: Sun },
+  { value: 'dinner' as MealType, label: 'Dinner', icon: Moon },
+  { value: 'snack' as MealType, label: 'Snack', icon: Cookie },
 ];
 
 export default function LogMeal() {
@@ -19,47 +19,48 @@ export default function LogMeal() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [mealType, setMealType] = useState<MealType>('lunch');
-  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
   const [items, setItems] = useState<FoodItem[]>([]);
   const [description, setDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState('');
   const [timing, setTiming] = useState<SportTimingAdvice | null>(null);
   const [loadingTiming, setLoadingTiming] = useState(false);
-  const [manualName, setManualName] = useState('');
-  const [manualCal, setManualCal] = useState('');
-  const [manualPro, setManualPro] = useState('');
-  const [manualCarb, setManualCarb] = useState('');
-  const [manualFat, setManualFat] = useState('');
+  const [name, setName] = useState('');
+  const [cal, setCal] = useState('');
+  const [pro, setPro] = useState('');
+  const [carb, setCarb] = useState('');
+  const [fat, setFat] = useState('');
 
-  const hasApiKey = Boolean(state.profile?.geminiApiKey);
-  const totalCalories = items.reduce((s, i) => s + i.calories, 0);
-  const totalProtein = items.reduce((s, i) => s + i.protein, 0);
-  const totalCarbs = items.reduce((s, i) => s + i.carbs, 0);
-  const totalFat = items.reduce((s, i) => s + i.fat, 0);
+  const hasKey = Boolean(state.profile?.geminiApiKey);
+  const totals = {
+    cal: items.reduce((s, i) => s + i.calories, 0),
+    pro: items.reduce((s, i) => s + i.protein, 0),
+    carb: items.reduce((s, i) => s + i.carbs, 0),
+    fat: items.reduce((s, i) => s + i.fat, 0),
+  };
 
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
-      setPhotoDataUrl(url);
+    reader.onload = ev => {
+      setPhoto(ev.target?.result as string);
       setAnalyzeError('');
     };
     reader.readAsDataURL(file);
   }
 
-  async function analyzePhoto() {
-    if (!photoDataUrl || !state.profile?.geminiApiKey) return;
+  async function analyze() {
+    if (!photo || !state.profile?.geminiApiKey) return;
     setAnalyzing(true);
     setAnalyzeError('');
     try {
-      const result = await analyzeFoodPhoto(state.profile.geminiApiKey, photoDataUrl);
-      setItems(result.items);
-      setDescription(result.description);
-      setMealType(result.mealType);
-      await fetchTiming(result.totalCalories);
+      const res = await analyzeFoodPhoto(state.profile.geminiApiKey, photo);
+      setItems(res.items);
+      setDescription(res.description);
+      setMealType(res.mealType);
+      fetchTiming(res.totalCalories);
     } catch (e) {
       setAnalyzeError(e instanceof Error ? e.message : 'Analysis failed. Check your API key.');
     } finally {
@@ -67,43 +68,22 @@ export default function LogMeal() {
     }
   }
 
-  async function fetchTiming(cal: number) {
+  async function fetchTiming(calories: number) {
     if (!state.profile?.geminiApiKey) return;
     setLoadingTiming(true);
     try {
-      const advice = await getSportTimingAdvice(state.profile.geminiApiKey, cal, state.profile.goal);
+      const advice = await getSportTimingAdvice(state.profile.geminiApiKey, calories, state.profile.goal);
       setTiming(advice);
-    } catch {
-      // timing is optional
-    } finally {
-      setLoadingTiming(false);
-    }
+    } catch { /* optional */ }
+    finally { setLoadingTiming(false); }
   }
 
-  function addManualItem() {
-    if (!manualName || !manualCal) return;
-    const item: FoodItem = {
-      name: manualName,
-      portionDescription: '1 serving',
-      calories: parseFloat(manualCal) || 0,
-      protein: parseFloat(manualPro) || 0,
-      carbs: parseFloat(manualCarb) || 0,
-      fat: parseFloat(manualFat) || 0,
-    };
-    const newItems = [...items, item];
+  function addItem() {
+    if (!name || !cal) return;
+    const newItems = [...items, { name, portionDescription: '1 serving', calories: parseFloat(cal)||0, protein: parseFloat(pro)||0, carbs: parseFloat(carb)||0, fat: parseFloat(fat)||0 }];
     setItems(newItems);
-    setManualName('');
-    setManualCal('');
-    setManualPro('');
-    setManualCarb('');
-    setManualFat('');
-    if (!timing && state.profile?.geminiApiKey) {
-      fetchTiming(newItems.reduce((s, i) => s + i.calories, 0));
-    }
-  }
-
-  function removeItem(idx: number) {
-    setItems(items.filter((_, i) => i !== idx));
+    setName(''); setCal(''); setPro(''); setCarb(''); setFat('');
+    if (!timing && state.profile?.geminiApiKey) fetchTiming(newItems.reduce((s, i) => s + i.calories, 0));
   }
 
   function save() {
@@ -116,12 +96,12 @@ export default function LogMeal() {
       mealType,
       description: description || mealType,
       items,
-      totalCalories,
-      totalProtein,
-      totalCarbs,
-      totalFat,
-      photoDataUrl: photoDataUrl ?? undefined,
-      aiAnalyzed: Boolean(photoDataUrl && hasApiKey),
+      totalCalories: totals.cal,
+      totalProtein: totals.pro,
+      totalCarbs: totals.carb,
+      totalFat: totals.fat,
+      photoDataUrl: photo ?? undefined,
+      aiAnalyzed: Boolean(photo && hasKey),
     };
     saveMealEntry(meal);
     refreshToday();
@@ -129,181 +109,190 @@ export default function LogMeal() {
   }
 
   return (
-    <div className="page-scroll pb-28">
-      <div className="px-5 pt-8 pb-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center">
-          <ChevronLeft size={20} className="text-white" />
+    <div className="page bg-bg">
+      {/* Restaurant menu analyzer shortcut */}
+      <div className="px-5 pt-14 pb-2">
+        <button
+          onClick={() => navigate('/menu')}
+          className="w-full flex items-center justify-between bg-card-orange rounded-3xl px-5 py-4 active:scale-95 transition-all shadow-card"
+        >
+          <div className="flex items-center gap-3">
+            <MapPin size={20} strokeWidth={1.5} className="text-orange" />
+            <div className="text-left">
+              <p className="text-orange font-black text-sm">Mode Restaurant</p>
+              <p className="text-orange/70 text-xs">Photographiez le menu · IA recommande</p>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-orange/70" />
         </button>
-        <h1 className="text-xl font-bold text-white">Log Meal</h1>
       </div>
 
-      {/* Meal Type */}
-      <div className="px-5 mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-4 pb-5">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center">
+          <ChevronLeft size={18} className="text-text" />
+        </button>
+        <h1 className="text-xl font-black text-text">Log Meal</h1>
+      </div>
+
+      {/* Meal type */}
+      <div className="px-5 mb-6">
         <div className="flex gap-2">
-          {MEAL_TYPES.map((t) => (
+          {TYPES.map(t => (
             <button
               key={t.value}
               onClick={() => setMealType(t.value)}
-              className={`flex-1 flex flex-col items-center py-3 rounded-2xl border-2 transition-all ${
-                mealType === t.value ? 'border-primary bg-primary/10' : 'border-border bg-card'
-              }`}
+              className="flex-1 flex flex-col items-center gap-1.5 transition-all active:scale-95"
             >
-              <span className="text-xl">{t.emoji}</span>
-              <span className={`text-xs mt-1 ${mealType === t.value ? 'text-primary font-medium' : 'text-muted'}`}>
+              <div className={`w-[60px] h-[60px] rounded-[18px] bg-white flex items-center justify-center transition-all duration-200 ${
+                mealType === t.value
+                  ? 'shadow-[0_8px_24px_rgba(0,0,0,0.13)]'
+                  : 'shadow-sm border border-gray-100'
+              }`}>
+                <t.icon size={26} strokeWidth={1.5} className="text-[#1C1C1E]" />
+              </div>
+              <span className={`text-[11px] font-semibold transition-colors ${mealType === t.value ? 'text-text' : 'text-muted'}`}>
                 {t.label}
               </span>
+              <div className={`w-1 h-1 rounded-full bg-purple transition-opacity ${mealType === t.value ? 'opacity-100' : 'opacity-0'}`} />
             </button>
           ))}
         </div>
       </div>
 
-      {/* Photo */}
-      <div className="px-5 mb-4">
+      {/* Photo area */}
+      <div className="px-5 mb-5">
         <div
           onClick={() => fileRef.current?.click()}
-          className={`relative rounded-3xl border-2 border-dashed overflow-hidden cursor-pointer transition-all ${
-            photoDataUrl ? 'border-secondary' : 'border-border bg-card'
-          }`}
-          style={{ height: photoDataUrl ? 220 : 120 }}
+          className="relative rounded-3xl border border-border overflow-hidden cursor-pointer bg-white shadow-card"
+          style={{ height: photo ? 220 : 110 }}
         >
-          {photoDataUrl ? (
-            <img src={photoDataUrl} alt="meal" className="w-full h-full object-cover" />
+          {photo ? (
+            <>
+              <img src={photo} alt="meal" className="w-full h-full object-cover" />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPhoto(null);
+                  setItems([]);
+                  setDescription('');
+                  setTiming(null);
+                  setAnalyzeError('');
+                  if (fileRef.current) fileRef.current.value = '';
+                }}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 active:scale-90 transition-transform"
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2">
-              <Camera size={28} className="text-muted" />
-              <p className="text-muted text-sm">Take or upload a photo</p>
+              <Camera size={24} className="text-muted" />
+              <p className="text-dim text-sm">Photo your meal</p>
+              <p className="text-muted text-xs">or upload from gallery</p>
             </div>
           )}
         </div>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoSelect} />
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
 
-        {photoDataUrl && hasApiKey && (
-          <button
-            onClick={analyzePhoto}
-            disabled={analyzing}
-            className="btn-primary w-full mt-3 flex items-center justify-center gap-2"
-          >
-            <Sparkles size={18} />
-            {analyzing ? 'Analyzing with AI...' : 'Analyze with Gemini AI'}
+        {photo && hasKey && (
+          <button onClick={analyze} disabled={analyzing} className="btn-primary w-full mt-3 flex items-center justify-center gap-2 text-sm">
+            {analyzing ? <><Loader size={16} className="animate-spin" /> Analyzing...</> : <><Sparkles size={16} /> Analyze with Gemini AI</>}
           </button>
         )}
-
-        {photoDataUrl && !hasApiKey && (
-          <div className="mt-3 flex items-center gap-2 text-amber-400 text-sm bg-amber-400/10 px-4 py-2 rounded-xl">
-            <AlertCircle size={16} />
+        {photo && !hasKey && (
+          <div className="mt-3 flex items-center gap-2 text-orange text-xs bg-orange-bg px-4 py-3 rounded-2xl border border-border">
+            <AlertCircle size={14} className="flex-shrink-0" />
             Add your Gemini API key in Profile to enable AI analysis
           </div>
         )}
-
-        {analyzeError && (
-          <p className="mt-2 text-red-400 text-sm text-center">{analyzeError}</p>
-        )}
+        {analyzeError && <p className="mt-2 text-red-400 text-xs text-center px-2">{analyzeError}</p>}
       </div>
 
-      {/* Items List */}
+      {/* Items */}
       {items.length > 0 && (
-        <div className="px-5 mb-4">
-          <h3 className="text-white font-semibold mb-3">Items ({items.length})</h3>
-          <div className="space-y-2">
+        <div className="px-5 mb-5">
+          <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Detected items</p>
+          <div className="space-y-2 mb-3">
             {items.map((item, i) => (
-              <div key={i} className="bg-card border border-border rounded-2xl p-4 flex items-start gap-3">
+              <div key={i} className="bg-white rounded-2xl border border-border shadow-card p-4 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium">{item.name}</p>
-                  <p className="text-muted text-xs">{item.portionDescription}</p>
-                  <div className="flex gap-3 mt-1 text-xs text-muted">
-                    <span className="text-secondary">P {Math.round(item.protein)}g</span>
-                    <span className="text-blue-400">C {Math.round(item.carbs)}g</span>
-                    <span className="text-accent">F {Math.round(item.fat)}g</span>
+                  <p className="text-text text-sm font-medium">{item.name}</p>
+                  <p className="text-muted text-xs mt-0.5">{item.portionDescription}</p>
+                  <div className="flex gap-3 mt-1.5 text-xs">
+                    <span className="text-purple">P {Math.round(item.protein)}g</span>
+                    <span className="text-blue">C {Math.round(item.carbs)}g</span>
+                    <span className="text-orange">F {Math.round(item.fat)}g</span>
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-white font-bold">{Math.round(item.calories)}</p>
-                  <p className="text-muted text-xs">kcal</p>
+                <div className="text-right flex-shrink-0 flex items-start gap-2">
+                  <div>
+                    <p className="text-text font-semibold text-sm">{Math.round(item.calories)}</p>
+                    <p className="text-muted text-xs">kcal</p>
+                  </div>
+                  <button onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-muted hover:text-red-400 transition-colors mt-0.5">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button onClick={() => removeItem(i)} className="text-red-400/70 hover:text-red-400 mt-1">
-                  <Trash2 size={16} />
-                </button>
               </div>
             ))}
           </div>
-
           {/* Total */}
-          <div className="mt-3 bg-primary/10 border border-primary/30 rounded-2xl p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-semibold">Total</span>
-              <span className="text-primary font-black text-lg">{Math.round(totalCalories)} kcal</span>
+          <div className="bg-purple-bg rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex gap-4 text-xs text-dim">
+              <span>P <strong className="text-text">{Math.round(totals.pro)}g</strong></span>
+              <span>C <strong className="text-text">{Math.round(totals.carb)}g</strong></span>
+              <span>F <strong className="text-text">{Math.round(totals.fat)}g</strong></span>
             </div>
-            <div className="flex gap-4 mt-1 text-xs text-muted">
-              <span>P <strong className="text-white">{Math.round(totalProtein)}g</strong></span>
-              <span>C <strong className="text-white">{Math.round(totalCarbs)}g</strong></span>
-              <span>F <strong className="text-white">{Math.round(totalFat)}g</strong></span>
-            </div>
+            <span className="text-purple font-black text-lg">{Math.round(totals.cal)} kcal</span>
           </div>
         </div>
       )}
 
-      {/* Manual Add */}
-      <div className="px-5 mb-4">
-        <h3 className="text-white font-semibold mb-3">Add Manually</h3>
-        <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-          <input className="input-field" placeholder="Food name" value={manualName} onChange={(e) => setManualName(e.target.value)} />
+      {/* Add manually */}
+      <div className="px-5 mb-5">
+        <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Add manually</p>
+        <div className="bg-white rounded-2xl border border-border shadow-card p-4 space-y-2.5">
+          <input className="input-field" placeholder="Food name" value={name} onChange={e => setName(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <input className="input-field" type="number" placeholder="Calories" value={manualCal} onChange={(e) => setManualCal(e.target.value)} />
-            <input className="input-field" type="number" placeholder="Protein (g)" value={manualPro} onChange={(e) => setManualPro(e.target.value)} />
-            <input className="input-field" type="number" placeholder="Carbs (g)" value={manualCarb} onChange={(e) => setManualCarb(e.target.value)} />
-            <input className="input-field" type="number" placeholder="Fat (g)" value={manualFat} onChange={(e) => setManualFat(e.target.value)} />
+            <input className="input-field" type="number" placeholder="Calories" value={cal} onChange={e => setCal(e.target.value)} />
+            <input className="input-field" type="number" placeholder="Protein (g)" value={pro} onChange={e => setPro(e.target.value)} />
+            <input className="input-field" type="number" placeholder="Carbs (g)" value={carb} onChange={e => setCarb(e.target.value)} />
+            <input className="input-field" type="number" placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
           </div>
-          <button
-            onClick={addManualItem}
-            disabled={!manualName || !manualCal}
-            className="btn-secondary w-full flex items-center justify-center gap-2"
-          >
-            <Plus size={18} /> Add Item
+          <button onClick={addItem} disabled={!name || !cal} className="btn-ghost w-full flex items-center justify-center gap-2 text-sm disabled:opacity-30">
+            <Plus size={16} /> Add Item
           </button>
         </div>
       </div>
 
-      {/* Sport Timing */}
+      {/* Sport timing */}
       {(timing || loadingTiming) && (
-        <div className="px-5 mb-4">
-          <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-            <Dumbbell size={18} className="text-primary" /> Sport Timing
-          </h3>
+        <div className="px-5 mb-5">
+          <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Sport Timing</p>
           {loadingTiming ? (
-            <div className="bg-card border border-border rounded-2xl p-4 text-muted text-sm text-center">Generating advice...</div>
+            <div className="bg-white rounded-2xl border border-border shadow-card p-4 text-center text-dim text-sm flex items-center justify-center gap-2">
+              <Loader size={14} className="animate-spin" /> Generating advice...
+            </div>
           ) : timing ? (
-            <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <Clock size={18} className="text-secondary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-sm font-medium">Before Exercise</p>
-                  <p className="text-muted text-sm">{timing.waitBeforeExercise}</p>
+            <div className="bg-white rounded-2xl border border-border shadow-card overflow-hidden">
+              {[
+                { icon: <Clock size={15} />, label: 'Before exercise', value: timing.waitBeforeExercise, color: 'text-purple' },
+                { icon: <Dumbbell size={15} />, label: 'Workout type', value: timing.exerciseType, color: 'text-purple' },
+                { icon: <Clock size={15} />, label: 'Recovery', value: timing.recoveryWindow, color: 'text-orange' },
+                { icon: <Droplets size={15} />, label: 'Hydration', value: timing.hydration, color: 'text-blue' },
+              ].map((row, i) => (
+                <div key={i} className={`flex items-start gap-3 px-4 py-3 ${i < 3 ? 'border-b border-border' : ''}`}>
+                  <span className={`mt-0.5 ${row.color}`}>{row.icon}</span>
+                  <div>
+                    <p className="text-text text-xs font-medium">{row.label}</p>
+                    <p className="text-dim text-xs mt-0.5">{row.value}</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Dumbbell size={18} className="text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-sm font-medium">Exercise Type</p>
-                  <p className="text-muted text-sm">{timing.exerciseType}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Clock size={18} className="text-accent flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-sm font-medium">Recovery Window</p>
-                  <p className="text-muted text-sm">{timing.recoveryWindow}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Droplets size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-white text-sm font-medium">Hydration</p>
-                  <p className="text-muted text-sm">{timing.hydration}</p>
-                </div>
-              </div>
-              <div className="bg-primary/10 rounded-xl p-3 flex gap-2">
-                <Lightbulb size={16} className="text-primary flex-shrink-0 mt-0.5" />
-                <p className="text-primary text-sm">{timing.tip}</p>
+              ))}
+              <div className="px-4 py-3 bg-purple-bg flex gap-2">
+                <Lightbulb size={14} className="text-purple flex-shrink-0 mt-0.5" />
+                <p className="text-purple text-xs">{timing.tip}</p>
               </div>
             </div>
           ) : null}
@@ -312,24 +301,15 @@ export default function LogMeal() {
 
       {/* Description */}
       {items.length > 0 && (
-        <div className="px-5 mb-4">
-          <input
-            className="input-field"
-            placeholder="Description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
+        <div className="px-5 mb-5">
+          <input className="input-field" placeholder="Meal description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
         </div>
       )}
 
-      {/* Save Button */}
+      {/* Save */}
       <div className="px-5">
-        <button
-          onClick={save}
-          disabled={items.length === 0}
-          className="btn-primary w-full text-base py-4 disabled:opacity-40"
-        >
-          Save Meal · {Math.round(totalCalories)} kcal
+        <button onClick={save} disabled={items.length === 0} className="btn-primary w-full text-sm disabled:opacity-30">
+          Save · {Math.round(totals.cal)} kcal
         </button>
       </div>
     </div>

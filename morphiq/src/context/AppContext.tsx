@@ -1,6 +1,14 @@
-import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useReducer, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { UserProfile, DailyLog } from '../types';
-import { loadProfile, saveProfile, getLogForDate, getTodayKey } from '../utils/storage';
+import {
+  loadProfile, saveProfile, getLogForDate, getTodayKey,
+  loadAllLogs, loadAiPrograms, loadChallenge, saveChallenge,
+  setCurrentUserId,
+} from '../utils/storage';
+import {
+  supabase, fetchProfile, upsertProfile, fetchAllLogs,
+  fetchPrograms, fetchChallengeFromDb, upsertProgram, upsertLog,
+} from '../utils/supabase';
 
 interface AppState {
   profile: UserProfile | null;
@@ -28,11 +36,59 @@ function reducer(state: AppState, action: Action): AppState {
 
 interface AppContextValue {
   state: AppState;
+  userId: string | null;
+  authLoading: boolean;
   setProfile: (p: UserProfile) => void;
   refreshToday: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+// Pull Supabase data into localStorage, dispatch profile update
+async function syncFromSupabase(userId: string, dispatch: React.Dispatch<Action>) {
+  try {
+    const sbProfile = await fetchProfile(userId);
+
+    if (sbProfile?.onboardingComplete) {
+      // Supabase has authoritative data → hydrate localStorage
+      dispatch({ type: 'SET_PROFILE', payload: sbProfile });
+
+      const logs = await fetchAllLogs(userId);
+      if (Object.keys(logs).length > 0) {
+        localStorage.setItem('morphiq_logs', JSON.stringify(logs));
+      }
+      const programs = await fetchPrograms(userId);
+      if (programs.length > 0) {
+        localStorage.setItem('morphiq_ai_programs', JSON.stringify(programs));
+      }
+      const challenge = await fetchChallengeFromDb(userId);
+      if (challenge) saveChallenge(challenge);
+    } else {
+      // No Supabase profile yet → migrate localStorage to Supabase
+      const localProfile = loadProfile();
+      if (localProfile) {
+        await upsertProfile(userId, localProfile);
+        if (localProfile.onboardingComplete) {
+          dispatch({ type: 'SET_PROFILE', payload: localProfile });
+        }
+        // Migrate logs (photos stripped inside upsertLog)
+        const localLogs = Object.values(loadAllLogs());
+        await Promise.allSettled(localLogs.map(log => upsertLog(userId, log)));
+        // Migrate programs
+        const localPrograms = loadAiPrograms();
+        await Promise.allSettled(localPrograms.map(p => upsertProgram(userId, p)));
+        // Migrate challenge
+        const localChallenge = loadChallenge();
+        if (localChallenge) saveChallenge(localChallenge); // triggers upsertChallengeToDb via storage
+      }
+    }
+
+    dispatch({ type: 'REFRESH_TODAY' });
+  } catch (e) {
+    console.error('Supabase sync error:', e);
+  }
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const todayKey = getTodayKey();
@@ -41,18 +97,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
     todayLog: getLogForDate(todayKey),
     todayKey,
   });
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      dispatch({ type: 'REFRESH_TODAY' });
-    }, 60_000);
+    // Fallback: never stay stuck on loading more than 5s
+    const fallback = setTimeout(() => setAuthLoading(false), 5000);
+
+    // onAuthStateChange fires INITIAL_SESSION first — handles both
+    // "already logged in" and "no session" cases reliably
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const user = session?.user ?? null;
+
+      if (event === 'INITIAL_SESSION') {
+        setCurrentUserId(user?.id ?? null);
+        setUserId(user?.id ?? null);
+        if (user) {
+          await syncFromSupabase(user.id, dispatch);
+        }
+        clearTimeout(fallback);
+        setAuthLoading(false);
+      } else if (event === 'SIGNED_IN' && user) {
+        setCurrentUserId(user.id);
+        setUserId(user.id);
+        setAuthLoading(true);
+        await syncFromSupabase(user.id, dispatch);
+        setAuthLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUserId(null);
+        setUserId(null);
+        dispatch({ type: 'REFRESH_TODAY' });
+      }
+    });
+
+    return () => {
+      clearTimeout(fallback);
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Minute tick to refresh today's log
+  useEffect(() => {
+    const id = setInterval(() => dispatch({ type: 'REFRESH_TODAY' }), 60_000);
     return () => clearInterval(id);
+  }, []);
+
+  const setProfile = useCallback((p: UserProfile) => {
+    dispatch({ type: 'SET_PROFILE', payload: p });
+    // Storage.ts saveProfile already syncs to Supabase via _userId
+  }, []);
+
+  const signOut = useCallback(async () => {
+    setCurrentUserId(null);
+    await supabase.auth.signOut();
   }, []);
 
   const value: AppContextValue = {
     state,
-    setProfile: (p) => dispatch({ type: 'SET_PROFILE', payload: p }),
+    userId,
+    authLoading,
+    setProfile,
     refreshToday: () => dispatch({ type: 'REFRESH_TODAY' }),
+    signOut,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

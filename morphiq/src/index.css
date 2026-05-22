@@ -5,27 +5,66 @@
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+    /* Prevent text selection on tap (native feel) */
+    -webkit-user-select: none;
+    user-select: none;
   }
-  body {
-    @apply bg-bg text-white font-sans;
+  /* Re-enable selection for inputs and text areas */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  html {
+    /* Prevent iOS font size boost on orientation change */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     overscroll-behavior: none;
   }
+  html, body {
+    background: #EBE5FF;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply text-text font-sans;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Prevent double-tap zoom on buttons/links — removes 300ms delay */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+  }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white font-semibold py-3 px-6 rounded-2xl transition-all
-           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-black text-white font-bold py-4 px-6 rounded-2xl
+           transition-all duration-150
+           active:scale-[0.97] active:brightness-90
+           disabled:opacity-40 disabled:cursor-not-allowed;
   }
-  .btn-secondary {
-    @apply bg-card border border-border text-white font-semibold py-3 px-6 rounded-2xl
-           transition-all active:scale-95;
+  .btn-ghost {
+    @apply bg-white text-text font-semibold py-4 px-6 rounded-2xl
+           transition-all duration-150 active:scale-[0.97] border border-border;
   }
   .input-field {
-    @apply w-full bg-bg border border-border rounded-xl px-4 py-3 text-white
-           placeholder:text-muted focus:outline-none focus:border-primary transition-colors text-sm;
+    @apply w-full bg-white border border-border rounded-2xl px-4 py-3.5
+           text-text placeholder:text-muted text-sm
+           focus:outline-none focus:border-purple/40 focus:ring-2 focus:ring-purple/10 transition-colors;
   }
-  .page-scroll {
-    @apply min-h-screen overflow-y-auto;
+  .card {
+    @apply bg-white rounded-3xl shadow-card;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold;
+  }
+  .page {
+    @apply min-h-screen overflow-y-auto pb-36;
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

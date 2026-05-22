@@ -2,6 +2,7 @@ export type Goal = 'lose_weight' | 'build_muscle' | 'maintain';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 export type Sex = 'male' | 'female';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type Equipment = 'home' | 'gym' | 'both';
 
 export interface UserProfile {
   name: string;
@@ -11,9 +12,24 @@ export interface UserProfile {
   heightCm: number;
   activityLevel: ActivityLevel;
   goal: Goal;
+  equipment?: Equipment;
   geminiApiKey: string;
   onboardingComplete: boolean;
   createdAt: string;
+}
+
+export interface AiProgramSession {
+  name: string;
+  durationMin: number;
+  exercises: Exercise[];
+}
+
+export interface AiProgram {
+  id: string;
+  name: string;
+  createdAt: string;
+  request: string;
+  sessions: AiProgramSession[];
 }
 
 export interface FoodItem {
@@ -78,4 +94,16 @@ export interface SportTimingAdvice {
   recoveryWindow: string;
   hydration: string;
   tip: string;
+}
+
+export interface WeeklyChallenge {
+  id: string;
+  weekStart: string;
+  title: string;
+  description: string;
+  targetDays: number;
+  completedDays: string[];
+  emoji: string;
+  reward: string;
+  createdAt: string;
 }
