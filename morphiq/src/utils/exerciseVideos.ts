@@ -45,3 +45,38 @@ export async function deleteExerciseVideo(id: string): Promise<void> {
 export function toExerciseId(name: string): string {
   return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 }
+
+export interface SavedVideoMeta {
+  id: string;          // exercise id slug
+  displayName: string; // "bodyweight-squats" → kept as-is; caller restores pretty name
+  blob: Blob;
+  url: string;         // object URL — caller must revoke when done
+}
+
+/** Returns all saved exercise videos from IndexedDB. */
+export async function listAllExerciseVideos(): Promise<SavedVideoMeta[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx      = db.transaction(STORE, 'readonly');
+    const store   = tx.objectStore(STORE);
+    const results: SavedVideoMeta[] = [];
+    const keysReq = store.getAllKeys();
+    const valsReq = store.getAll();
+    let keysReady = false, valsReady = false;
+    let keys: IDBValidKey[] = [];
+    let vals: Blob[] = [];
+
+    keysReq.onsuccess = () => { keys = keysReq.result; keysReady = true; if (valsReady) finish(); };
+    valsReq.onsuccess = () => { vals = valsReq.result as Blob[]; valsReady = true; if (keysReady) finish(); };
+    keysReq.onerror = valsReq.onerror = () => { db.close(); reject(new Error('listAllExerciseVideos failed')); };
+
+    function finish() {
+      for (let i = 0; i < keys.length; i++) {
+        const id = String(keys[i]);
+        results.push({ id, displayName: id, blob: vals[i], url: URL.createObjectURL(vals[i]) });
+      }
+      db.close();
+      resolve(results);
+    }
+  });
+}

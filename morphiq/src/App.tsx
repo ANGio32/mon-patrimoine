@@ -11,6 +11,7 @@ import Nutrition from './pages/Nutrition';
 import Fitness from './pages/Fitness';
 import Profile from './pages/Profile';
 import MenuAnalyzer from './pages/MenuAnalyzer';
+import SmartGrocery from './pages/SmartGrocery';
 
 export default function App() {
   const { state, userId, authLoading } = useApp();
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/fitness" element={<Fitness />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/menu" element={<MenuAnalyzer />} />
+        <Route path="/smart-grocery" element={<SmartGrocery />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <NavBar />

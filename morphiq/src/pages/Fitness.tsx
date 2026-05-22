@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus, Zap, Home, Droplets } from 'lucide-react';
+import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus, Zap, Home, Droplets, Video } from 'lucide-react';
+import ExerciseVideosTab from '../components/ExerciseVideosTab';
 import { useApp } from '../context/AppContext';
 import { generateStructuredProgram, getAdaptedSession } from '../utils/gemini';
 import { saveWorkout, generateId, getTodayKey, saveAiProgram, loadAiPrograms, deleteAiProgram } from '../utils/storage';
@@ -462,7 +463,7 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
 
 export default function Fitness() {
   const { state, refreshToday } = useApp();
-  const [tab, setTab] = useState<'program' | 'ai'>('program');
+  const [tab, setTab] = useState<'program' | 'ai' | 'videos'>('program');
   const [aiDays, setAiDays] = useState(4);
   const [aiRequest, setAiRequest] = useState('');
   const [loading, setLoading] = useState(false);
@@ -558,13 +559,21 @@ export default function Fitness() {
         {/* Tabs */}
         <div className="px-5 mb-5">
           <div className="flex bg-white shadow-card rounded-2xl p-1 gap-1">
-            {(['program', 'ai'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === t ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
-              >
-                {t === 'program' ? <><Dumbbell size={15} /> My Program</> : <><Sparkles size={15} /> AI Coach</>}
-              </button>
-            ))}
+            <button onClick={() => setTab('program')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'program' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+            >
+              <Dumbbell size={14} /> Programme
+            </button>
+            <button onClick={() => setTab('ai')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+            >
+              <Sparkles size={14} /> IA Coach
+            </button>
+            <button onClick={() => setTab('videos')}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'videos' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+            >
+              <Video size={14} /> Mes vidéos
+            </button>
           </div>
         </div>
 
@@ -681,6 +690,8 @@ export default function Fitness() {
             )}
           </div>
         )}
+
+        {tab === 'videos' && <ExerciseVideosTab />}
       </div>
     </>
   );

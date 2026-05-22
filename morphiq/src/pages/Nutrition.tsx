@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb, Copy, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getMealSuggestions, generateRecipeFromIngredients, generateRecipeFromSuggestion } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
@@ -61,92 +62,6 @@ function parseAiSuggestions(text: string): AiSuggestion[] {
     results.push({ name: 'Meal suggestion', description: text });
   }
   return results;
-}
-
-// ── Smart Basket ──────────────────────────────────────────────────────────────
-function extractIngredientName(ing: string): string {
-  return ing
-    .replace(/^\d+(?:[,.]\d+)?(?:\/\d+)?\s*/g, '')
-    .replace(/^(?:g|kg|ml|l|cl|dl)\b\s*/i, '')
-    .replace(/^(?:cuillères?\s+à\s+(?:café|soupe)|c\.s\.|c\.c\.)\s*/i, '')
-    .replace(/^(?:de\s+|d'|du\s+|des\s+|une?\s+)/i, '')
-    .replace(/^(?:grands?|petits?|moyens?|gros|belle?s?)\s+/i, '')
-    .split(',')[0]
-    .trim();
-}
-
-function ShoppingListModal({ recipe, servings, onClose }: { recipe: Recipe; servings: number; onClose: () => void }) {
-  const scale = servings / recipe.servings;
-  const [copied, setCopied] = useState(false);
-  const [store, setStore] = useState<'iga' | 'metro'>('iga');
-
-  function copyAll() {
-    const lines = recipe.ingredients.map(ing => `• ${scaleIngredient(ing, scale)}`).join('\n');
-    const text = `Liste de courses – ${recipe.name} (${servings} portion${servings > 1 ? 's' : ''})\n\n${lines}`;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-
-  function openAll() {
-    recipe.ingredients.forEach((ing, i) => {
-      const name = extractIngredientName(ing);
-      const url = store === 'iga'
-        ? `https://www.iga.ca/fr/recherche?q=${encodeURIComponent(name)}`
-        : `https://www.metro.ca/epicerie-en-ligne/recherche?filter=${encodeURIComponent(name)}`;
-      setTimeout(() => window.open(url, '_blank'), i * 300);
-    });
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center" style={{ background: 'rgba(28,28,30,0.55)', backdropFilter: 'blur(12px)' }}>
-      <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl" style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-3 flex-shrink-0">
-          <div>
-            <h3 className="text-text font-black text-lg flex items-center gap-2"><ShoppingCart size={18} className="text-purple" /> Liste de courses</h3>
-            <p className="text-muted text-xs mt-0.5">{recipe.name} · {servings} portion{servings > 1 ? 's' : ''}</p>
-          </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-2xl bg-section border border-border flex items-center justify-center">
-            <X size={16} className="text-muted" />
-          </button>
-        </div>
-
-        {/* Store selector + bulk actions */}
-        <div className="px-6 pb-3 flex-shrink-0 space-y-2">
-          <div className="flex gap-2">
-            <button onClick={() => setStore('iga')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'iga' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'iga' ? { background: '#b91c1c' } : {}}>IGA</button>
-            <button onClick={() => setStore('metro')} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${store === 'metro' ? 'text-white' : 'bg-section text-muted'}`} style={store === 'metro' ? { background: '#1d4ed8' } : {}}>Metro</button>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={copyAll} className="flex-1 py-2.5 rounded-xl bg-section border border-border text-xs font-bold text-text flex items-center justify-center gap-1.5 active:scale-95 transition-all">
-              {copied ? <><Check size={12}/> Copié !</> : <><Copy size={12}/> Copier la liste</>}
-            </button>
-            <button onClick={openAll} className="flex-1 py-2.5 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all" style={{ background: store === 'iga' ? '#b91c1c' : '#1d4ed8' }}>
-              <ShoppingCart size={12}/> Ouvrir tout
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto px-6 pb-10 space-y-2" style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
-          {recipe.ingredients.map((ing, i) => {
-            const scaled = scaleIngredient(ing, scale);
-            const name = extractIngredientName(ing);
-            const url = store === 'iga'
-              ? `https://www.iga.ca/fr/recherche?q=${encodeURIComponent(name)}`
-              : `https://www.metro.ca/epicerie-en-ligne/recherche?filter=${encodeURIComponent(name)}`;
-            return (
-              <button key={i} onClick={() => window.open(url, '_blank')} className="w-full bg-section rounded-2xl p-3 flex items-center gap-3 text-left active:scale-[0.98] transition-all">
-                <span className="text-purple font-bold flex-shrink-0 text-sm">·</span>
-                <span className="text-dim text-sm flex-1 leading-snug">{scaled}</span>
-                <span className="text-muted text-[10px] font-bold flex-shrink-0">Chercher →</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ── Recipe data ───────────────────────────────────────────────────────────────
@@ -612,14 +527,13 @@ function GeneratedRecipeCard({ recipe, onClose }: { recipe: GeneratedRecipe; onC
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function Nutrition() {
   const { state } = useApp();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'recipes' | 'ai'>('recipes');
   const [filter, setFilter] = useState<string>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [servingsMap, setServingsMap] = useState<Record<string, number>>({});
   const [favs, setFavs] = useState<Set<string>>(() => loadFavs());
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(() => loadSavedIdeas());
-  const [shoppingRecipe, setShoppingRecipe] = useState<{ recipe: Recipe; servings: number } | null>(null);
-
   // AI state
   const [aiMode, setAiMode] = useState<'suggestions' | 'from_ingredients'>('suggestions');
   const [aiMealType, setAiMealType] = useState<MealType>('lunch');
@@ -693,14 +607,6 @@ export default function Nutrition() {
       {generatedRecipe && (
         <GeneratedRecipeCard recipe={generatedRecipe} onClose={() => setGeneratedRecipe(null)} />
       )}
-      {shoppingRecipe && (
-        <ShoppingListModal
-          recipe={shoppingRecipe.recipe}
-          servings={shoppingRecipe.servings}
-          onClose={() => setShoppingRecipe(null)}
-        />
-      )}
-
       <div className="page bg-bg">
         <div className="px-5 pt-14 pb-4">
           <h1 className="text-2xl font-black text-text tracking-tight">Nutrition</h1>
@@ -864,10 +770,10 @@ export default function Nutrition() {
                             </div>
                           )}
                           <button
-                            onClick={() => setShoppingRecipe({ recipe: r, servings })}
+                            onClick={() => navigate('/smart-grocery', { state: { recipe: r, servings } })}
                             className="w-full flex items-center justify-center gap-2 py-3 bg-[#1C1C1E] rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
                           >
-                            <ShoppingCart size={16} /> Générer ma liste de courses
+                            <ShoppingCart size={16} /> Créer mon panier intelligent
                           </button>
                         </div>
                       </div>
