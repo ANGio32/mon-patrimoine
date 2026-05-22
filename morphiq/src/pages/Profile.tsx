@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Key, ChevronRight, Check, Info, Eye, EyeOff } from 'lucide-react';
+import { Key, ChevronRight, Check, Info, Eye, EyeOff, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
 import type { Goal, ActivityLevel, Equipment } from '../types';
@@ -71,7 +71,7 @@ function getBMIInfo(bmi: number): BMIInfo {
 }
 
 export default function Profile() {
-  const { state, setProfile } = useApp();
+  const { state, setProfile, signOut } = useApp();
   const profile = state.profile;
 
   const [apiKey, setApiKey] = useState(profile?.geminiApiKey ?? '');
@@ -261,6 +261,17 @@ export default function Profile() {
             <Info size={12} className="mt-0.5 flex-shrink-0" /> No key — AI features disabled. Tracking still works.
           </div>
         )}
+      </div>
+
+      {/* Sign out */}
+      <div className="mx-5 mb-4">
+        <button
+          onClick={() => signOut()}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-border bg-white shadow-card text-sm font-semibold text-muted active:scale-95 transition-all"
+        >
+          <LogOut size={16} />
+          Se déconnecter
+        </button>
       </div>
 
       {/* How to get key */}
