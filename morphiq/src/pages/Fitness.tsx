@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus, Zap } from 'lucide-react';
+import { Dumbbell, Sparkles, Loader, CheckCircle, Play, Pause, SkipForward, X, Trophy, Trash2, Plus, Zap, Home, Droplets } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { generateStructuredProgram, getAdaptedSession } from '../utils/gemini';
 import { saveWorkout, generateId, getTodayKey, saveAiProgram, loadAiPrograms, deleteAiProgram } from '../utils/storage';
@@ -204,7 +204,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           {phase === 'rest' ? (
             <div className="flex flex-col items-center gap-4">
               <div className="w-28 h-28 rounded-3xl bg-white/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <span className="text-6xl">💧</span>
+                <Droplets size={52} strokeWidth={1} className="text-purple/60" />
               </div>
               <p className="text-purple/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
             </div>
@@ -620,7 +620,7 @@ export default function Fitness() {
               <>
                 {/* Equipment badge */}
                 <div className="mb-4 flex items-center gap-2 bg-white shadow-card rounded-2xl px-4 py-3">
-                  <span className="text-lg">{equipment === 'gym' ? '🏋️' : equipment === 'home' ? '🏠' : '⚡'}</span>
+                  {equipment === 'gym' ? <Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : equipment === 'home' ? <Home size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : <Zap size={18} strokeWidth={1.5} className="text-[#1C1C1E]" />}
                   <div>
                     <p className="text-text text-xs font-bold">{equipment === 'gym' ? 'Gym' : equipment === 'home' ? 'Home + Outdoor' : 'Gym + Home + Outdoor'}</p>
                     <p className="text-muted text-[10px]">Change in Profile → Training Setup</p>

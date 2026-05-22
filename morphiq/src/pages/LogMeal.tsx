@@ -1,16 +1,16 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader, X } from 'lucide-react';
+import { Camera, Plus, Trash2, ChevronLeft, ChevronRight, Sparkles, Clock, Dumbbell, Droplets, Lightbulb, AlertCircle, Loader, X, Coffee, Sun, Moon, Cookie, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { analyzeFoodPhoto, getSportTimingAdvice } from '../utils/gemini';
 import { saveMealEntry, generateId, getTodayKey } from '../utils/storage';
 import type { MealEntry, MealType, FoodItem, SportTimingAdvice } from '../types';
 
-const TYPES: { value: MealType; label: string; emoji: string }[] = [
-  { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
-  { value: 'lunch', label: 'Lunch', emoji: '☀️' },
-  { value: 'dinner', label: 'Dinner', emoji: '🌙' },
-  { value: 'snack', label: 'Snack', emoji: '🍎' },
+const TYPES = [
+  { value: 'breakfast' as MealType, label: 'Breakfast', icon: Coffee },
+  { value: 'lunch' as MealType, label: 'Lunch', icon: Sun },
+  { value: 'dinner' as MealType, label: 'Dinner', icon: Moon },
+  { value: 'snack' as MealType, label: 'Snack', icon: Cookie },
 ];
 
 export default function LogMeal() {
@@ -117,7 +117,7 @@ export default function LogMeal() {
           className="w-full flex items-center justify-between bg-card-orange rounded-3xl px-5 py-4 active:scale-95 transition-all shadow-card"
         >
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🗺️</span>
+            <MapPin size={20} strokeWidth={1.5} className="text-orange" />
             <div className="text-left">
               <p className="text-orange font-black text-sm">Mode Restaurant</p>
               <p className="text-orange/70 text-xs">Photographiez le menu · IA recommande</p>
@@ -149,7 +149,7 @@ export default function LogMeal() {
                   ? 'shadow-[0_8px_24px_rgba(0,0,0,0.13)]'
                   : 'shadow-sm border border-gray-100'
               }`}>
-                <span className="text-[26px] leading-none">{t.emoji}</span>
+                <t.icon size={26} strokeWidth={1.5} className="text-[#1C1C1E]" />
               </div>
               <span className={`text-[11px] font-semibold transition-colors ${mealType === t.value ? 'text-text' : 'text-muted'}`}>
                 {t.label}

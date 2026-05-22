@@ -4,7 +4,7 @@ import { calculateTargets, calculateTDEE } from '../utils/calculations';
 import { getLogForDate, getTodayKey, getLast7DaysLogs, loadChallenge, saveChallenge, clearChallenge, generateId } from '../utils/storage';
 import type { DailyLog, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenge } from '../utils/gemini';
-import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X } from 'lucide-react';
+import { Flame, TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed } from 'lucide-react';
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: string) => void }) {
@@ -77,9 +77,7 @@ function CalorieRing({ consumed, target }: { consumed: number; target: number })
 }
 
 
-const MEAL_EMOJI: Record<string, string> = {
-  breakfast: '🌅', lunch: '☀️', dinner: '🌙', snack: '🍎',
-};
+const MEAL_ICON = { breakfast: Coffee, lunch: Sun, dinner: Moon, snack: Cookie };
 
 // ── Weekly Challenge Card ─────────────────────────────────────────────────────
 function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }) {
@@ -301,7 +299,7 @@ export default function Dashboard() {
         </p>
         {log.meals.length === 0 ? (
           <div className="bg-white rounded-3xl shadow-card p-8 text-center">
-            <p className="text-4xl mb-3">🍽️</p>
+            <UtensilsCrossed size={40} strokeWidth={1} className="text-muted mx-auto mb-3" />
             <p className="text-dim font-bold text-sm mb-1">{isToday ? 'No meals yet' : 'No meals logged'}</p>
             <p className="text-muted text-xs">{isToday ? 'Tap + to log your first meal' : 'Nothing was logged this day'}</p>
           </div>
@@ -309,8 +307,8 @@ export default function Dashboard() {
           <div className="space-y-2.5">
             {log.meals.map((meal) => (
               <div key={meal.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">
-                  {MEAL_EMOJI[meal.mealType]}
+                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
+                  {(() => { const I = MEAL_ICON[meal.mealType] ?? Coffee; return <I size={18} strokeWidth={1.5} className="text-[#1C1C1E]" />; })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-dim font-bold text-sm truncate capitalize">{meal.description}</p>
@@ -333,7 +331,7 @@ export default function Dashboard() {
           <div className="space-y-2.5">
             {log.workouts.map(w => (
               <div key={w.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center text-xl flex-shrink-0">💪</div>
+                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-dim font-bold text-sm truncate">{w.name}</p>
                   <p className="text-muted text-xs mt-0.5">{w.durationMin} min · {w.exercises.length} exercises</p>

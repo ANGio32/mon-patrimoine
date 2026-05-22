@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getMealSuggestions, generateRecipeFromIngredients, generateRecipeFromSuggestion } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
@@ -510,12 +510,20 @@ const DETAILED_STEPS: Record<string, string[]> = {
 const SUGGESTION_COLORS = ['bg-card-orange', 'bg-card-mint', 'bg-card-blue', 'bg-card-yellow', 'bg-card-pink'];
 const SUGGESTION_TEXT = ['text-orange', 'text-green', 'text-blue', 'text-amber-700', 'text-pink-700'];
 
-const MEAL_TYPES: { value: MealType; label: string; emoji: string }[] = [
-  { value: 'breakfast', label: 'Breakfast', emoji: '🌅' },
-  { value: 'lunch', label: 'Lunch', emoji: '☀️' },
-  { value: 'dinner', label: 'Dinner', emoji: '🌙' },
-  { value: 'snack', label: 'Snack', emoji: '🍎' },
+const MEAL_TYPES = [
+  { value: 'breakfast' as MealType, label: 'Breakfast', icon: Coffee },
+  { value: 'lunch' as MealType, label: 'Lunch', icon: Sun },
+  { value: 'dinner' as MealType, label: 'Dinner', icon: Moon },
+  { value: 'snack' as MealType, label: 'Snack', icon: Cookie },
 ];
+
+function getRecipeIcon(name: string) {
+  const n = name.toLowerCase();
+  if (n.includes('smoothie') || n.includes('shake') || n.includes('jus')) return <Droplets size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
+  if (n.includes('salade') || n.includes('bowl') || n.includes('buddha') || n.includes('légume')) return <Leaf size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
+  if (n.includes('avoine') || n.includes('oat') || n.includes('overnight') || n.includes('chia') || n.includes('granola') || n.includes('muesli') || n.includes('pudding') || n.includes('waffle')) return <Wheat size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
+  return <ChefHat size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
+}
 
 // ── Generated Recipe Card ─────────────────────────────────────────────────────
 function GeneratedRecipeCard({ recipe, onClose }: { recipe: GeneratedRecipe; onClose: () => void }) {
@@ -718,18 +726,21 @@ export default function Nutrition() {
             <div className="px-5 mb-4">
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {[
-                  { id: 'favorites', label: '❤️ Favoris' },
-                  { id: 'all', label: 'Tout' },
-                  { id: 'breakfast', label: '🌅 Petit-dej' },
-                  { id: 'lunch', label: '☀️ Déjeuner' },
-                  { id: 'dinner', label: '🌙 Dîner' },
-                  { id: 'snack', label: '🍎 Collation' },
+                  { id: 'favorites', label: 'Favoris', icon: Heart },
+                  { id: 'all', label: 'Tout', icon: null },
+                  { id: 'breakfast', label: 'Petit-dej', icon: Coffee },
+                  { id: 'lunch', label: 'Déjeuner', icon: Sun },
+                  { id: 'dinner', label: 'Dîner', icon: Moon },
+                  { id: 'snack', label: 'Collation', icon: Cookie },
                 ].map(f => (
                   <button key={f.id} onClick={() => setFilter(f.id)}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl border-2 text-xs font-bold transition-all whitespace-nowrap ${
-                      filter === f.id ? 'border-purple bg-purple-bg text-purple' : 'border-border text-muted bg-white'
+                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                      filter === f.id ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white' : 'border-border text-muted bg-white'
                     }`}
-                  >{f.label}</button>
+                  >
+                    {f.icon && <f.icon size={11} strokeWidth={1.8} />}
+                    {f.label}
+                  </button>
                 ))}
               </div>
             </div>
@@ -764,7 +775,7 @@ export default function Nutrition() {
                   <div key={r.name} className="bg-white shadow-card rounded-3xl overflow-hidden">
                     <button onClick={() => setExpanded(isExpanded ? null : r.name)} className="w-full text-left p-5">
                       <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center text-3xl flex-shrink-0">{r.emoji}</div>
+                        <div className="w-14 h-14 rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">{getRecipeIcon(r.name)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <h3 className="text-text font-bold text-sm leading-tight">{r.name}</h3>
@@ -829,7 +840,7 @@ export default function Nutrition() {
 
                         {r.tips && (
                           <div className="mx-5 mb-3 bg-card-yellow rounded-2xl p-3">
-                            <p className="text-amber-800 text-xs leading-relaxed">💡 {r.tips}</p>
+                            <div className="flex items-start gap-1.5"><Lightbulb size={12} strokeWidth={1.5} className="text-amber-600 mt-0.5 flex-shrink-0" /><p className="text-amber-800 text-xs leading-relaxed">{r.tips}</p></div>
                           </div>
                         )}
 
@@ -899,8 +910,8 @@ export default function Nutrition() {
                     <div className="flex gap-2 mb-4 flex-wrap">
                       {MEAL_TYPES.map(t => (
                         <button key={t.value} onClick={() => setAiMealType(t.value)}
-                          className={`px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-purple bg-purple-bg text-purple' : 'border-border text-muted bg-white'}`}
-                        >{t.emoji} {t.label}</button>
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white' : 'border-border text-muted bg-white'}`}
+                        ><t.icon size={14} strokeWidth={1.5} />{t.label}</button>
                       ))}
                     </div>
                     <button onClick={getSuggestions} disabled={loading} className="btn-primary w-full mb-5 flex items-center justify-center gap-2 text-sm">
