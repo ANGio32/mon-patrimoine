@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, ShoppingCart, ChevronDown, ChevronUp,
-  Check, Copy, ExternalLink, RefreshCw, Package, Sparkles,
-  MapPin, Leaf, Star, Tag, X, Share2,
+  ArrowLeft, ShoppingCart, ChevronDown,
+  Check, Copy, ExternalLink, Package, Sparkles,
+  MapPin, Leaf, Star, Tag, Share2,
 } from 'lucide-react';
 import {
   STORES, buildGroceryCart, exportCartAsText, exportCartForNotes, matchIngredient, parseIngredient,
@@ -123,183 +123,77 @@ function OptimizationPills({
   );
 }
 
-function ProductBadges({ product }: { product: MatchedProduct }) {
-  return (
-    <div className="flex gap-1 flex-wrap">
-      {product.isOrganic && (
-        <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-semibold">
-          <Leaf size={9} /> Bio
-        </span>
-      )}
-      {product.isLocal && (
-        <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-semibold">
-          <MapPin size={9} /> Local
-        </span>
-      )}
-    </div>
-  );
-}
-
-// Bottom sheet for selecting a replacement product
-function ReplacementSheet({
+// Single ingredient row — inline store dropdown
+function IngredientRow({
   item,
   onSelect,
-  onClose,
 }: {
   item: GroceryLineItem;
   onSelect: (product: MatchedProduct) => void;
-  onClose: () => void;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-bg rounded-t-3xl max-h-[75vh] flex flex-col shadow-2xl">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-border" />
-        </div>
-        <div className="px-5 pb-3 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted">Choisir un produit pour</p>
-            <p className="text-sm font-bold text-text truncate max-w-[240px]">{item.ingredient.raw}</p>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-xl bg-section">
-            <X size={16} className="text-muted" />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto px-5 pb-6 flex flex-col gap-3">
-          {item.candidates.length === 0 && (
-            <p className="text-muted text-sm text-center py-8">Aucun produit trouvé dans les magasins sélectionnés.</p>
-          )}
-          {item.candidates.map(p => {
-            const isSelected = item.selected?.id === p.id;
-            const store = STORES[p.storeId];
-            return (
-              <button
-                key={p.id}
-                onClick={() => onSelect(p)}
-                className={`w-full text-left p-4 rounded-2xl border transition-all active:scale-[0.98] ${
-                  isSelected ? 'border-purple bg-purple-bg' : 'border-border bg-section'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-text leading-tight">{p.name}</p>
-                    <p className="text-xs text-muted mt-0.5">{p.brand} · {p.packageSize}</p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span
-                        className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                        style={{ backgroundColor: store.color }}
-                      >
-                        {store.name}
-                      </span>
-                      <ProductBadges product={p} />
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-base font-black text-text">{p.totalCost.toFixed(2)} $</p>
-                    <p className="text-[10px] text-muted">{p.packagesNeeded}× {p.price.toFixed(2)} $</p>
-                    {isSelected && <Check size={14} className="text-purple ml-auto mt-1" />}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Single ingredient row
-function IngredientRow({
-  item,
-  onTap,
-}: {
-  item: GroceryLineItem;
-  onTap: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
   const store = item.selected ? STORES[item.selected.storeId] : null;
 
-  return (
-    <div className="bg-section rounded-2xl border border-border overflow-hidden">
-      {/* Main row */}
-      <div className="flex items-center gap-3 px-4 py-3">
-        {/* Ingredient info */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text leading-tight truncate">
-            {item.ingredient.raw}
-          </p>
-          {item.selected ? (
-            <p className="text-xs text-muted mt-0.5 truncate">
-              {item.selected.name} · {item.selected.brand}
-            </p>
-          ) : (
-            <p className="text-xs text-red-400 mt-0.5">Non trouvé</p>
-          )}
-        </div>
+  const qtyDisplay = (() => {
+    const { qty, unit } = item.ingredient;
+    if (unit === 'unités' && qty === 1) return '';
+    if (unit === 'g' && qty >= 1000) return `${qty / 1000} kg`;
+    if (unit === 'ml' && qty >= 1000) return `${qty / 1000} L`;
+    return `${qty} ${unit}`;
+  })();
 
-        {/* Price + store badge */}
-        {item.selected && store ? (
-          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-            <p className="text-base font-black text-text">{item.selected.totalCost.toFixed(2)} $</p>
-            <div className="flex items-center gap-1.5">
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                style={{ backgroundColor: store.color }}
-              >
-                {store.name}
-              </span>
-              <button
-                onClick={onTap}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-border text-muted text-[10px] font-semibold active:scale-95"
-              >
-                <RefreshCw size={9} /> Changer
-              </button>
-            </div>
-          </div>
+  return (
+    <div className="flex items-center gap-3 py-3.5 border-b border-border last:border-0">
+      {/* Left: ingredient + current selection */}
+      <div className="flex-1 min-w-0">
+        {qtyDisplay && (
+          <p className="text-[11px] font-bold text-muted uppercase tracking-wide mb-0.5">{qtyDisplay}</p>
+        )}
+        <p className="text-sm font-black text-text capitalize leading-tight">
+          {item.ingredient.name || item.ingredient.raw}
+        </p>
+        {item.selected ? (
+          <p className="text-[11px] text-muted mt-0.5 leading-snug truncate">
+            <span
+              className="inline-block w-2 h-2 rounded-full mr-1 align-middle"
+              style={{ backgroundColor: store?.color }}
+            />
+            {store?.name} · {item.selected.name} · {item.selected.totalCost.toFixed(2)} $ · {(item.selected.pricePerUnit * 100).toFixed(2)} ¢/{item.selected.packageUnit}
+          </p>
         ) : (
-          <button
-            onClick={onTap}
-            className="px-3 py-1.5 rounded-xl bg-red-50 text-red-500 text-xs font-semibold active:scale-95 flex-shrink-0"
-          >
-            Trouver
-          </button>
+          <p className="text-[11px] text-red-400 mt-0.5">Non trouvé</p>
         )}
       </div>
 
-      {/* Expand details */}
-      {item.selected && (
-        <>
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="w-full flex items-center justify-center gap-1 py-1.5 border-t border-border text-[10px] text-muted"
-          >
-            {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-            {expanded ? 'Masquer' : 'Détails'}
-          </button>
-
-          {expanded && (
-            <div className="px-4 pb-3 pt-1 bg-bg/40 flex flex-col gap-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted">Format</span>
-                <span className="font-semibold text-text">{item.selected.packageSize}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted">Paquets nécessaires</span>
-                <span className="font-semibold text-text">{item.selected.packagesNeeded} × {item.selected.price.toFixed(2)} $</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted">Prix par unité</span>
-                <span className="font-semibold text-text">{(item.selected.pricePerUnit * 100).toFixed(2)} ¢/{item.selected.packageUnit === 'g' ? 'g' : item.selected.packageUnit === 'ml' ? 'ml' : 'unité'}</span>
-              </div>
-              <ProductBadges product={item.selected} />
-            </div>
-          )}
-        </>
-      )}
+      {/* Right: Remplacer dropdown */}
+      <div className="flex-shrink-0 text-right">
+        <p className="text-[10px] font-bold text-muted mb-1">Remplacer</p>
+        {item.candidates.length > 0 ? (
+          <div className="relative">
+            <select
+              className="appearance-none bg-white border border-border rounded-xl pl-3 pr-7 py-2 text-sm font-semibold text-text cursor-pointer min-w-[126px]"
+              value={item.selected?.id ?? ''}
+              onChange={e => {
+                const p = item.candidates.find(c => c.id === e.target.value);
+                if (p) onSelect(p);
+              }}
+            >
+              {item.selected && !item.candidates.find(c => c.id === item.selected!.id) && (
+                <option value={item.selected.id}>
+                  {STORES[item.selected.storeId].name} — {item.selected.totalCost.toFixed(2)} $
+                </option>
+              )}
+              {item.candidates.map(p => (
+                <option key={p.id} value={p.id}>
+                  {STORES[p.storeId].name} — {p.totalCost.toFixed(2)} $
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+          </div>
+        ) : (
+          <span className="text-[11px] text-muted italic">—</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -317,7 +211,6 @@ export default function SmartGrocery() {
   const [servings, setServings]     = useState(initialServings);
   const [stores, setStores]         = useState<StoreId[]>(ALL_STORES);
   const [mode, setMode]             = useState<OptimizationMode>('cheapest');
-  const [replacingItem, setReplacingItem] = useState<GroceryLineItem | null>(null);
   const [copied, setCopied]         = useState(false);
   const [shared, setShared]         = useState(false);
 
@@ -485,7 +378,7 @@ export default function SmartGrocery() {
             <IngredientRow
               key={i}
               item={item}
-              onTap={() => setReplacingItem(item)}
+              onSelect={product => setOverrides(o => ({ ...o, [item.ingredient.raw]: product }))}
             />
           ))}
         </div>
@@ -554,24 +447,6 @@ export default function SmartGrocery() {
         </p>
       </div>
 
-      {/* Replacement bottom sheet */}
-      {replacingItem && (
-        <ReplacementSheet
-          item={{
-            ...replacingItem,
-            candidates: matchIngredient(
-              parseIngredient(replacingItem.ingredient.raw),
-              ALL_STORES,
-              mode,
-            ),
-          }}
-          onSelect={product => {
-            setOverrides(o => ({ ...o, [replacingItem.ingredient.raw]: product }));
-            setReplacingItem(null);
-          }}
-          onClose={() => setReplacingItem(null)}
-        />
-      )}
     </div>
   );
 }
