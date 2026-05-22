@@ -6,15 +6,43 @@
   * {
     -webkit-tap-highlight-color: transparent;
     box-sizing: border-box;
+    /* Prevent text selection on tap (native feel) */
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Re-enable selection for inputs and text areas */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  html {
+    /* Prevent iOS font size boost on orientation change */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior: none;
   }
   html, body {
     background: #EBE5FF;
     overscroll-behavior: none;
+    /* Prevent elastic bounce on the root */
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   body {
     @apply text-text font-sans;
     -webkit-font-smoothing: antialiased;
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Prevent double-tap zoom on buttons/links — removes 300ms delay */
+  button, a, [role="button"] {
+    touch-action: manipulation;
   }
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
