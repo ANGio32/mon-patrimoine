@@ -101,35 +101,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Check existing session on mount
-    supabase.auth.getSession().then(async ({ data }) => {
-      const user = data.session?.user ?? null;
-      if (user) {
-        setCurrentUserId(user.id);
-        setUserId(user.id);
-        await syncFromSupabase(user.id, dispatch);
-      }
-      setAuthLoading(false);
-    });
+    // Fallback: never stay stuck on loading more than 5s
+    const fallback = setTimeout(() => setAuthLoading(false), 5000);
 
-    // Listen to sign-in / sign-out events
+    // onAuthStateChange fires INITIAL_SESSION first — handles both
+    // "already logged in" and "no session" cases reliably
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const user = session?.user ?? null;
-      setCurrentUserId(user?.id ?? null);
-      setUserId(user?.id ?? null);
 
-      if (event === 'SIGNED_IN' && user) {
+      if (event === 'INITIAL_SESSION') {
+        setCurrentUserId(user?.id ?? null);
+        setUserId(user?.id ?? null);
+        if (user) {
+          await syncFromSupabase(user.id, dispatch);
+        }
+        clearTimeout(fallback);
+        setAuthLoading(false);
+      } else if (event === 'SIGNED_IN' && user) {
+        setCurrentUserId(user.id);
+        setUserId(user.id);
         setAuthLoading(true);
         await syncFromSupabase(user.id, dispatch);
         setAuthLoading(false);
-      }
-
-      if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUserId(null);
+        setUserId(null);
         dispatch({ type: 'REFRESH_TODAY' });
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(fallback);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Minute tick to refresh today's log
