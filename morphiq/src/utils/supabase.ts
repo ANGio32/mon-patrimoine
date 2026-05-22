@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { UserProfile, DailyLog, AiProgram, WeeklyChallenge } from '../types';
 import type { Goal, ActivityLevel, Sex, Equipment } from '../types';
+import type { StoreProduct, StoreId } from './smartGrocery';
 
 const SUPABASE_URL = 'https://wjkdgggtmhnkstsgtbou.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_JXbzpyQvtPAzX4XBxxIerQ_eDUE9Vc8';
@@ -172,4 +173,49 @@ export async function upsertChallengeToDb(userId: string, challenge: WeeklyChall
 
 export async function removeChallengeFromDb(userId: string): Promise<void> {
   await supabase.from('weekly_challenges').delete().eq('user_id', userId);
+}
+
+// ── Grocery Product Catalog ───────────────────────────────────────────────────
+
+const CATALOG_CACHE_KEY = 'morphiq_grocery_catalog_v1';
+const CATALOG_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+interface CatalogCache {
+  ts: number;
+  products: StoreProduct[];
+}
+
+export async function fetchProductCatalog(): Promise<StoreProduct[] | null> {
+  try {
+    const raw = localStorage.getItem(CATALOG_CACHE_KEY);
+    if (raw) {
+      const cached: CatalogCache = JSON.parse(raw);
+      if (Date.now() - cached.ts < CATALOG_TTL_MS) return cached.products;
+    }
+  } catch { /* ignore */ }
+
+  try {
+    const { data, error } = await supabase.from('grocery_products').select('*');
+    if (error || !data || data.length === 0) return null;
+
+    const products: StoreProduct[] = data.map((row: Record<string, unknown>) => ({
+      id: row.id as string,
+      storeId: row.store_id as StoreId,
+      name: row.name as string,
+      brand: row.brand as string,
+      packageSize: row.package_size as string,
+      packageQty: Number(row.package_qty),
+      packageUnit: row.package_unit as string,
+      price: Number(row.price),
+      pricePerUnit: Number(row.price_per_unit),
+      isOrganic: Boolean(row.is_organic),
+      isLocal: Boolean(row.is_local),
+      tags: row.tags as string[],
+    }));
+
+    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), products }));
+    return products;
+  } catch {
+    return null;
+  }
 }

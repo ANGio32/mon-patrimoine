@@ -397,14 +397,16 @@ export function matchIngredient(
   ingredient: RecipeIngredient,
   preferredStores: StoreId[],
   mode: OptimizationMode,
+  externalCatalog?: StoreProduct[],
 ): MatchedProduct[] {
+  const activeCatalog = externalCatalog ?? catalog;
   // Find matching tags for this ingredient
   const catTags = KEYWORD_TO_TAG.find(([re]) => re.test(ingredient.raw));
   if (!catTags) return [];
 
   const matchTags = catTags[1];
 
-  const candidates = catalog.filter(p => {
+  const candidates = activeCatalog.filter(p => {
     if (preferredStores.length > 0 && !preferredStores.includes(p.storeId)) return false;
     return matchTags.some(t => p.tags.includes(t));
   });
@@ -431,10 +433,11 @@ export function buildGroceryCart(
   preferredStores: StoreId[],
   mode: OptimizationMode,
   servings: number,
+  externalCatalog?: StoreProduct[],
 ): GroceryCart {
   const items: GroceryLineItem[] = ingredients.map(raw => {
     const ingredient = parseIngredient(raw);
-    const candidates = matchIngredient(ingredient, preferredStores, mode);
+    const candidates = matchIngredient(ingredient, preferredStores, mode, externalCatalog);
     return { ingredient, candidates, selected: candidates[0] ?? null };
   });
 

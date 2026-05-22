@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ShoppingCart, ChevronDown,
@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import {
   STORES, buildGroceryCart, exportCartAsText, exportCartForNotes, matchIngredient, parseIngredient,
-  type StoreId, type OptimizationMode, type GroceryLineItem, type MatchedProduct,
+  type StoreId, type OptimizationMode, type GroceryLineItem, type MatchedProduct, type StoreProduct,
 } from '../utils/smartGrocery';
+import { fetchProductCatalog } from '../utils/supabase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -213,12 +214,17 @@ export default function SmartGrocery() {
   const [mode, setMode]             = useState<OptimizationMode>('cheapest');
   const [copied, setCopied]         = useState(false);
   const [shared, setShared]         = useState(false);
+  const [liveCatalog, setLiveCatalog] = useState<StoreProduct[] | null>(null);
+
+  useEffect(() => {
+    fetchProductCatalog().then(p => { if (p) setLiveCatalog(p); });
+  }, []);
 
   // Build cart
   const cart = useMemo(() => {
     if (!recipe) return null;
-    return buildGroceryCart(recipe.ingredients, stores, mode, servings);
-  }, [recipe, stores, mode, servings]);
+    return buildGroceryCart(recipe.ingredients, stores, mode, servings, liveCatalog ?? undefined);
+  }, [recipe, stores, mode, servings, liveCatalog]);
 
   // Allow overriding product selection
   const [overrides, setOverrides] = useState<Record<string, MatchedProduct>>({});
@@ -230,11 +236,12 @@ export default function SmartGrocery() {
       selected: overrides[item.ingredient.raw] ?? item.selected,
       candidates: item.candidates.length > 0 ? item.candidates : matchIngredient(
         parseIngredient(item.ingredient.raw),
-        ALL_STORES, // show all stores in replacement sheet
+        ALL_STORES,
         mode,
+        liveCatalog ?? undefined,
       ),
     }));
-  }, [cart, overrides, mode]);
+  }, [cart, overrides, mode, liveCatalog]);
 
   const totalCost = displayItems.reduce((s, i) => s + (i.selected?.totalCost ?? 0), 0);
   const costPerServing = servings > 0 ? totalCost / servings : totalCost;
