@@ -168,8 +168,8 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   if (done) {
     return (
       <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center px-8 text-center">
-        <div className="w-24 h-24 rounded-3xl bg-card-yellow flex items-center justify-center mb-6">
-          <Trophy size={48} className="text-amber-500" />
+        <div className="w-24 h-24 rounded-3xl bg-white shadow-sm border border-gray-100 flex items-center justify-center mb-6">
+          <Trophy size={48} className="text-text" />
         </div>
         <h2 className="text-3xl font-black text-text mb-2">Workout done! 🎉</h2>
         <p className="text-dim mb-2">{session.name}</p>

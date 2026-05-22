@@ -136,18 +136,25 @@ export default function LogMeal() {
       </div>
 
       {/* Meal type */}
-      <div className="px-5 mb-5">
-        <div className="flex gap-1.5">
+      <div className="px-5 mb-6">
+        <div className="flex gap-2">
           {TYPES.map(t => (
             <button
               key={t.value}
               onClick={() => setMealType(t.value)}
-              className={`flex-1 flex flex-col items-center py-3 rounded-2xl border-2 text-xs font-bold transition-all ${
-                mealType === t.value ? 'border-purple bg-purple-bg text-purple' : 'border-border text-muted bg-white'
-              }`}
+              className="flex-1 flex flex-col items-center gap-1.5 transition-all active:scale-95"
             >
-              <span className="text-xl mb-0.5">{t.emoji}</span>
-              {t.label}
+              <div className={`w-[60px] h-[60px] rounded-[18px] bg-white flex items-center justify-center transition-all duration-200 ${
+                mealType === t.value
+                  ? 'shadow-[0_8px_24px_rgba(0,0,0,0.13)]'
+                  : 'shadow-sm border border-gray-100'
+              }`}>
+                <span className="text-[26px] leading-none">{t.emoji}</span>
+              </div>
+              <span className={`text-[11px] font-semibold transition-colors ${mealType === t.value ? 'text-text' : 'text-muted'}`}>
+                {t.label}
+              </span>
+              <div className={`w-1 h-1 rounded-full bg-purple transition-opacity ${mealType === t.value ? 'opacity-100' : 'opacity-0'}`} />
             </button>
           ))}
         </div>
