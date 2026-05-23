@@ -673,108 +673,114 @@ export default function Nutrition() {
 
   return (
     <>
-      {/* ── Detail bottom sheet ──────────────────────────────────────────────── */}
+      {/* ── Detail full-page overlay ─────────────────────────────────────────── */}
       {detailRecipe && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          {/* Backdrop */}
-          <div
-            className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${sheetOpen ? 'opacity-100' : 'opacity-0'}`}
-            onClick={closeDetail}
-          />
-          {/* Sheet */}
-          <div
-            className={`relative bg-white rounded-t-[2.5rem] max-h-[92vh] overflow-y-auto transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-white z-10">
-              <div className="w-10 h-1 rounded-full bg-border" />
-            </div>
+        <div
+          className={`fixed inset-0 z-50 bg-bg overflow-y-auto transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        >
+          {/* Sticky header */}
+          <div className="sticky top-0 bg-bg/95 backdrop-blur-sm z-10 px-5 pt-12 pb-3 flex items-center gap-3">
+            <button
+              onClick={closeDetail}
+              className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+            >
+              <X size={16} className="text-text" />
+            </button>
+            <p className="text-text font-black text-lg truncate flex-1">{detailRecipe.name}</p>
+          </div>
 
-            {/* Header row */}
-            <div className="px-6 pt-3 pb-2 flex items-start justify-between gap-4 sticky top-7 bg-white z-10">
-              <div className="flex-1 min-w-0">
-                <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-1">Recette</p>
-                <h2 className="text-text font-black text-2xl leading-tight">{detailRecipe.name}</h2>
-              </div>
-              <button
-                onClick={closeDetail}
-                className="w-9 h-9 rounded-full bg-section border border-border flex items-center justify-center flex-shrink-0 mt-1"
-              >
-                <X size={16} className="text-text" />
-              </button>
-            </div>
-
-            {/* Macro chips */}
-            <div className="px-6 pt-1 pb-4 flex gap-2 flex-wrap">
-              {[`${detailRecipe.cal} kcal`, `P ${detailRecipe.protein}g`, `G ${detailRecipe.carbs}g`, `L ${detailRecipe.fat}g`].map(label => (
-                <span key={label} className="bg-section text-text text-sm font-semibold px-3.5 py-1.5 rounded-full">{label}</span>
-              ))}
-            </div>
-
-            {/* Ingredients */}
-            <div className="px-6 pb-4">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-text font-black text-lg">Ingrédients</p>
-                <div className="flex items-center gap-3 bg-purple-bg rounded-full px-4 py-2">
-                  <button onClick={() => setDetailServings(s => Math.max(1, s - 1))} className="text-purple font-black text-base leading-none">−</button>
-                  <span className="text-purple font-bold text-sm">{detailServings} portion{detailServings > 1 ? 's' : ''}</span>
-                  <button onClick={() => setDetailServings(s => Math.min(12, s + 1))} className="text-purple font-black text-base leading-none">+</button>
+          {/* Hero */}
+          {(() => {
+            const mealType = getRecipeMealType(detailRecipe.tags);
+            const colors = MEAL_COLORS[mealType] ?? MEAL_COLORS.lunch;
+            const badge = BADGE_COLOR[mealType] ?? BADGE_COLOR.lunch;
+            return (
+              <div className="mx-5 mb-4 rounded-3xl overflow-hidden relative h-44" style={{ backgroundColor: colors.accent }}>
+                <div className="absolute top-5 left-5">
+                  <span className="px-3 py-1.5 rounded-full text-white text-sm font-bold" style={{ backgroundColor: badge }}>
+                    {detailRecipe.cal} kcal
+                  </span>
+                  <p className="text-text/60 text-xs mt-2 font-medium">{detailRecipe.time} min · {detailRecipe.servings} portion{detailRecipe.servings > 1 ? 's' : ''}</p>
+                </div>
+                <div
+                  className="absolute right-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-white/60 flex items-center justify-center text-5xl"
+                  style={{ boxShadow: `0 4px 24px ${colors.food}66` }}
+                >
+                  {detailRecipe.emoji}
                 </div>
               </div>
-              <div>
-                {detailRecipe.ingredients.map((ing, i) => {
-                  const { qty, name } = parseIngLine(scaleIngredient(ing, scale(detailRecipe)));
-                  return (
-                    <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                      <p className="text-text font-semibold text-sm capitalize flex-1 min-w-0 pr-3">{name}</p>
-                      {qty && (
-                        <span className="bg-[#dbeafe] text-[#1e40af] text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0">{qty}</span>
-                      )}
-                    </div>
-                  );
-                })}
+            );
+          })()}
+
+          {/* Macro chips */}
+          <div className="px-5 mb-4 flex gap-2 flex-wrap">
+            {[`P ${detailRecipe.protein}g`, `G ${detailRecipe.carbs}g`, `L ${detailRecipe.fat}g`].map(label => (
+              <span key={label} className="bg-white shadow-card border border-border text-text text-sm font-semibold px-3.5 py-2 rounded-2xl">{label}</span>
+            ))}
+          </div>
+
+          {/* Ingredients */}
+          <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-text font-black text-base">Ingrédients</p>
+              <div className="flex items-center gap-3 bg-purple-bg rounded-full px-4 py-2">
+                <button onClick={() => setDetailServings(s => Math.max(1, s - 1))} className="text-purple font-black text-base leading-none">−</button>
+                <span className="text-purple font-bold text-sm">{detailServings} portion{detailServings > 1 ? 's' : ''}</span>
+                <button onClick={() => setDetailServings(s => Math.min(12, s + 1))} className="text-purple font-black text-base leading-none">+</button>
               </div>
             </div>
-
-            {/* Preparation */}
-            <div className="px-6 pb-4 border-t border-border pt-5">
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-text font-black text-lg">Préparation</p>
-                <span className="flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full">
-                  <Clock size={11} /> {detailRecipe.time} min
-                </span>
-              </div>
-              <ol className="space-y-5">
-                {(DETAILED_STEPS[detailRecipe.name] ?? detailRecipe.steps).map((step, si) => (
-                  <li key={si} className="flex gap-3">
-                    <span className="w-7 h-7 rounded-full bg-section text-text text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
-                    <p className="text-dim text-sm leading-relaxed flex-1">{step}</p>
-                  </li>
-                ))}
-              </ol>
+            <div>
+              {detailRecipe.ingredients.map((ing, i) => {
+                const { qty, name } = parseIngLine(scaleIngredient(ing, scale(detailRecipe)));
+                return (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                    <p className="text-text font-semibold text-sm capitalize flex-1 min-w-0 pr-3">{name}</p>
+                    {qty && (
+                      <span className="bg-[#dbeafe] text-[#1e40af] text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0">{qty}</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Tips */}
-            {detailRecipe.tips && (
-              <div className="mx-6 mb-4 bg-card-yellow rounded-2xl p-3 flex gap-2 items-start">
-                <Lightbulb size={14} strokeWidth={1.5} className="text-amber-700 flex-shrink-0 mt-0.5" />
-                <p className="text-amber-800 text-xs leading-relaxed">{detailRecipe.tips}</p>
-              </div>
-            )}
-
-            {/* CTA */}
-            <div className="px-6 pb-12 pt-2">
-              <button
-                onClick={() => {
-                  closeDetail();
-                  navigate('/smart-grocery', { state: { recipe: detailRecipe, servings: detailServings } });
-                }}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-text rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
-              >
-                <ShoppingCart size={16} /> Panier moins cher
-              </button>
+          {/* Preparation */}
+          <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-text font-black text-base">Préparation</p>
+              <span className="flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                <Clock size={11} /> {detailRecipe.time} min
+              </span>
             </div>
+            <ol className="space-y-5">
+              {(DETAILED_STEPS[detailRecipe.name] ?? detailRecipe.steps).map((step, si) => (
+                <li key={si} className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-section text-text text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
+                  <p className="text-dim text-sm leading-relaxed flex-1">{step}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Tips */}
+          {detailRecipe.tips && (
+            <div className="mx-5 mb-4 bg-card-yellow rounded-2xl p-3 flex gap-2 items-start">
+              <Lightbulb size={14} strokeWidth={1.5} className="text-amber-700 flex-shrink-0 mt-0.5" />
+              <p className="text-amber-800 text-xs leading-relaxed">{detailRecipe.tips}</p>
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className="mx-5 pb-12 pt-2">
+            <button
+              onClick={() => {
+                closeDetail();
+                navigate('/smart-grocery', { state: { recipe: detailRecipe, servings: detailServings } });
+              }}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-text rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
+            >
+              <ShoppingCart size={16} /> Panier moins cher
+            </button>
           </div>
         </div>
       )}
