@@ -9,7 +9,13 @@ const KEYS = {
   logs: 'morphiq_logs',
   aiPrograms: 'morphiq_ai_programs',
   challenge: 'morphiq_weekly_challenge',
+  weightLog: 'morphiq_weight_log',
 };
+
+export interface WeightEntry {
+  date: string; // YYYY-MM-DD
+  weight: number; // kg
+}
 
 // Module-level userId set by AppContext after auth
 let _userId: string | null = null;
@@ -108,6 +114,26 @@ export function saveChallenge(challenge: WeeklyChallenge): void {
 export function clearChallenge(): void {
   localStorage.removeItem(KEYS.challenge);
   if (_userId) removeChallengeFromDb(_userId).catch(console.error);
+}
+
+// ── Weight log ──────────────────────────────────────────────────────────────
+
+export function loadWeightLog(): WeightEntry[] {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.weightLog) ?? '[]') as WeightEntry[];
+  } catch {
+    return [];
+  }
+}
+
+/** Records today's weight (replacing any earlier entry for today) and returns the
+ *  updated, date-sorted log. */
+export function logWeight(kg: number): WeightEntry[] {
+  const today = getTodayKey();
+  const updated = [...loadWeightLog().filter(e => e.date !== today), { date: today, weight: kg }]
+    .sort((a, b) => a.date.localeCompare(b.date));
+  localStorage.setItem(KEYS.weightLog, JSON.stringify(updated));
+  return updated;
 }
 
 export function getLast7DaysLogs(): DailyLog[] {

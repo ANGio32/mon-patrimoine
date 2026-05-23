@@ -3,14 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Plus, X, Scale, Target, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets } from '../utils/calculations';
-import { getLast7DaysLogs } from '../utils/storage';
+import { getLast7DaysLogs, loadWeightLog, logWeight, type WeightEntry } from '../utils/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface WeightEntry {
-  date: string;
-  weight: number;
-}
 
 interface MeasurementEntry {
   date: string;
@@ -21,16 +16,7 @@ interface MeasurementEntry {
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
-const WEIGHT_KEY = 'morphiq_weight_log';
 const MEASURE_KEY = 'morphiq_measure_log';
-
-function loadWeightLog(): WeightEntry[] {
-  try { return JSON.parse(localStorage.getItem(WEIGHT_KEY) ?? '[]'); } catch { return []; }
-}
-
-function saveWeightLog(entries: WeightEntry[]) {
-  localStorage.setItem(WEIGHT_KEY, JSON.stringify(entries));
-}
 
 function loadMeasureLog(): MeasurementEntry[] {
   try { return JSON.parse(localStorage.getItem(MEASURE_KEY) ?? '[]'); } catch { return []; }
@@ -122,7 +108,7 @@ function CalStreak() {
 // ─── Progress page ────────────────────────────────────────────────────────────
 
 export default function Progress() {
-  const { state } = useApp();
+  const { state, setProfile } = useApp();
   const navigate = useNavigate();
   const { profile } = state;
 
@@ -145,11 +131,8 @@ export default function Progress() {
   function addWeight() {
     const w = parseFloat(newWeight);
     if (!w) return;
-    const entry: WeightEntry = { date: todayKey(), weight: w };
-    const updated = [...weights.filter(e => e.date !== todayKey()), entry]
-      .sort((a, b) => a.date.localeCompare(b.date));
-    setWeights(updated);
-    saveWeightLog(updated);
+    setWeights(logWeight(w));
+    if (profile) setProfile({ ...profile, weightKg: w });
     setNewWeight('');
     setShowWeightForm(false);
   }
