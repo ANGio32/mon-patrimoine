@@ -38,20 +38,20 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }} preserveAspectRatio="none">
       <defs>
         <linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+          <stop offset="0%" stopColor="#5A6B47" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#5A6B47" stopOpacity="0" />
         </linearGradient>
       </defs>
       <path d={area} fill="url(#weightFill)" />
-      <path d={line} fill="none" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={line} fill="none" stroke="#5A6B47" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => (
         <circle
           key={p.e.date}
           cx={p.x}
           cy={p.y}
           r={i === pts.length - 1 ? 4 : 2.5}
-          fill={i === pts.length - 1 ? '#7C3AED' : '#ffffff'}
-          stroke="#7C3AED"
+          fill={i === pts.length - 1 ? '#5A6B47' : '#ffffff'}
+          stroke="#5A6B47"
           strokeWidth="2"
         />
       ))}
@@ -86,11 +86,11 @@ function CalBarChart({ metric, target }: { metric: 'cal_in' | 'cal_out'; target:
         const pct = (val / maxVal) * 100;
         let color: string;
         if (metric === 'cal_in') {
-          if (val === 0) color = '#E5E2F0';
+          if (val === 0) color = '#E5DDCB';
           else if (val > target) color = d.isToday ? '#F97316' : '#F9731660';
-          else color = d.isToday ? '#7C3AED' : '#7C3AED40';
+          else color = d.isToday ? '#5A6B47' : '#5A6B4740';
         } else {
-          color = val === 0 ? '#E5E2F0' : d.isToday ? '#10B981' : '#10B98150';
+          color = val === 0 ? '#E5DDCB' : d.isToday ? '#4A6C82' : '#4A6C8250';
         }
         return (
           <div key={i} className="flex-1">
@@ -106,9 +106,9 @@ function CalBarChart({ metric, target }: { metric: 'cal_in' | 'cal_out'; target:
 }
 
 const CHART_METRICS: { id: 'weight' | 'cal_in' | 'cal_out'; label: string; activeBg: string }[] = [
-  { id: 'weight',  label: 'Poids',          activeBg: '#7C3AED' },
+  { id: 'weight',  label: 'Poids',          activeBg: '#5A6B47' },
   { id: 'cal_in',  label: 'Cal. mangées',   activeBg: '#F97316' },
-  { id: 'cal_out', label: 'Cal. brûlées',   activeBg: '#10B981' },
+  { id: 'cal_out', label: 'Cal. brûlées',   activeBg: '#4A6C82' },
 ];
 
 const EQUIPMENT_OPTIONS: { value: Equipment; label: string; icon: LucideIcon; desc: string }[] = [
@@ -356,7 +356,7 @@ export default function Profile() {
               onClick={() => setEquipment(opt.value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${p.equipment === opt.value ? 'border-purple bg-purple-bg' : 'border-border bg-section'}`}
             >
-              <opt.icon size={20} strokeWidth={1.5} className={p.equipment === opt.value ? 'text-purple' : 'text-[#1C1C1E]'} />
+              <opt.icon size={20} strokeWidth={1.5} className={p.equipment === opt.value ? 'text-purple' : 'text-[#3D4A2F]'} />
               <span className={`text-xs font-bold ${p.equipment === opt.value ? 'text-purple' : 'text-text'}`}>{opt.label}</span>
               <span className="text-[10px] text-muted leading-tight text-center">{opt.desc}</span>
             </button>

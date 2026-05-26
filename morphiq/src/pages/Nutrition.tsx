@@ -36,12 +36,12 @@ function removeSavedIdea(name: string) {
   localStorage.setItem(IDEAS_KEY, JSON.stringify(all));
 }
 
-// ── Meal color palette (FitPantry design) ─────────────────────────────────────
+// ── Meal color palette (Claude Design — earthy) ────────────────────────────────
 const MEAL_COLORS: Record<string, { accent: string; food: string }> = {
-  breakfast: { accent: '#ffe3d3', food: '#ffd166' },
-  lunch:     { accent: '#d7f7ea', food: '#f2a65a' },
-  dinner:    { accent: '#dbeafe', food: '#f77f73' },
-  snack:     { accent: '#eadcff', food: '#8c6ff7' },
+  breakfast: { accent: '#F4DBC2', food: '#E8A87C' },
+  lunch:     { accent: '#DCE3CE', food: '#8FA876' },
+  dinner:    { accent: '#C9D5DE', food: '#7B9CB5' },
+  snack:     { accent: '#E8D4C3', food: '#C4856D' },
 };
 
 function getRecipeMealType(tags: string[]): string {
@@ -54,10 +54,10 @@ function getRecipeMealType(tags: string[]): string {
 
 // ── Badge color per meal type ──────────────────────────────────────────────────
 const BADGE_COLOR: Record<string, string> = {
-  breakfast: '#F59E0B',
-  lunch:     '#10B981',
-  dinner:    '#3B82F6',
-  snack:     '#8B5CF6',
+  breakfast: '#C97539',
+  lunch:     '#5A6B47',
+  dinner:    '#4A6C82',
+  snack:     '#8B5A3C',
 };
 
 // ── Derived descriptive tags ───────────────────────────────────────────────────
@@ -966,7 +966,7 @@ export default function Nutrition() {
                     <div className="flex gap-2 mb-4 flex-wrap">
                       {MEAL_TYPES.map(t => (
                         <button key={t.value} onClick={() => setAiMealType(t.value)}
-                          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white' : 'border-border text-muted bg-white'}`}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-[#1C1C1E] bg-[#3D4A2F] text-white' : 'border-border text-muted bg-white'}`}
                         ><t.icon size={14} strokeWidth={1.5} />{t.label}</button>
                       ))}
                     </div>

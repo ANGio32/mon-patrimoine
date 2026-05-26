@@ -30,7 +30,7 @@ function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: s
             disabled={isFuture}
             onClick={() => onSelect(key)}
             className={`flex-1 flex flex-col items-center py-2.5 rounded-2xl transition-all active:scale-95 ${
-              isSelected && isToday ? 'bg-[#1C1C1E]'
+              isSelected && isToday ? 'bg-[#3D4A2F]'
               : isSelected ? 'bg-purple'
               : 'hover:bg-section'
             } ${isFuture ? 'opacity-30' : ''}`}
@@ -298,7 +298,7 @@ export default function Dashboard() {
             {log.meals.map((meal) => (
               <div key={meal.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
-                  {(() => { const I = MEAL_ICON[meal.mealType] ?? Coffee; return <I size={18} strokeWidth={1.5} className="text-[#1C1C1E]" />; })()}
+                  {(() => { const I = MEAL_ICON[meal.mealType] ?? Coffee; return <I size={18} strokeWidth={1.5} className="text-[#3D4A2F]" />; })()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-dim font-bold text-sm truncate capitalize">{meal.description}</p>
@@ -321,7 +321,7 @@ export default function Dashboard() {
           <div className="space-y-2.5">
             {log.workouts.map(w => (
               <div key={w.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /></div>
+                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Dumbbell size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-dim font-bold text-sm truncate">{w.name}</p>
                   <p className="text-muted text-xs mt-0.5">{w.durationMin} min · {w.exercises.length} exercices</p>

@@ -178,7 +178,7 @@ export default function LogMeal() {
                   ? 'shadow-[0_8px_24px_rgba(0,0,0,0.13)]'
                   : 'shadow-sm border border-gray-100'
               }`}>
-                <t.icon size={26} strokeWidth={1.5} className="text-[#1C1C1E]" />
+                <t.icon size={26} strokeWidth={1.5} className="text-[#3D4A2F]" />
               </div>
               <span className={`text-[11px] font-semibold transition-colors ${mealType === t.value ? 'text-text' : 'text-muted'}`}>
                 {t.label}

@@ -301,7 +301,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
             </button>
             <button
               onClick={skip}
-              className="w-16 h-16 rounded-full bg-[#1C1C1E] flex items-center justify-center shadow-xl"
+              className="w-16 h-16 rounded-full bg-[#3D4A2F] flex items-center justify-center shadow-xl"
             >
               <SkipForward size={24} className="text-white" />
             </button>
@@ -427,7 +427,7 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
           </div>
           <button
             onClick={onStart}
-            className="flex items-center gap-2 bg-[#1C1C1E] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-[#3D4A2F] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
           >
             <Play size={14} fill="white" /> Start
           </button>
@@ -582,17 +582,17 @@ export default function Fitness() {
         <div className="px-5 mb-5">
           <div className="flex bg-white shadow-card rounded-2xl p-1 gap-1">
             <button onClick={() => setTab('program')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'program' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'program' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Dumbbell size={14} /> Programme
             </button>
             <button onClick={() => setTab('ai')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Sparkles size={14} /> IA Coach
             </button>
             <button onClick={() => setTab('videos')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'videos' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'videos' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Video size={14} /> Mes vidéos
             </button>
@@ -652,7 +652,7 @@ export default function Fitness() {
               <>
                 {/* Equipment badge */}
                 <div className="mb-4 flex items-center gap-2 bg-white shadow-card rounded-2xl px-4 py-3">
-                  {equipment === 'gym' ? <Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : equipment === 'home' ? <Home size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : <Zap size={18} strokeWidth={1.5} className="text-[#1C1C1E]" />}
+                  {equipment === 'gym' ? <Dumbbell size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /> : equipment === 'home' ? <Home size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /> : <Zap size={18} strokeWidth={1.5} className="text-[#3D4A2F]" />}
                   <div>
                     <p className="text-text text-xs font-bold">{equipment === 'gym' ? 'Gym' : equipment === 'home' ? 'Home + Outdoor' : 'Gym + Home + Outdoor'}</p>
                     <p className="text-muted text-[10px]">Change in Profile → Training Setup</p>

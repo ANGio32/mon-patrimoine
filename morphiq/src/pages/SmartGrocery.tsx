@@ -441,7 +441,7 @@ export default function SmartGrocery() {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-[#1C1C1E] text-white text-sm font-bold active:scale-95 transition-all"
+            className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-[#3D4A2F] text-white text-sm font-bold active:scale-95 transition-all"
           >
             <Package size={15} />
             Exporter
