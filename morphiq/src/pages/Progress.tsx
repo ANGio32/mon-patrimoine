@@ -51,11 +51,11 @@ function BarChart({ entries }: { entries: WeightEntry[] }) {
         const isLast = i === recent.length - 1;
         return (
           <div key={e.date} className="flex-1 flex flex-col items-center gap-1">
-            <span className={`text-[9px] font-bold ${isLast ? 'text-purple' : 'text-muted'}`}>
+            <span className={`text-[9px] font-bold ${isLast ? 'text-[#5A6B47]' : 'text-muted'}`}>
               {e.weight}
             </span>
             <div
-              className={`w-full rounded-t-lg transition-all duration-500 ${isLast ? 'bg-purple' : 'bg-section'}`}
+              className={`w-full rounded-t-lg transition-all duration-500 ${isLast ? 'bg-[#5A6B47]' : 'bg-section'}`}
               style={{ height: `${Math.max(pct, 8)}%` }}
             />
             <span className="text-[8px] text-muted">
@@ -94,10 +94,13 @@ function CalStreak() {
         return (
           <div key={i} className="flex-1 flex flex-col items-center gap-1">
             <div
-              className={`w-full rounded-t-lg transition-all duration-500 ${isToday ? 'bg-purple' : d.cal > 0 ? 'bg-purple/30' : 'bg-section'}`}
-              style={{ height: `${Math.max(pct, 6)}%` }}
+              className={`w-full rounded-t-lg transition-all duration-500 ${!isToday && d.cal === 0 ? 'bg-section' : ''}`}
+              style={{
+                height: `${Math.max(pct, 6)}%`,
+                ...(isToday ? { backgroundColor: '#5A6B47' } : d.cal > 0 ? { backgroundColor: '#5A6B4740' } : {}),
+              }}
             />
-            <span className={`text-[9px] font-medium ${isToday ? 'text-purple' : 'text-muted'}`}>{d.day}</span>
+            <span className={`text-[9px] font-medium ${isToday ? 'text-[#5A6B47]' : 'text-muted'}`}>{d.day}</span>
           </div>
         );
       })}
@@ -157,25 +160,17 @@ export default function Progress() {
 
   return (
     <div className="page bg-bg">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center justify-between">
-        <div>
-          <p className="text-muted text-xs font-medium">Suivi</p>
-          <h1 className="text-2xl font-black text-text">Progrès</h1>
-        </div>
-        <button
-          onClick={() => navigate('/profile')}
-          className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <span className="text-sm font-black text-purple">{profile?.name.charAt(0).toUpperCase()}</span>
-        </button>
+      {/* Page header */}
+      <div style={{ padding: '12px 20px 4px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6B47', letterSpacing: 1.6 }}>STATISTIQUES</div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#1F1B14', letterSpacing: -0.6, marginTop: 4 }}>Progrès</div>
       </div>
 
       {/* Objective card */}
       {targets && (
         <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-card-purple flex items-center justify-center flex-shrink-0">
-            <Target size={22} strokeWidth={1.5} className="text-purple" />
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: '#DCE3CE' }}>
+            <Target size={22} strokeWidth={1.5} style={{ color: '#5A6B47' }} />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-text font-black text-sm">Objectif calorique</p>

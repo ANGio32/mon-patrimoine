@@ -5,7 +5,7 @@ import { calculateTargets, calculateTDEE } from '../utils/calculations';
 import { getLogForDate, getTodayKey, getLast7DaysLogs, loadChallenge, saveChallenge, clearChallenge, generateId } from '../utils/storage';
 import type { DailyLog, WeeklyChallenge } from '../types';
 import { generateWeeklyChallenge } from '../utils/gemini';
-import { TrendingDown, TrendingUp, Minus, Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed, Target } from 'lucide-react';
+import { Sparkles, Loader, Trophy, CheckCircle, X, Coffee, Sun, Moon, Cookie, Dumbbell, UtensilsCrossed, Target } from 'lucide-react';
 
 // ── Week strip ────────────────────────────────────────────────────────────────
 function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: string) => void }) {
@@ -49,9 +49,17 @@ function WeekStrip({ selected, onSelect }: { selected: string; onSelect: (key: s
   );
 }
 
+const MEAL_ICON: Record<string, React.ElementType> = { breakfast: Coffee, lunch: Sun, dinner: Moon, snack: Cookie };
 
-
-const MEAL_ICON = { breakfast: Coffee, lunch: Sun, dinner: Moon, snack: Cookie };
+const MEAL_THEME_COLORS: Record<string, { bg: string; badge: string }> = {
+  breakfast: { bg: '#F4DBC2', badge: '#C97539' },
+  lunch:     { bg: '#DCE3CE', badge: '#5A6B47' },
+  dinner:    { bg: '#C9D5DE', badge: '#4A6C82' },
+  snack:     { bg: '#E8D4C3', badge: '#8B5A3C' },
+};
+const MEAL_THEME_LABELS: Record<string, string> = {
+  breakfast: 'Matin', lunch: 'Midi', dinner: 'Soir', snack: 'Collation',
+};
 
 // ── Weekly Challenge Card ─────────────────────────────────────────────────────
 function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }) {
@@ -162,6 +170,60 @@ function WeeklyChallengeCard({ apiKey, goal }: { apiKey?: string; goal: string }
   );
 }
 
+// ── SVG Calorie Ring ──────────────────────────────────────────────────────────
+function CalorieRingSVG({ current, goal }: { current: number; goal: number }) {
+  const size = 180, stroke = 14;
+  const pct = Math.min(1, current / goal);
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = c * pct;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+      <svg width={size} height={size}>
+        <defs>
+          <linearGradient id="calring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#7E9061"/>
+            <stop offset="100%" stopColor="#5A6B47"/>
+          </linearGradient>
+        </defs>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#ECE6D9" strokeWidth={stroke}/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none"
+          stroke="url(#calring)" strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${c} ${c}`}
+          strokeDashoffset={c - dash}
+          transform={`rotate(-90 ${size/2} ${size/2})`}
+        />
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#8A8270', letterSpacing: 1.2 }}>CONSOMMÉ</div>
+        <div style={{ fontSize: 30, fontWeight: 900, color: '#1F1B14', lineHeight: 1.1, marginTop: 4 }}>{Math.round(current).toLocaleString()}</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#4A4234', marginTop: 2 }}>/ {goal.toLocaleString()} kcal</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Macro pill ────────────────────────────────────────────────────────────────
+function MacroPill({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{ flex:1, background:color, borderRadius:999, padding:'8px 10px', textAlign:'center', color:'#fff', fontWeight:800, fontSize:12, display:'flex', flexDirection:'column', gap:1 }}>
+      <div style={{ fontSize:10, opacity:0.85, fontWeight:600 }}>{label}</div>
+      <div style={{ fontSize:13, fontWeight:800 }}>{value}</div>
+    </div>
+  );
+}
+
+// ── Stat item ─────────────────────────────────────────────────────────────────
+function StatItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ textAlign:'center', flex:1 }}>
+      <div style={{ fontSize:13, fontWeight:800, color:'#1F1B14', lineHeight:1.1 }}>{value}</div>
+      <div style={{ fontSize:10, color:'#8A8270', fontWeight:600, marginTop:3 }}>{label}</div>
+    </div>
+  );
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { state } = useApp();
@@ -187,150 +249,145 @@ export default function Dashboard() {
   const isOver = deficit < -50;
   const isGood = Math.abs(deficit) <= 50;
 
+  const firstName = profile.name.split(' ')[0];
+
   const displayDate = isToday
-    ? new Date().toLocaleDateString('fr', { weekday: 'long', day: 'numeric', month: 'short' })
-    : new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr', { weekday: 'long', day: 'numeric', month: 'short' });
+    ? new Date().toLocaleDateString('fr', { weekday: 'short', day: 'numeric', month: 'short' })
+    : new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  // keep these in scope so TypeScript is happy (they were used in old render)
+  void isOver; void isGood; void deficit;
 
   return (
     <div className="page bg-bg">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/profile')}
-            className="w-11 h-11 rounded-2xl bg-card-purple flex items-center justify-center text-lg font-black text-purple flex-shrink-0 active:scale-90 transition-transform"
-          >
-            {profile.name.charAt(0).toUpperCase()}
-          </button>
+
+      {/* 1. HEADER — big greeting */}
+      <div style={{padding: '12px 20px 18px'}}>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
           <div>
-            <p className="text-muted text-xs font-medium capitalize">{displayDate}</p>
-            <h1 className="text-xl font-black text-text leading-tight">
-              {isToday ? `Bonjour, ${profile.name.split(' ')[0]} !` : new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr', { weekday: 'long' })}
-            </h1>
+            <div style={{fontSize:28, fontWeight:900, color:'#1F1B14', letterSpacing:-0.5, lineHeight:1.1}}>
+              Bonjour {firstName} <span style={{display:'inline-block', transform:'rotate(-8deg)'}}>👋</span>
+            </div>
+            <div style={{fontSize:13, color:'#4A4234', fontWeight:500, marginTop:4}}>
+              Prêt à crusher la journée ?
+            </div>
+          </div>
+          {/* Date chip — top right, white rounded card */}
+          <div style={{background:'#fff', borderRadius:14, padding:'8px 12px', fontSize:11, fontWeight:700, color:'#1F1B14', boxShadow:'0 2px 8px rgba(31,27,20,0.06)', textTransform:'capitalize'}}>
+            {displayDate}
           </div>
         </div>
       </div>
 
-      {/* Week strip — tappable */}
+      {/* 2. WEEK STRIP — white card */}
       <div className="mx-5 mb-4 bg-white rounded-3xl p-3 shadow-card">
         <WeekStrip selected={selectedDate} onSelect={setSelectedDate} />
       </div>
 
-      {/* Calorie hero card — white card + fp-ring */}
+      {/* 3. CALORIE RING CARD — SVG ring */}
       <div className="mx-5 mb-3 bg-white shadow-card rounded-[2rem] p-5">
-        <div className="flex items-center gap-4">
-          {/* fp-ring conic-gradient */}
-          <div
-            className="fp-ring"
-            style={{ '--progress': `${Math.min(consumed.cal / targets.calories, 1) * 100}%` } as React.CSSProperties}
-          >
-            <span>{Math.round(consumed.cal / targets.calories * 100)}%</span>
+        {/* Top row: label + % chip */}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4}}>
+          <div>
+            <div style={{fontSize:11, fontWeight:700, color:'#8A8270', letterSpacing:1.2}}>OBJECTIF DU JOUR</div>
+            <div style={{fontSize:16, fontWeight:800, color:'#1F1B14', marginTop:2}}>Calories</div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-muted text-xs font-medium mb-0.5">
-              {isToday ? 'Calories aujourd\'hui' : 'Calories ce jour'}
-            </p>
-            <p className="text-text font-black text-2xl leading-none">{Math.round(consumed.cal).toLocaleString()}</p>
-            <p className="text-muted text-xs mt-0.5">/ {targets.calories.toLocaleString()} kcal</p>
-            <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold mt-2 ${
-              isGood ? 'bg-card-mint text-green' : isOver ? 'bg-orange-bg text-orange' : 'bg-card-purple text-purple'
-            }`}>
-              {isGood ? <><Minus size={10} /> Objectif atteint</> : isOver ? <><TrendingUp size={10} /> +{Math.round(-deficit)} kcal</> : <><TrendingDown size={10} /> {Math.round(deficit)} restant</>}
-            </div>
-          </div>
+          {/* Green chip showing % */}
+          <span style={{background:'#DCE3CE', color:'#5A6B47', borderRadius:999, padding:'7px 11px', fontSize:12, fontWeight:800, display:'inline-flex', alignItems:'center', gap:4}}>
+            🔥 {Math.round((consumed.cal/targets.calories)*100)}%
+          </span>
+        </div>
+        {/* SVG Ring */}
+        <CalorieRingSVG current={consumed.cal} goal={targets.calories} />
+        {/* Macro pills row */}
+        <div style={{display:'flex', gap:8, marginTop:14}}>
+          <MacroPill label="Prot" value={`${Math.round(consumed.pro)}g`} color="#10B981"/>
+          <MacroPill label="Gluc" value={`${Math.round(consumed.carb)}g`} color="#3B82F6"/>
+          <MacroPill label="Lip"  value={`${Math.round(consumed.fat)}g`}  color="#F59E0B"/>
+        </div>
+        {/* Bottom stats row */}
+        <div style={{display:'flex', justifyContent:'space-between', marginTop:14, padding:'0 4px'}}>
+          <StatItem label="Restantes" value={`${Math.max(0, Math.round(targets.calories - consumed.cal)).toLocaleString()} kcal`}/>
+          <div style={{width:1, background:'#E5DDCB', alignSelf:'stretch'}}/>
+          <StatItem label="TDEE" value={`${tdee.toLocaleString()} kcal`}/>
+          <div style={{width:1, background:'#E5DDCB', alignSelf:'stretch'}}/>
+          <StatItem label="Repas" value={String(log.meals.length)}/>
         </div>
       </div>
 
-      {/* Macros card */}
-      <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl px-5 py-4">
-        <div className="space-y-2.5">
-          {[
-            { label: 'Protéines', val: consumed.pro, target: targets.protein, color: 'bg-purple' },
-            { label: 'Glucides', val: consumed.carb, target: targets.carbs, color: 'bg-blue-400' },
-            { label: 'Lipides', val: consumed.fat, target: targets.fat, color: 'bg-orange' },
-          ].map(m => (
-            <div key={m.label}>
-              <div className="flex justify-between mb-1">
-                <span className="text-dim text-xs font-semibold">{m.label}</span>
-                <span className="text-muted text-xs">{Math.round(m.val)}<span className="text-border"> / {Math.round(m.target)}g</span></span>
-              </div>
-              <div className="h-1.5 bg-section rounded-full overflow-hidden">
-                <div className={`h-full ${m.color} rounded-full transition-all duration-700`} style={{ width: `${Math.min(m.val / m.target, 1) * 100}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* 4. WEEKLY CHALLENGE — keep as-is */}
+      {isToday && <WeeklyChallengeCard apiKey={profile.geminiApiKey} goal={profile.goal} />}
 
-      {/* Stats grid */}
-      <div className="mx-5 grid grid-cols-3 gap-3 mb-4">
-        {[
-          { label: 'TDEE', value: tdee.toLocaleString(), unit: 'kcal', bg: 'bg-card-sky', color: 'text-blue' },
-          { label: 'Consommé', value: String(log.meals.length), unit: 'repas', bg: 'bg-card-yellow', color: 'text-amber-700' },
-          { label: 'Séances', value: String(log.workouts.length), unit: 'faites', bg: 'bg-card-mint', color: 'text-green' },
-        ].map(s => (
-          <div key={s.label} className={`${s.bg} rounded-3xl p-4 text-center`}>
-            <p className={`font-black text-xl leading-none ${s.color}`}>{s.value}</p>
-            <p className="text-text/50 text-[10px] mt-1 font-medium">{s.unit}</p>
-            <p className="text-text/35 text-[9px] font-bold uppercase tracking-wide mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Weekly Challenge */}
-      {isToday && (
-        <WeeklyChallengeCard apiKey={profile.geminiApiKey} goal={profile.goal} />
-      )}
-
-      {/* Meals for selected day */}
+      {/* 5. MEALS SECTION */}
       <div className="mx-5 mb-4">
-        <p className="text-text font-black text-base mb-3">
-          {isToday ? 'Repas du jour' : 'Repas'}
-        </p>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', margin:'20px 4px 12px'}}>
+          <div style={{fontSize:16, fontWeight:800, color:'#1F1B14'}}>{isToday ? "Repas d'aujourd'hui" : 'Repas'}</div>
+          <button onClick={() => navigate('/nutrition')} style={{background:'transparent', border:'none', color:'#5A6B47', fontSize:12, fontWeight:700, cursor:'pointer', padding:4}}>Voir tout</button>
+        </div>
         {log.meals.length === 0 ? (
-          <div className="bg-white rounded-3xl shadow-card p-8 text-center">
-            <UtensilsCrossed size={40} strokeWidth={1} className="text-muted mx-auto mb-3" />
-            <p className="text-dim font-bold text-sm mb-1">{isToday ? 'Aucun repas encore' : 'Aucun repas enregistré'}</p>
-            <p className="text-muted text-xs">{isToday ? 'Appuyez sur + pour ajouter' : 'Rien de logué ce jour'}</p>
+          <div style={{background:'#fff', borderRadius:24, boxShadow:'0 2px 16px rgba(31,27,20,0.07)', padding:'32px 20px', textAlign:'center'}}>
+            <UtensilsCrossed size={40} strokeWidth={1} style={{color:'#8A8270', margin:'0 auto 12px'}} />
+            <div style={{color:'#4A4234', fontWeight:700, fontSize:14, marginBottom:4}}>{isToday ? 'Aucun repas encore' : 'Aucun repas enregistré'}</div>
+            <div style={{color:'#8A8270', fontSize:12}}>{isToday ? 'Appuyez sur + pour ajouter' : 'Rien de logué ce jour'}</div>
           </div>
         ) : (
-          <div className="space-y-2.5">
-            {log.meals.map((meal) => (
-              <div key={meal.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
-                  {(() => { const I = MEAL_ICON[meal.mealType] ?? Coffee; return <I size={18} strokeWidth={1.5} className="text-[#3D4A2F]" />; })()}
+          <div style={{display:'flex', flexDirection:'column', gap:10}}>
+            {log.meals.map(meal => {
+              const mealThemeBg = MEAL_THEME_COLORS[meal.mealType]?.bg ?? '#ECE5D3';
+              const mealThemeBadge = MEAL_THEME_COLORS[meal.mealType]?.badge ?? '#5A6B47';
+              const mealThemeLabel = MEAL_THEME_LABELS[meal.mealType] ?? meal.mealType;
+              const MealIcon = MEAL_ICON[meal.mealType] ?? Coffee;
+              return (
+                <div key={meal.id} style={{background:'#fff', borderRadius:24, boxShadow:'0 2px 16px rgba(31,27,20,0.07)', padding:12, display:'flex', alignItems:'center', gap:12}}>
+                  {/* Colored theme icon square */}
+                  <div style={{width:48, height:48, borderRadius:16, background:mealThemeBg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                    <MealIcon size={22} strokeWidth={1.5} color="#1F1B14"/>
+                  </div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{display:'flex', gap:6, alignItems:'center', marginBottom:3}}>
+                      <span style={{background:mealThemeBadge, color:'#fff', borderRadius:999, padding:'3px 8px', fontSize:10, fontWeight:700}}>{mealThemeLabel}</span>
+                      <span style={{fontSize:11, color:'#8A8270', fontWeight:600}}>{meal.time}</span>
+                    </div>
+                    <div style={{fontSize:14, fontWeight:700, color:'#1F1B14', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{meal.description}</div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:16, fontWeight:800, color:'#1F1B14', lineHeight:1}}>{Math.round(meal.totalCalories)}</div>
+                    <div style={{fontSize:10, color:'#8A8270', fontWeight:600, marginTop:2}}>kcal</div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-dim font-bold text-sm truncate capitalize">{meal.description}</p>
-                  <p className="text-muted text-xs mt-0.5">{meal.time} · P {Math.round(meal.totalProtein)}g</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-text font-black">{Math.round(meal.totalCalories)}</p>
-                  <p className="text-muted text-xs">kcal</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+            {/* Add meal dashed button */}
+            <button onClick={() => navigate('/log')} style={{border:'1.5px dashed #BFB29A', background:'transparent', borderRadius:16, padding:'14px', display:'flex', alignItems:'center', justifyContent:'center', gap:8, color:'#5A6B47', fontWeight:700, fontSize:13, cursor:'pointer'}}>
+              + Ajouter un repas
+            </button>
           </div>
         )}
       </div>
 
-      {/* Workouts for selected day */}
+      {/* 6. WORKOUTS — if any */}
       {log.workouts.length > 0 && (
         <div className="mx-5 mb-4">
-          <p className="text-text font-black text-base mb-3">Entraînements</p>
-          <div className="space-y-2.5">
-            {log.workouts.map(w => (
-              <div key={w.id} className="bg-white rounded-3xl shadow-card p-4 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-[14px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0"><Dumbbell size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /></div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-dim font-bold text-sm truncate">{w.name}</p>
-                  <p className="text-muted text-xs mt-0.5">{w.durationMin} min · {w.exercises.length} exercices</p>
-                </div>
-              </div>
-            ))}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', margin:'4px 4px 12px'}}>
+            <div style={{fontSize:16, fontWeight:800, color:'#1F1B14'}}>Activité</div>
           </div>
+          {log.workouts.map(w => (
+            <div key={w.id} style={{background:'#fff', borderRadius:24, boxShadow:'0 2px 16px rgba(31,27,20,0.07)', padding:16, display:'flex', alignItems:'center', gap:14}}>
+              <div style={{width:56, height:56, borderRadius:18, background:'#1F1B14', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
+                <Dumbbell size={28} color="#7E9061"/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14, fontWeight:800, color:'#1F1B14'}}>{w.name} · {w.exercises.length} exos</div>
+                <div style={{fontSize:12, color:'#8A8270', fontWeight:600, marginTop:2}}>{w.durationMin} min estimées</div>
+              </div>
+              <button onClick={() => navigate('/fitness')} style={{background:'#5A6B47', border:'none', color:'#fff', width:40, height:40, borderRadius:12, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20}}>
+                ›
+              </button>
+            </div>
+          ))}
         </div>
       )}
+
     </div>
   );
 }

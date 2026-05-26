@@ -227,15 +227,22 @@ export default function Profile() {
 
   return (
     <div className="page bg-bg">
-      <div className="px-5 pt-14 pb-5">
-        <h1 className="text-3xl font-black text-text tracking-tight">Profile</h1>
+      <div style={{ padding: '12px 20px 4px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6B47', letterSpacing: 1.6 }}>MON COMPTE</div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#1F1B14', letterSpacing: -0.6, marginTop: 4 }}>Profil</div>
       </div>
 
       {/* Identity card */}
       <div className="mx-5 mb-4 bg-white shadow-card rounded-[2rem] p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-[1.25rem] bg-card-purple flex items-center justify-center text-2xl font-black text-purple">
-            {p.name.charAt(0).toUpperCase()}
+          <div style={{
+            width: 60, height: 60, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #7E9061, #5A6B47)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 26, fontWeight: 900,
+            boxShadow: '0 6px 18px rgba(90, 107, 71, 0.4)',
+          }}>
+            {profile.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
             <p className="text-text font-black text-xl">{p.name}</p>
@@ -281,18 +288,17 @@ export default function Profile() {
           <p className="text-text font-black text-sm">Évolution</p>
           <TrendingUp size={16} className="text-purple" />
         </div>
-        <div className="flex gap-1.5 mb-4">
-          {CHART_METRICS.map(m => (
-            <button
-              key={m.id}
-              onClick={() => setChartMetric(m.id)}
-              className="flex-1 py-2 rounded-xl text-[11px] font-bold transition-all"
-              style={chartMetric === m.id
-                ? { backgroundColor: m.activeBg, color: '#ffffff' }
-                : { backgroundColor: '#F4F2FA', color: '#9B97B8' }}
-            >
-              {m.label}
-            </button>
+        <div style={{ display: 'flex', gap: 6, marginTop: 12, background: '#ECE5D3', padding: 4, borderRadius: 12 }}>
+          {CHART_METRICS.map(t => (
+            <button key={t.id} onClick={() => setChartMetric(t.id)} style={{
+              flex: 1, border: 'none',
+              background: chartMetric === t.id ? '#fff' : 'transparent',
+              color: chartMetric === t.id ? '#1F1B14' : '#8A8270',
+              fontSize: 11, fontWeight: 800,
+              padding: '8px 4px', borderRadius: 9, cursor: 'pointer',
+              boxShadow: chartMetric === t.id ? '0 1px 3px rgba(31,27,20,0.08)' : 'none',
+              transition: 'all 160ms',
+            }}>{t.label}</button>
           ))}
         </div>
         {chartMetric === 'weight' && <WeightChart entries={weights} />}

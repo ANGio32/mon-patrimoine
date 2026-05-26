@@ -190,7 +190,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(160deg, #EDE9FE 0%, #DDD6FE 60%, #C4B5FD 100%)' }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(135deg, #5A6B47 0%, #3D4A2F 100%)' }}>
       {/* Hero: stick figure display */}
       <div className="relative flex-1 flex flex-col">
         {/* Top controls */}
@@ -206,7 +206,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
         {/* Overall progress bar */}
         <div className="mx-5 h-1 bg-white/30 rounded-full mb-4">
-          <div className="h-full bg-purple rounded-full transition-all duration-700" style={{ width: `${overallProgress * 100}%` }} />
+          <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${overallProgress * 100}%` }} />
         </div>
 
         {/* Figure / rest display — centered in remaining hero space */}
@@ -214,9 +214,9 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           {phase === 'rest' ? (
             <div className="flex flex-col items-center gap-4">
               <div className="w-28 h-28 rounded-3xl bg-white/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <Droplets size={52} strokeWidth={1} className="text-purple/60" />
+                <Droplets size={52} strokeWidth={1} className="text-white/60" />
               </div>
-              <p className="text-purple/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
+              <p className="text-white/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
             </div>
           ) : (
             <div className="w-full max-w-xs">
@@ -558,9 +558,13 @@ export default function Fitness() {
       )}
 
       <div className="page bg-bg">
-        <div className="px-5 pt-14 pb-4">
-          <h1 className="text-2xl font-black text-text tracking-tight">Fitness</h1>
-          <p className="text-dim text-sm mt-1">{program.tag} Program</p>
+        <div style={{ padding: '12px 20px 4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6B47', letterSpacing: 1.6 }}>PROGRAMME DU JOUR</div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: '#1F1B14', letterSpacing: -0.6, marginTop: 4 }}>Fitness</div>
+            </div>
+          </div>
         </div>
 
         {/* Done today */}
