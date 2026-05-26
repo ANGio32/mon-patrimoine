@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, TrendingUp, Coffee, Sun, Moon, Cookie, Leaf, Wheat, Droplets, Lightbulb } from 'lucide-react';
+import { Sparkles, Loader, Clock, Users, Heart, ChefHat, X, ShoppingCart, Coffee, Sun, Moon, Cookie, Lightbulb } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getMealSuggestions, generateRecipeFromIngredients, generateRecipeFromSuggestion } from '../utils/gemini';
 import type { GeneratedRecipe } from '../utils/gemini';
@@ -34,6 +34,58 @@ function addSavedIdea(idea: SavedIdea) {
 function removeSavedIdea(name: string) {
   const all = loadSavedIdeas().filter(i => i.name !== name);
   localStorage.setItem(IDEAS_KEY, JSON.stringify(all));
+}
+
+// ── Meal color palette (Claude Design — earthy) ────────────────────────────────
+const MEAL_COLORS: Record<string, { accent: string; food: string }> = {
+  breakfast: { accent: '#F4DBC2', food: '#E8A87C' },
+  lunch:     { accent: '#DCE3CE', food: '#8FA876' },
+  dinner:    { accent: '#C9D5DE', food: '#7B9CB5' },
+  snack:     { accent: '#E8D4C3', food: '#C4856D' },
+};
+
+function getRecipeMealType(tags: string[]): string {
+  if (tags.includes('breakfast')) return 'breakfast';
+  if (tags.includes('lunch')) return 'lunch';
+  if (tags.includes('dinner')) return 'dinner';
+  if (tags.includes('snack')) return 'snack';
+  return 'lunch';
+}
+
+// ── Badge color per meal type ──────────────────────────────────────────────────
+const BADGE_COLOR: Record<string, string> = {
+  breakfast: '#C97539',
+  lunch:     '#5A6B47',
+  dinner:    '#4A6C82',
+  snack:     '#8B5A3C',
+};
+
+// ── Derived descriptive tags ───────────────────────────────────────────────────
+function getDisplayTags(r: Recipe): string[] {
+  const tags: string[] = [];
+  if (r.protein >= 30) tags.push('protéines');
+  else if (r.protein >= 20) tags.push('protéiné');
+  if (r.time <= 10) tags.push('rapide');
+  if (r.costPerServing !== undefined && r.costPerServing <= 3) tags.push('budget');
+  if (r.tips?.toLowerCase().includes('meal prep')) tags.push('meal prep');
+  return tags.slice(0, 3);
+}
+
+// ── Ingredient line parser (splits "200g de Skyr" → qty:"200 g" name:"Skyr") ──
+function parseIngLine(raw: string): { name: string; qty: string } {
+  const m1 = raw.match(/^(\d+(?:[,.]\d+)?)\s*(g|kg|ml|L|cl)\s+(?:de\s+(?:la\s+|l['']\s*)?|d['']\s*|du\s+|des\s+)?(.+)/i);
+  if (m1) return { qty: `${m1[1]} ${m1[2]}`, name: m1[3].trim() };
+
+  const m2 = raw.match(/^(\d+(?:[,.]\d+)?)\s+(?:cuillères?\s+à\s+(soupe|café)|c\.à\.(s|c)\.?)\s+(?:de\s+(?:la\s+|l['']\s*)?|d['']\s*|du\s+|des\s+)?(.+)/i);
+  if (m2) return { qty: `${m2[1]} c. ${(m2[2] === 'soupe' || m2[3] === 's') ? 'soupe' : 'café'}`, name: m2[4].trim() };
+
+  const m3 = raw.match(/^(\d+(?:[,.]\d+)?)\s+(noix|noisette|pincées?|filet|poignée|boîte|gousses?|tranches?|portions?)\s+(?:de\s+(?:la\s+|l['']\s*)?|d['']\s*|du\s+|des\s+)?(.+)/i);
+  if (m3) return { qty: `${m3[1]} ${m3[2]}`, name: m3[3].trim() };
+
+  const m4 = raw.match(/^(\d+(?:[,.]\d+)?(?:\/\d+)?)\s+(.+)/);
+  if (m4) return { qty: m4[1], name: m4[2].trim() };
+
+  return { qty: '', name: raw.trim() };
 }
 
 // ── Ingredient scaler ─────────────────────────────────────────────────────────
@@ -432,14 +484,6 @@ const MEAL_TYPES = [
   { value: 'snack' as MealType, label: 'Snack', icon: Cookie },
 ];
 
-function getRecipeIcon(name: string) {
-  const n = name.toLowerCase();
-  if (n.includes('smoothie') || n.includes('shake') || n.includes('jus')) return <Droplets size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
-  if (n.includes('salade') || n.includes('bowl') || n.includes('buddha') || n.includes('légume')) return <Leaf size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
-  if (n.includes('avoine') || n.includes('oat') || n.includes('overnight') || n.includes('chia') || n.includes('granola') || n.includes('muesli') || n.includes('pudding') || n.includes('waffle')) return <Wheat size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
-  return <ChefHat size={28} strokeWidth={1.5} className="text-[#1C1C1E]" />;
-}
-
 // ── Generated Recipe Card ─────────────────────────────────────────────────────
 function GeneratedRecipeCard({ recipe, onClose }: { recipe: GeneratedRecipe; onClose: () => void }) {
   const [servings, setServings] = useState(recipe.servings);
@@ -530,10 +574,33 @@ export default function Nutrition() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'recipes' | 'ai'>('recipes');
   const [filter, setFilter] = useState<string>('all');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [servingsMap, setServingsMap] = useState<Record<string, number>>({});
   const [favs, setFavs] = useState<Set<string>>(() => loadFavs());
   const [savedIdeas, setSavedIdeas] = useState<SavedIdea[]>(() => loadSavedIdeas());
+
+  // Bottom sheet detail
+  const [detailRecipe, setDetailRecipe] = useState<Recipe | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailServings, setDetailServings] = useState(1);
+
+  function openDetail(r: Recipe) {
+    setDetailRecipe(r);
+    setDetailServings(r.servings);
+    requestAnimationFrame(() => setSheetOpen(true));
+  }
+
+  function closeDetail() {
+    setSheetOpen(false);
+    setTimeout(() => setDetailRecipe(null), 300);
+  }
+
+  useEffect(() => {
+    if (detailRecipe) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [detailRecipe]);
   // AI state
   const [aiMode, setAiMode] = useState<'suggestions' | 'from_ingredients'>('suggestions');
   const [aiMealType, setAiMealType] = useState<MealType>('lunch');
@@ -602,50 +669,166 @@ export default function Nutrition() {
     setSavedIdeas(loadSavedIdeas());
   }
 
+  const scale = (r: Recipe) => detailServings / r.servings;
+
   return (
     <>
+      {/* ── Detail full-page overlay ─────────────────────────────────────────── */}
+      {detailRecipe && (
+        <div
+          className={`fixed inset-0 z-50 bg-bg overflow-y-auto transition-transform duration-300 ease-out ${sheetOpen ? 'translate-y-0' : 'translate-y-full'}`}
+        >
+          {/* Sticky header */}
+          <div className="sticky top-0 bg-bg/95 backdrop-blur-sm z-10 px-5 pt-12 pb-3 flex items-center gap-3">
+            <button
+              onClick={closeDetail}
+              className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
+            >
+              <X size={16} className="text-text" />
+            </button>
+            <p className="text-text font-black text-lg truncate flex-1">{detailRecipe.name}</p>
+          </div>
+
+          {/* Hero */}
+          {(() => {
+            const mealType = getRecipeMealType(detailRecipe.tags);
+            const colors = MEAL_COLORS[mealType] ?? MEAL_COLORS.lunch;
+            const badge = BADGE_COLOR[mealType] ?? BADGE_COLOR.lunch;
+            return (
+              <div className="mx-5 mb-4 rounded-3xl overflow-hidden relative h-44" style={{ backgroundColor: colors.accent }}>
+                <div className="absolute top-5 left-5">
+                  <span className="px-3 py-1.5 rounded-full text-white text-sm font-bold" style={{ backgroundColor: badge }}>
+                    {detailRecipe.cal} kcal
+                  </span>
+                  <p className="text-text/60 text-xs mt-2 font-medium">{detailRecipe.time} min · {detailRecipe.servings} portion{detailRecipe.servings > 1 ? 's' : ''}</p>
+                </div>
+                <div
+                  className="absolute right-5 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-white/60 flex items-center justify-center text-5xl"
+                  style={{ boxShadow: `0 4px 24px ${colors.food}66` }}
+                >
+                  {detailRecipe.emoji}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Macro chips */}
+          <div className="px-5 mb-4 flex gap-2 flex-wrap">
+            {[`P ${detailRecipe.protein}g`, `G ${detailRecipe.carbs}g`, `L ${detailRecipe.fat}g`].map(label => (
+              <span key={label} className="bg-white shadow-card border border-border text-text text-sm font-semibold px-3.5 py-2 rounded-2xl">{label}</span>
+            ))}
+          </div>
+
+          {/* Ingredients */}
+          <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-text font-black text-base">Ingrédients</p>
+              <div className="flex items-center gap-3 bg-purple-bg rounded-full px-4 py-2">
+                <button onClick={() => setDetailServings(s => Math.max(1, s - 1))} className="text-purple font-black text-base leading-none">−</button>
+                <span className="text-purple font-bold text-sm">{detailServings} portion{detailServings > 1 ? 's' : ''}</span>
+                <button onClick={() => setDetailServings(s => Math.min(12, s + 1))} className="text-purple font-black text-base leading-none">+</button>
+              </div>
+            </div>
+            <div>
+              {detailRecipe.ingredients.map((ing, i) => {
+                const { qty, name } = parseIngLine(scaleIngredient(ing, scale(detailRecipe)));
+                return (
+                  <div key={i} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                    <p className="text-text font-semibold text-sm capitalize flex-1 min-w-0 pr-3">{name}</p>
+                    {qty && (
+                      <span className="bg-[#dbeafe] text-[#1e40af] text-xs font-bold px-3 py-1.5 rounded-full flex-shrink-0">{qty}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Preparation */}
+          <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-text font-black text-base">Préparation</p>
+              <span className="flex items-center gap-1.5 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                <Clock size={11} /> {detailRecipe.time} min
+              </span>
+            </div>
+            <ol className="space-y-5">
+              {(DETAILED_STEPS[detailRecipe.name] ?? detailRecipe.steps).map((step, si) => (
+                <li key={si} className="flex gap-3">
+                  <span className="w-7 h-7 rounded-full bg-section text-text text-xs font-black flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
+                  <p className="text-dim text-sm leading-relaxed flex-1">{step}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Tips */}
+          {detailRecipe.tips && (
+            <div className="mx-5 mb-4 bg-card-yellow rounded-2xl p-3 flex gap-2 items-start">
+              <Lightbulb size={14} strokeWidth={1.5} className="text-amber-700 flex-shrink-0 mt-0.5" />
+              <p className="text-amber-800 text-xs leading-relaxed">{detailRecipe.tips}</p>
+            </div>
+          )}
+
+          {/* CTA */}
+          <div className="mx-5 pb-12 pt-2">
+            <button
+              onClick={() => {
+                closeDetail();
+                navigate('/smart-grocery', { state: { recipe: detailRecipe, servings: detailServings } });
+              }}
+              className="w-full flex items-center justify-center gap-2 py-4 bg-text rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
+            >
+              <ShoppingCart size={16} /> Panier moins cher
+            </button>
+          </div>
+        </div>
+      )}
+
       {generatedRecipe && (
         <GeneratedRecipeCard recipe={generatedRecipe} onClose={() => setGeneratedRecipe(null)} />
       )}
-      <div className="page bg-bg">
-        <div className="px-5 pt-14 pb-4">
-          <h1 className="text-2xl font-black text-text tracking-tight">Nutrition</h1>
-          <p className="text-dim text-sm mt-1">
-            {remaining > 0 ? `${Math.round(remaining)} kcal restantes` : 'Objectif journalier atteint !'}
-          </p>
-        </div>
 
-        {/* Tabs */}
-        <div className="px-5 mb-5">
-          <div className="flex bg-white shadow-card rounded-2xl p-1 gap-1">
-            <button onClick={() => setTab('recipes')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${tab === 'recipes' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}>
-              Recettes
-            </button>
-            <button onClick={() => setTab('ai')} className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${tab === 'ai' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}>
-              <Sparkles size={14} /> AI Chef
+      <div className="page bg-bg">
+        {/* ── Header ──────────────────────────────────────────────────────────── */}
+        <div className="px-5 pt-14 pb-4 flex items-end justify-between">
+          <div>
+            <p className="text-muted text-[10px] font-bold uppercase tracking-widest mb-0.5">Recettes personnalisées</p>
+            <h1 className="text-3xl font-black text-text tracking-tight">Nutrition</h1>
+          </div>
+          <div className="flex items-center gap-2 pb-0.5">
+            <div className="px-3 py-1.5 bg-purple-bg rounded-full">
+              <span className="text-purple text-xs font-bold">{filtered.length}/{RECIPES.length}</span>
+            </div>
+            <button
+              onClick={() => setTab(tab === 'ai' ? 'recipes' : 'ai')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${tab === 'ai' ? 'bg-purple text-white' : 'bg-text text-white'}`}
+            >
+              <Sparkles size={13} /> AI Chef
             </button>
           </div>
         </div>
 
         {tab === 'recipes' && (
           <>
-            {/* Filter chips */}
-            <div className="px-5 mb-4">
-              <div className="flex gap-2 overflow-x-auto pb-1">
+            {/* Filter tabs */}
+            <div className="px-5 mb-5">
+              <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {[
-                  { id: 'favorites', label: 'Favoris', icon: Heart },
-                  { id: 'all', label: 'Tout', icon: null },
-                  { id: 'breakfast', label: 'Petit-dej', icon: Coffee },
-                  { id: 'lunch', label: 'Déjeuner', icon: Sun },
-                  { id: 'dinner', label: 'Dîner', icon: Moon },
-                  { id: 'snack', label: 'Collation', icon: Cookie },
+                  { id: 'all',       label: 'Toutes'    },
+                  { id: 'breakfast', label: 'Matin'     },
+                  { id: 'lunch',     label: 'Midi'      },
+                  { id: 'dinner',    label: 'Soir'      },
+                  { id: 'snack',     label: 'Collation' },
+                  { id: 'favorites', label: '♡ Favoris' },
                 ].map(f => (
-                  <button key={f.id} onClick={() => setFilter(f.id)}
-                    className={`flex-shrink-0 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                      filter === f.id ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white' : 'border-border text-muted bg-white'
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id)}
+                    className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                      filter === f.id ? 'bg-text text-white' : 'bg-white text-text border border-border'
                     }`}
                   >
-                    {f.icon && <f.icon size={11} strokeWidth={1.8} />}
                     {f.label}
                   </button>
                 ))}
@@ -670,114 +853,87 @@ export default function Nutrition() {
               </div>
             )}
 
-            <div className="px-5 space-y-3">
+            {/* Recipe cards */}
+            <div className="px-5 space-y-4 pb-8">
               {filtered.length === 0 && (
-                <div className="text-center py-10 text-muted text-sm">Aucune recette trouvée.</div>
+                <div className="text-center py-16 text-muted text-sm">Aucune recette trouvée.</div>
               )}
-              {filtered.map((r) => {
-                const isExpanded = expanded === r.name;
-                const servings = servingsMap[r.name] ?? r.servings;
-                const scale = servings / r.servings;
+              {filtered.map(r => {
+                const mealType = getRecipeMealType(r.tags);
+                const colors = MEAL_COLORS[mealType] ?? MEAL_COLORS.lunch;
+                const badge = BADGE_COLOR[mealType] ?? BADGE_COLOR.lunch;
+                const displayTags = getDisplayTags(r);
+
                 return (
                   <div key={r.name} className="bg-white shadow-card rounded-3xl overflow-hidden">
-                    <button onClick={() => setExpanded(isExpanded ? null : r.name)} className="w-full text-left p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">{getRecipeIcon(r.name)}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="text-text font-bold text-sm leading-tight">{r.name}</h3>
-                            <button
-                              onClick={e => { e.stopPropagation(); toggleFav(r.name); }}
-                              className="flex-shrink-0 w-7 h-7 flex items-center justify-center"
-                            >
-                              <Heart size={16} className={favs.has(r.name) ? 'fill-pink-500 text-pink-500' : 'text-muted'} />
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-muted">
-                            <span className="flex items-center gap-1"><Clock size={10} /> {r.time}min</span>
-                            <span className="flex items-center gap-1"><Users size={10} /> {servings} pers.</span>
-                          </div>
-                          <div className="flex gap-3 mt-1.5 text-xs">
-                            <span className="text-orange font-semibold">{Math.round(r.cal * scale)} kcal</span>
-                            <span className="text-green">P {Math.round(r.protein * scale)}g</span>
-                            <span className="text-blue">G {Math.round(r.carbs * scale)}g</span>
-                            <span className="text-dim">L {Math.round(r.fat * scale)}g</span>
-                          </div>
-                        </div>
+                    {/* Colored header */}
+                    <div
+                      className="relative h-36 overflow-hidden"
+                      style={{ backgroundColor: colors.accent }}
+                    >
+                      {/* Calorie badge */}
+                      <div className="absolute top-4 left-4">
+                        <span
+                          className="px-3 py-1.5 rounded-full text-white text-sm font-bold"
+                          style={{ backgroundColor: badge }}
+                        >
+                          {r.cal} kcal
+                        </span>
                       </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-border">
-                        {/* Serving adjuster */}
-                        <div className="px-5 py-3 flex items-center justify-between bg-section">
-                          <span className="text-text text-xs font-bold flex items-center gap-2"><Users size={13} /> Portions</span>
-                          <div className="flex items-center gap-3">
-                            <button onClick={() => setServingsMap(m => ({ ...m, [r.name]: Math.max(1, (m[r.name] ?? r.servings) - 1) }))} className="w-8 h-8 rounded-xl bg-white border border-border text-text font-bold text-lg flex items-center justify-center">−</button>
-                            <span className="text-text font-black w-5 text-center">{servings}</span>
-                            <button onClick={() => setServingsMap(m => ({ ...m, [r.name]: Math.min(12, (m[r.name] ?? r.servings) + 1) }))} className="w-8 h-8 rounded-xl bg-white border border-border text-text font-bold text-lg flex items-center justify-center">+</button>
-                          </div>
-                        </div>
-
-                        {/* Ingredients */}
-                        <div className="px-5 pt-4 pb-3">
-                          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Ingrédients</p>
-                          <ul className="space-y-1.5">
-                            {r.ingredients.map((ing, ii) => (
-                              <li key={ii} className="flex items-start gap-2 text-sm">
-                                <span className="text-purple mt-0.5 flex-shrink-0">·</span>
-                                <span className="text-dim">{scaleIngredient(ing, scale)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Steps */}
-                        <div className="px-5 pb-4 border-t border-border pt-4">
-                          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">Préparation</p>
-                          <ol className="space-y-3">
-                            {(DETAILED_STEPS[r.name] ?? r.steps).map((step, si) => (
-                              <li key={si} className="flex gap-3 text-sm">
-                                <span className="w-6 h-6 rounded-full bg-purple-bg text-purple text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{si + 1}</span>
-                                <span className="text-dim leading-relaxed">{step}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-
-                        {r.tips && (
-                          <div className="mx-5 mb-3 bg-card-yellow rounded-2xl p-3">
-                            <div className="flex items-start gap-1.5"><Lightbulb size={12} strokeWidth={1.5} className="text-amber-600 mt-0.5 flex-shrink-0" /><p className="text-amber-800 text-xs leading-relaxed">{r.tips}</p></div>
-                          </div>
-                        )}
-
-                        {/* ROI Nutritionnel + Smart Basket */}
-                        <div className="mx-5 mb-4 space-y-2.5">
-                          {r.costPerServing && (
-                            <div className="bg-section rounded-2xl p-3 flex items-center gap-3">
-                              <TrendingUp size={14} className="text-green flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-text text-xs font-bold">ROI Nutritionnel</p>
-                                <p className="text-muted text-[10px]">~{(r.costPerServing * scale).toFixed(2)} $ / portion · {Math.round(r.protein * scale / (r.costPerServing * scale))}g prot/$</p>
-                              </div>
-                              <div className={`px-2.5 py-1 rounded-xl text-[10px] font-bold ${
-                                r.protein / r.costPerServing >= 6 ? 'bg-card-mint text-green' :
-                                r.protein / r.costPerServing >= 4 ? 'bg-card-yellow text-amber-700' :
-                                'bg-card-orange text-orange'
-                              }`}>
-                                {r.protein / r.costPerServing >= 6 ? '⭐ Top valeur' : r.protein / r.costPerServing >= 4 ? '✓ Bon rapport' : 'Budget élevé'}
-                              </div>
-                            </div>
-                          )}
-                          <button
-                            onClick={() => navigate('/smart-grocery', { state: { recipe: r, servings } })}
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-[#1C1C1E] rounded-2xl text-white text-sm font-bold active:scale-95 transition-all"
-                          >
-                            <ShoppingCart size={16} /> Créer mon panier intelligent
-                          </button>
-                        </div>
+                      {/* Food emoji circle */}
+                      <div
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-white/60 flex items-center justify-center text-5xl shadow-sm"
+                        style={{ boxShadow: `0 4px 24px ${colors.food}66` }}
+                      >
+                        {r.emoji}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Content */}
+                    <div className="px-5 pt-4 pb-5">
+                      {/* Title + heart */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <h3 className="text-text font-black text-base leading-tight flex-1">{r.name}</h3>
+                        <button
+                          onClick={() => toggleFav(r.name)}
+                          className="w-8 h-8 flex items-center justify-center flex-shrink-0 -mt-0.5"
+                        >
+                          <Heart size={18} className={favs.has(r.name) ? 'fill-pink-500 text-pink-500' : 'text-muted'} />
+                        </button>
+                      </div>
+
+                      {/* Macro pills */}
+                      <div className="flex gap-1.5 flex-wrap mb-2.5">
+                        {[`P ${r.protein}g`, `G ${r.carbs}g`, `L ${r.fat}g`].map(m => (
+                          <span key={m} className="bg-section text-text text-xs font-semibold px-3 py-1 rounded-full">{m}</span>
+                        ))}
+                      </div>
+
+                      {/* Descriptive tags */}
+                      {displayTags.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap mb-4">
+                          {displayTags.map(t => (
+                            <span key={t} className="text-muted text-xs px-3 py-1 rounded-full bg-section">{t}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openDetail(r)}
+                          className="flex-1 py-3 rounded-2xl border-2 border-border bg-white text-text text-sm font-bold active:scale-95 transition-all"
+                        >
+                          Détails
+                        </button>
+                        <button
+                          onClick={() => navigate('/smart-grocery', { state: { recipe: r, servings: r.servings } })}
+                          className="flex-[2] py-3 rounded-2xl bg-text text-white text-sm font-bold active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <ShoppingCart size={14} /> Panier moins cher
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -795,18 +951,11 @@ export default function Nutrition() {
               </div>
             ) : (
               <>
-                {/* Mode selector */}
                 <div className="flex bg-section rounded-2xl p-1 gap-1 mb-5">
-                  <button
-                    onClick={() => setAiMode('suggestions')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${aiMode === 'suggestions' ? 'bg-white shadow-sm text-text' : 'text-muted'}`}
-                  >
+                  <button onClick={() => setAiMode('suggestions')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${aiMode === 'suggestions' ? 'bg-white shadow-sm text-text' : 'text-muted'}`}>
                     <Sparkles size={13} /> Idées repas
                   </button>
-                  <button
-                    onClick={() => setAiMode('from_ingredients')}
-                    className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${aiMode === 'from_ingredients' ? 'bg-white shadow-sm text-text' : 'text-muted'}`}
-                  >
+                  <button onClick={() => setAiMode('from_ingredients')} className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${aiMode === 'from_ingredients' ? 'bg-white shadow-sm text-text' : 'text-muted'}`}>
                     <ChefHat size={13} /> Ce que j'ai
                   </button>
                 </div>
@@ -817,15 +966,13 @@ export default function Nutrition() {
                     <div className="flex gap-2 mb-4 flex-wrap">
                       {MEAL_TYPES.map(t => (
                         <button key={t.value} onClick={() => setAiMealType(t.value)}
-                          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-[#1C1C1E] bg-[#1C1C1E] text-white' : 'border-border text-muted bg-white'}`}
+                          className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all flex items-center gap-1.5 ${aiMealType === t.value ? 'border-[#1C1C1E] bg-[#3D4A2F] text-white' : 'border-border text-muted bg-white'}`}
                         ><t.icon size={14} strokeWidth={1.5} />{t.label}</button>
                       ))}
                     </div>
                     <button onClick={getSuggestions} disabled={loading} className="btn-primary w-full mb-5 flex items-center justify-center gap-2 text-sm">
                       {loading ? <><Loader size={16} className="animate-spin" /> En train de réfléchir...</> : <><Sparkles size={16} /> Obtenir des suggestions</>}
                     </button>
-
-                    {/* Pretty suggestion cards */}
                     {aiResult.length > 0 && (
                       <div className="space-y-3">
                         {aiResult.map((s, i) => (
@@ -834,27 +981,15 @@ export default function Nutrition() {
                               <div className="flex-1 min-w-0">
                                 <p className={`font-black text-base ${SUGGESTION_TEXT[i % SUGGESTION_TEXT.length]}`}>{s.name}</p>
                                 <p className="text-text/70 text-xs mt-1 leading-relaxed">{s.description}</p>
-                                {s.calories && (
-                                  <span className="inline-block mt-2 bg-white/60 rounded-xl px-2.5 py-1 text-xs font-bold text-text">~{s.calories} kcal</span>
-                                )}
+                                {s.calories && <span className="inline-block mt-2 bg-white/60 rounded-xl px-2.5 py-1 text-xs font-bold text-text">~{s.calories} kcal</span>}
                               </div>
-                              <button
-                                onClick={() => saveIdea(s)}
-                                className="flex-shrink-0 w-9 h-9 rounded-2xl bg-white/60 flex items-center justify-center"
-                                title="Sauvegarder l'idée"
-                              >
+                              <button onClick={() => saveIdea(s)} className="flex-shrink-0 w-9 h-9 rounded-2xl bg-white/60 flex items-center justify-center">
                                 <Heart size={16} className={savedIdeas.find(id => id.name === s.name) ? 'fill-pink-500 text-pink-500' : 'text-text/50'} />
                               </button>
                             </div>
-                            <button
-                              onClick={() => openSuggestionRecipe(s)}
-                              disabled={loadingSuggestion === s.name}
-                              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/70 rounded-2xl text-sm font-bold text-text active:scale-95 transition-all"
-                            >
-                              {loadingSuggestion === s.name
-                                ? <><Loader size={14} className="animate-spin" /> Génération de la recette...</>
-                                : <><ChefHat size={14} /> Voir la recette complète</>
-                              }
+                            <button onClick={() => openSuggestionRecipe(s)} disabled={loadingSuggestion === s.name}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/70 rounded-2xl text-sm font-bold text-text active:scale-95 transition-all">
+                              {loadingSuggestion === s.name ? <><Loader size={14} className="animate-spin" /> Génération...</> : <><ChefHat size={14} /> Voir la recette complète</>}
                             </button>
                           </div>
                         ))}
@@ -866,21 +1001,14 @@ export default function Nutrition() {
                 {aiMode === 'from_ingredients' && (
                   <>
                     <p className="text-dim text-sm mb-4">Dites-moi ce que vous avez dans votre frigo et je vous crée une recette sur mesure !</p>
-                    <div className="mb-4">
-                      <p className="text-dim text-xs font-bold uppercase tracking-widest mb-2">Vos ingrédients disponibles</p>
-                      <textarea
-                        className="w-full bg-white shadow-card rounded-2xl px-4 py-3 text-text text-sm resize-none border border-border focus:outline-none focus:border-purple transition-colors"
-                        rows={4}
-                        placeholder={'ex: poulet, courgettes, tomates cerises, ail, huile d\'olive, citron\nou: riz, thon en conserve, œufs, persil'}
-                        value={ingredientsText}
-                        onChange={e => setIngredientsText(e.target.value)}
-                      />
-                    </div>
-                    <button
-                      onClick={generateFromIngredients}
-                      disabled={loading || !ingredientsText.trim()}
-                      className="btn-primary w-full flex items-center justify-center gap-2 text-sm"
-                    >
+                    <textarea
+                      className="w-full bg-white shadow-card rounded-2xl px-4 py-3 text-text text-sm resize-none border border-border focus:outline-none focus:border-purple transition-colors mb-4"
+                      rows={4}
+                      placeholder={"ex: poulet, courgettes, tomates cerises, ail\nou: riz, thon en conserve, œufs, persil"}
+                      value={ingredientsText}
+                      onChange={e => setIngredientsText(e.target.value)}
+                    />
+                    <button onClick={generateFromIngredients} disabled={loading || !ingredientsText.trim()} className="btn-primary w-full flex items-center justify-center gap-2 text-sm">
                       {loading ? <><Loader size={16} className="animate-spin" /> Création en cours...</> : <><ChefHat size={16} /> Créer ma recette</>}
                     </button>
                     <p className="text-muted text-xs text-center mt-3">La recette s'affichera en plein écran</p>

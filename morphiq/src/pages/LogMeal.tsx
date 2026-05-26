@@ -110,8 +110,45 @@ export default function LogMeal() {
 
   return (
     <div className="page bg-bg">
+      {/* Header */}
+      <div className="px-5 pt-14 pb-4 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center flex-shrink-0">
+          <ChevronLeft size={18} className="text-text" />
+        </button>
+        <h1 className="text-xl font-black text-text">Enregistrer un repas</h1>
+      </div>
+
+      {/* Gemini assist panel */}
+      <div className="px-5 mb-4">
+        {hasKey ? (
+          <div className="flex items-center gap-3 bg-white shadow-card rounded-3xl px-5 py-4">
+            <div className="w-10 h-10 rounded-2xl bg-card-purple flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} strokeWidth={1.5} className="text-purple" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-text font-black text-sm">Gemini AI actif</p>
+              <p className="text-muted text-xs mt-0.5">Analysez une photo pour identifier automatiquement les aliments</p>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/profile')}
+            className="w-full flex items-center gap-3 bg-orange-bg rounded-3xl px-5 py-4 active:scale-95 transition-all"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-orange/10 flex items-center justify-center flex-shrink-0">
+              <AlertCircle size={18} strokeWidth={1.5} className="text-orange" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-orange font-black text-sm">Gemini AI non configuré</p>
+              <p className="text-orange/70 text-xs mt-0.5">Appuyez pour ajouter votre clé API</p>
+            </div>
+            <ChevronRight size={16} className="text-orange/60" />
+          </button>
+        )}
+      </div>
+
       {/* Restaurant menu analyzer shortcut */}
-      <div className="px-5 pt-14 pb-2">
+      <div className="px-5 mb-4">
         <button
           onClick={() => navigate('/menu')}
           className="w-full flex items-center justify-between bg-card-orange rounded-3xl px-5 py-4 active:scale-95 transition-all shadow-card"
@@ -125,14 +162,6 @@ export default function LogMeal() {
           </div>
           <ChevronRight size={18} className="text-orange/70" />
         </button>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-4 pb-5">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white shadow-card border border-border flex items-center justify-center">
-          <ChevronLeft size={18} className="text-text" />
-        </button>
-        <h1 className="text-xl font-black text-text">Log Meal</h1>
       </div>
 
       {/* Meal type */}
@@ -149,7 +178,7 @@ export default function LogMeal() {
                   ? 'shadow-[0_8px_24px_rgba(0,0,0,0.13)]'
                   : 'shadow-sm border border-gray-100'
               }`}>
-                <t.icon size={26} strokeWidth={1.5} className="text-[#1C1C1E]" />
+                <t.icon size={26} strokeWidth={1.5} className="text-[#3D4A2F]" />
               </div>
               <span className={`text-[11px] font-semibold transition-colors ${mealType === t.value ? 'text-text' : 'text-muted'}`}>
                 {t.label}
@@ -188,8 +217,8 @@ export default function LogMeal() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2">
               <Camera size={24} className="text-muted" />
-              <p className="text-dim text-sm">Photo your meal</p>
-              <p className="text-muted text-xs">or upload from gallery</p>
+              <p className="text-dim text-sm">Photographiez votre repas</p>
+              <p className="text-muted text-xs">ou importez depuis la galerie</p>
             </div>
           )}
         </div>
@@ -197,14 +226,8 @@ export default function LogMeal() {
 
         {photo && hasKey && (
           <button onClick={analyze} disabled={analyzing} className="btn-primary w-full mt-3 flex items-center justify-center gap-2 text-sm">
-            {analyzing ? <><Loader size={16} className="animate-spin" /> Analyzing...</> : <><Sparkles size={16} /> Analyze with Gemini AI</>}
+            {analyzing ? <><Loader size={16} className="animate-spin" /> Analyse en cours...</> : <><Sparkles size={16} /> Analyser avec Gemini AI</>}
           </button>
-        )}
-        {photo && !hasKey && (
-          <div className="mt-3 flex items-center gap-2 text-orange text-xs bg-orange-bg px-4 py-3 rounded-2xl border border-border">
-            <AlertCircle size={14} className="flex-shrink-0" />
-            Add your Gemini API key in Profile to enable AI analysis
-          </div>
         )}
         {analyzeError && <p className="mt-2 text-red-400 text-xs text-center px-2">{analyzeError}</p>}
       </div>
@@ -212,7 +235,7 @@ export default function LogMeal() {
       {/* Items */}
       {items.length > 0 && (
         <div className="px-5 mb-5">
-          <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Detected items</p>
+          <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Aliments détectés</p>
           <div className="space-y-2 mb-3">
             {items.map((item, i) => (
               <div key={i} className="bg-white rounded-2xl border border-border shadow-card p-4 flex items-start gap-3">
@@ -251,7 +274,7 @@ export default function LogMeal() {
 
       {/* Add manually */}
       <div className="px-5 mb-5">
-        <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Add manually</p>
+        <p className="text-muted text-xs font-medium uppercase tracking-widest mb-3">Ajouter manuellement</p>
         <div className="bg-white rounded-2xl border border-border shadow-card p-4 space-y-2.5">
           <input className="input-field" placeholder="Food name" value={name} onChange={e => setName(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">

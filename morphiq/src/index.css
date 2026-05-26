@@ -22,7 +22,7 @@
     overscroll-behavior: none;
   }
   html, body {
-    background: #EBE5FF;
+    background: #F1ECE2;
     overscroll-behavior: none;
   }
   body {
@@ -68,3 +68,74 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ── FP conic-gradient ring ─────────────────────────────────────────────────── */
+.fp-ring {
+  display: grid;
+  width: 96px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(#5A6B47 var(--progress, 0%), #dce3ce 0);
+  flex-shrink: 0;
+}
+.fp-ring > span {
+  display: grid;
+  width: 70px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  font-weight: 950;
+  font-size: 0.9rem;
+  color: #1F1B14;
+}
+
+/* ── Mini-stage exercise stick figure ──────────────────────────────────────── */
+.mini-stage {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  flex-shrink: 0;
+  border-radius: 20px;
+  background: #ECE5D3;
+  overflow: hidden;
+}
+.mini-stage .stk-person {
+  position: absolute;
+  left: 34px;
+  top: 14px;
+  width: 20px;
+  height: 56px;
+}
+.mini-stage .stk-head,
+.mini-stage .stk-torso,
+.mini-stage .stk-arm,
+.mini-stage .stk-leg {
+  position: absolute;
+  background: #1C1C1E;
+  border-radius: 999px;
+}
+.mini-stage .stk-head  { left: 4px; width: 15px; height: 15px; border-radius: 50%; }
+.mini-stage .stk-torso { left: 9px; top: 16px; width: 6px; height: 25px; transform-origin: top center; }
+.mini-stage .stk-arm,
+.mini-stage .stk-leg   { width: 6px; height: 25px; transform-origin: top center; }
+.mini-stage .stk-arm.left  { top: 19px; left: 8px;  animation: stkPressLeft  1.4s infinite ease-in-out; }
+.mini-stage .stk-arm.right { top: 19px; left: 11px; animation: stkPressRight 1.4s infinite ease-in-out; }
+.mini-stage .stk-leg.left  { top: 39px; left: 9px;  transform: rotate(26deg); }
+.mini-stage .stk-leg.right { top: 39px; left: 10px; transform: rotate(-26deg); }
+
+.mini-stage.squat .stk-torso                            { animation: stkSquatTorso 1.5s infinite ease-in-out; }
+.mini-stage.squat .stk-leg.left,
+.mini-stage.squat .stk-leg.right                        { animation: stkSquatLeg  1.5s infinite ease-in-out; }
+.mini-stage.row   .stk-arm.left,
+.mini-stage.row   .stk-arm.right                        { animation: stkRowArm    1.2s infinite ease-in-out; }
+.mini-stage.plank .stk-person                           { transform: rotate(82deg) translate(10px, 10px); transform-origin: center; }
+.mini-stage.plank .stk-arm.left,
+.mini-stage.plank .stk-arm.right                        { animation: none; }
+
+@keyframes stkPressLeft  { 0%,100% { transform: rotate(120deg);  } 50% { transform: rotate(38deg);  } }
+@keyframes stkPressRight { 0%,100% { transform: rotate(-120deg); } 50% { transform: rotate(-38deg); } }
+@keyframes stkSquatTorso { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(12px) rotate(-8deg); } }
+@keyframes stkSquatLeg   { 0%,100% { height: 25px; }               50% { height: 17px; } }
+@keyframes stkRowArm     { 0%,100% { transform: rotate(72deg);   } 50% { transform: rotate(116deg); } }

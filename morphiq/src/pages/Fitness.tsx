@@ -16,6 +16,14 @@ function getExerciseCue(name: string): string {
   return 'Focus on controlled movement and proper form';
 }
 
+function getMotion(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('squat') || n.includes('lunge') || n.includes('leg press')) return 'squat';
+  if (n.includes('row') || n.includes('pull') || n.includes('lat')) return 'row';
+  if (n.includes('plank') || n.includes('hold') || n.includes('bridge')) return 'plank';
+  return '';
+}
+
 const GOAL_PROGRAMS = {
   lose_weight: {
     tag: 'Fat Burn',
@@ -182,7 +190,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(160deg, #EDE9FE 0%, #DDD6FE 60%, #C4B5FD 100%)' }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'linear-gradient(135deg, #5A6B47 0%, #3D4A2F 100%)' }}>
       {/* Hero: stick figure display */}
       <div className="relative flex-1 flex flex-col">
         {/* Top controls */}
@@ -198,7 +206,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
 
         {/* Overall progress bar */}
         <div className="mx-5 h-1 bg-white/30 rounded-full mb-4">
-          <div className="h-full bg-purple rounded-full transition-all duration-700" style={{ width: `${overallProgress * 100}%` }} />
+          <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${overallProgress * 100}%` }} />
         </div>
 
         {/* Figure / rest display — centered in remaining hero space */}
@@ -206,9 +214,9 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
           {phase === 'rest' ? (
             <div className="flex flex-col items-center gap-4">
               <div className="w-28 h-28 rounded-3xl bg-white/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <Droplets size={52} strokeWidth={1} className="text-purple/60" />
+                <Droplets size={52} strokeWidth={1} className="text-white/60" />
               </div>
-              <p className="text-purple/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
+              <p className="text-white/70 text-sm text-center font-medium">Respirez · Hydratez-vous</p>
             </div>
           ) : (
             <div className="w-full max-w-xs">
@@ -293,7 +301,7 @@ function WorkoutPlayer({ session, onDone, onClose }: PlayerProps) {
             </button>
             <button
               onClick={skip}
-              className="w-16 h-16 rounded-full bg-[#1C1C1E] flex items-center justify-center shadow-xl"
+              className="w-16 h-16 rounded-full bg-[#3D4A2F] flex items-center justify-center shadow-xl"
             >
               <SkipForward size={24} className="text-white" />
             </button>
@@ -419,7 +427,7 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
           </div>
           <button
             onClick={onStart}
-            className="flex items-center gap-2 bg-[#1C1C1E] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-[#3D4A2F] px-4 py-2 rounded-xl text-white text-sm font-bold active:scale-95 transition-all"
           >
             <Play size={14} fill="white" /> Start
           </button>
@@ -427,8 +435,15 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
         <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
           {session.exercises.map((ex, ei) => (
             <div key={ei} className="flex-shrink-0 flex flex-col items-center gap-1.5 w-20">
-              <div className="rounded-[18px] bg-white shadow-sm border border-gray-100 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                <StickFigure exercise={ex.name} size={60} showGround />
+              <div className={`mini-stage ${getMotion(ex.name)}`}>
+                <div className="stk-person">
+                  <div className="stk-head" />
+                  <div className="stk-torso" />
+                  <div className="stk-arm left" />
+                  <div className="stk-arm right" />
+                  <div className="stk-leg left" />
+                  <div className="stk-leg right" />
+                </div>
               </div>
               <p className="text-muted text-[9px] text-center leading-tight line-clamp-2 font-medium">{ex.name}</p>
             </div>
@@ -438,8 +453,15 @@ function SessionCard({ session, onStart }: { session: AiProgramSession; onStart:
       <div className="border-t border-border">
         {session.exercises.map((ex, ei) => (
           <div key={ei} className={`flex items-center gap-3 px-5 py-3 ${ei < session.exercises.length - 1 ? 'border-b border-border' : ''}`}>
-            <div className="w-8 h-8 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center flex-shrink-0">
-              <StickFigure exercise={ex.name} size={28} />
+            <div className={`mini-stage ${getMotion(ex.name)} w-8 h-8 rounded-xl`} style={{ width: 32, height: 32, borderRadius: 10, background: '#f3f0f9' }}>
+              <div className="stk-person" style={{ left: 8, top: 4, width: 10, height: 24 }}>
+                <div className="stk-head" style={{ left: 1, width: 8, height: 8 }} />
+                <div className="stk-torso" style={{ left: 3, top: 9, width: 3, height: 12 }} />
+                <div className="stk-arm left" style={{ top: 9, left: 2, width: 3, height: 11 }} />
+                <div className="stk-arm right" style={{ top: 9, left: 5, width: 3, height: 11 }} />
+                <div className="stk-leg left" style={{ top: 20, left: 3, width: 3, height: 11 }} />
+                <div className="stk-leg right" style={{ top: 20, left: 5, width: 3, height: 11 }} />
+              </div>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-text text-sm font-medium">{ex.name}</p>
@@ -536,9 +558,13 @@ export default function Fitness() {
       )}
 
       <div className="page bg-bg">
-        <div className="px-5 pt-14 pb-4">
-          <h1 className="text-2xl font-black text-text tracking-tight">Fitness</h1>
-          <p className="text-dim text-sm mt-1">{program.tag} Program</p>
+        <div style={{ padding: '12px 20px 4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6B47', letterSpacing: 1.6 }}>PROGRAMME DU JOUR</div>
+              <div style={{ fontSize: 32, fontWeight: 900, color: '#1F1B14', letterSpacing: -0.6, marginTop: 4 }}>Fitness</div>
+            </div>
+          </div>
         </div>
 
         {/* Done today */}
@@ -560,17 +586,17 @@ export default function Fitness() {
         <div className="px-5 mb-5">
           <div className="flex bg-white shadow-card rounded-2xl p-1 gap-1">
             <button onClick={() => setTab('program')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'program' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'program' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Dumbbell size={14} /> Programme
             </button>
             <button onClick={() => setTab('ai')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'ai' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Sparkles size={14} /> IA Coach
             </button>
             <button onClick={() => setTab('videos')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'videos' ? 'bg-[#1C1C1E] text-white' : 'text-muted'}`}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tab === 'videos' ? 'bg-[#3D4A2F] text-white' : 'text-muted'}`}
             >
               <Video size={14} /> Mes vidéos
             </button>
@@ -630,7 +656,7 @@ export default function Fitness() {
               <>
                 {/* Equipment badge */}
                 <div className="mb-4 flex items-center gap-2 bg-white shadow-card rounded-2xl px-4 py-3">
-                  {equipment === 'gym' ? <Dumbbell size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : equipment === 'home' ? <Home size={18} strokeWidth={1.5} className="text-[#1C1C1E]" /> : <Zap size={18} strokeWidth={1.5} className="text-[#1C1C1E]" />}
+                  {equipment === 'gym' ? <Dumbbell size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /> : equipment === 'home' ? <Home size={18} strokeWidth={1.5} className="text-[#3D4A2F]" /> : <Zap size={18} strokeWidth={1.5} className="text-[#3D4A2F]" />}
                   <div>
                     <p className="text-text text-xs font-bold">{equipment === 'gym' ? 'Gym' : equipment === 'home' ? 'Home + Outdoor' : 'Gym + Home + Outdoor'}</p>
                     <p className="text-muted text-[10px]">Change in Profile → Training Setup</p>

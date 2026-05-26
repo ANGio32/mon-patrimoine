@@ -99,7 +99,7 @@ export default function Onboarding() {
                     <p className="text-muted text-sm mt-0.5">{g.desc}</p>
                   </div>
                   {goal === g.value && (
-                    <div className="w-6 h-6 rounded-full bg-[#1C1C1E] flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-[#3D4A2F] flex items-center justify-center flex-shrink-0">
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L4 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </div>
                   )}

@@ -1,8 +1,115 @@
 import { useState } from 'react';
-import { Key, ChevronRight, Check, Info, Eye, EyeOff, LogOut, Droplets, Dumbbell, Home, Zap, Leaf, Heart, Activity, Shield, type LucideIcon } from 'lucide-react';
+import { Key, ChevronRight, Check, Info, Eye, EyeOff, LogOut, Droplets, Dumbbell, Home, Zap, Leaf, Heart, Activity, Shield, TrendingUp, type LucideIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateTargets, calculateTDEE, getBMI } from '../utils/calculations';
+import { loadWeightLog, logWeight, loadAllLogs, type WeightEntry } from '../utils/storage';
 import type { Goal, ActivityLevel, Equipment } from '../types';
+
+// ─── Weight evolution chart (SVG area + line) ─────────────────────────────────
+
+function WeightChart({ entries }: { entries: WeightEntry[] }) {
+  if (entries.length < 2) {
+    return (
+      <div className="flex items-center justify-center h-28 text-muted text-xs text-center px-4">
+        {entries.length === 0
+          ? 'Aucune pesée encore — ajoute ton poids ci-dessous pour démarrer ta courbe.'
+          : 'Ajoute une 2ᵉ pesée pour voir ta courbe d’évolution.'}
+      </div>
+    );
+  }
+
+  const recent = entries.slice(-14);
+  const vals = recent.map(e => e.weight);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const W = 300, H = 110, pad = 10;
+
+  const pts = recent.map((e, i) => ({
+    x: pad + (i / (recent.length - 1)) * (W - pad * 2),
+    y: pad + (1 - (e.weight - min) / range) * (H - pad * 2),
+    e,
+  }));
+
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const area = `${line} L ${pts[pts.length - 1].x.toFixed(1)} ${H - pad} L ${pts[0].x.toFixed(1)} ${H - pad} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 120 }} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5A6B47" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="#5A6B47" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill="url(#weightFill)" />
+      <path d={line} fill="none" stroke="#5A6B47" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => (
+        <circle
+          key={p.e.date}
+          cx={p.x}
+          cy={p.y}
+          r={i === pts.length - 1 ? 4 : 2.5}
+          fill={i === pts.length - 1 ? '#5A6B47' : '#ffffff'}
+          stroke="#5A6B47"
+          strokeWidth="2"
+        />
+      ))}
+    </svg>
+  );
+}
+
+// ─── Multi-metric bar chart (14 days) ─────────────────────────────────────────
+
+function CalBarChart({ metric, target }: { metric: 'cal_in' | 'cal_out'; target: number }) {
+  const allLogs = loadAllLogs();
+  const today = new Date();
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (13 - i));
+    const key = d.toISOString().slice(0, 10);
+    const log = allLogs[key];
+    return {
+      calIn: log ? log.meals.reduce((s, m) => s + m.totalCalories, 0) : 0,
+      calOut: log ? log.workouts.reduce((s, w) => s + (w.durationMin || 0), 0) : 0,
+      isToday: i === 13,
+    };
+  });
+
+  const vals = days.map(d => metric === 'cal_in' ? d.calIn : d.calOut);
+  const maxVal = Math.max(...vals, 1);
+
+  return (
+    <div className="flex items-end gap-1 h-24 px-1">
+      {days.map((d, i) => {
+        const val = metric === 'cal_in' ? d.calIn : d.calOut;
+        const pct = (val / maxVal) * 100;
+        let color: string;
+        if (metric === 'cal_in') {
+          if (val === 0) color = '#E5DDCB';
+          else if (val > target) color = d.isToday ? '#F97316' : '#F9731660';
+          else color = d.isToday ? '#5A6B47' : '#5A6B4740';
+        } else {
+          color = val === 0 ? '#E5DDCB' : d.isToday ? '#4A6C82' : '#4A6C8250';
+        }
+        return (
+          <div key={i} className="flex-1">
+            <div
+              className="w-full rounded-t-lg transition-all duration-500"
+              style={{ height: `${val > 0 ? Math.max(pct, 6) : 2}%`, backgroundColor: color }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CHART_METRICS: { id: 'weight' | 'cal_in' | 'cal_out'; label: string; activeBg: string }[] = [
+  { id: 'weight',  label: 'Poids',          activeBg: '#5A6B47' },
+  { id: 'cal_in',  label: 'Cal. mangées',   activeBg: '#F97316' },
+  { id: 'cal_out', label: 'Cal. brûlées',   activeBg: '#4A6C82' },
+];
 
 const EQUIPMENT_OPTIONS: { value: Equipment; label: string; icon: LucideIcon; desc: string }[] = [
   { value: 'home', label: 'Home', icon: Home, desc: 'Bodyweight + outdoor' },
@@ -82,6 +189,8 @@ export default function Profile() {
   const [waterReminder, setWaterReminder] = useState(
     localStorage.getItem('morphiq_water_reminder') !== 'false'
   );
+  const [weights, setWeights] = useState<WeightEntry[]>(() => loadWeightLog());
+  const [chartMetric, setChartMetric] = useState<'weight' | 'cal_in' | 'cal_out'>('weight');
 
   if (!profile) return null;
   const p = profile;
@@ -100,6 +209,7 @@ export default function Profile() {
   function saveWeight() {
     const kg = parseFloat(editWeight);
     if (isNaN(kg)) return;
+    setWeights(logWeight(kg));
     setProfile({ ...p, weightKg: kg });
     setSavedWeight(true);
     setTimeout(() => setSavedWeight(false), 2000);
@@ -117,15 +227,22 @@ export default function Profile() {
 
   return (
     <div className="page bg-bg">
-      <div className="px-5 pt-14 pb-5">
-        <h1 className="text-3xl font-black text-text tracking-tight">Profile</h1>
+      <div style={{ padding: '12px 20px 4px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#5A6B47', letterSpacing: 1.6 }}>MON COMPTE</div>
+        <div style={{ fontSize: 32, fontWeight: 900, color: '#1F1B14', letterSpacing: -0.6, marginTop: 4 }}>Profil</div>
       </div>
 
       {/* Identity card */}
       <div className="mx-5 mb-4 bg-white shadow-card rounded-[2rem] p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-[1.25rem] bg-card-purple flex items-center justify-center text-2xl font-black text-purple">
-            {p.name.charAt(0).toUpperCase()}
+          <div style={{
+            width: 60, height: 60, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #7E9061, #5A6B47)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 26, fontWeight: 900,
+            boxShadow: '0 6px 18px rgba(90, 107, 71, 0.4)',
+          }}>
+            {profile.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1">
             <p className="text-text font-black text-xl">{p.name}</p>
@@ -163,6 +280,43 @@ export default function Profile() {
             <p className="text-text/60 text-xs leading-relaxed">{bmiInfo.message}</p>
           </div>
         </div>
+      </div>
+
+      {/* Evolution chart */}
+      <div className="mx-5 mb-4 bg-white shadow-card rounded-3xl p-5">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-text font-black text-sm">Évolution</p>
+          <TrendingUp size={16} className="text-purple" />
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 12, background: '#ECE5D3', padding: 4, borderRadius: 12 }}>
+          {CHART_METRICS.map(t => (
+            <button key={t.id} onClick={() => setChartMetric(t.id)} style={{
+              flex: 1, border: 'none',
+              background: chartMetric === t.id ? '#fff' : 'transparent',
+              color: chartMetric === t.id ? '#1F1B14' : '#8A8270',
+              fontSize: 11, fontWeight: 800,
+              padding: '8px 4px', borderRadius: 9, cursor: 'pointer',
+              boxShadow: chartMetric === t.id ? '0 1px 3px rgba(31,27,20,0.08)' : 'none',
+              transition: 'all 160ms',
+            }}>{t.label}</button>
+          ))}
+        </div>
+        {chartMetric === 'weight' && <WeightChart entries={weights} />}
+        {chartMetric === 'cal_in' && (
+          <>
+            <CalBarChart metric="cal_in" target={targets.calories} />
+            <p className="text-muted text-[10px] text-center mt-2">
+              Quota : {targets.calories} kcal/j —{' '}
+              <span style={{ color: '#F97316' }} className="font-semibold">orange = dépassé</span>
+            </p>
+          </>
+        )}
+        {chartMetric === 'cal_out' && (
+          <>
+            <CalBarChart metric="cal_out" target={0} />
+            <p className="text-muted text-[10px] text-center mt-2">Minutes d'activité par jour (14 derniers jours)</p>
+          </>
+        )}
       </div>
 
       {/* Macro targets */}
@@ -208,7 +362,7 @@ export default function Profile() {
               onClick={() => setEquipment(opt.value)}
               className={`flex flex-col items-center gap-1 py-3 rounded-2xl border-2 transition-all ${p.equipment === opt.value ? 'border-purple bg-purple-bg' : 'border-border bg-section'}`}
             >
-              <opt.icon size={20} strokeWidth={1.5} className={p.equipment === opt.value ? 'text-purple' : 'text-[#1C1C1E]'} />
+              <opt.icon size={20} strokeWidth={1.5} className={p.equipment === opt.value ? 'text-purple' : 'text-[#3D4A2F]'} />
               <span className={`text-xs font-bold ${p.equipment === opt.value ? 'text-purple' : 'text-text'}`}>{opt.label}</span>
               <span className="text-[10px] text-muted leading-tight text-center">{opt.desc}</span>
             </button>

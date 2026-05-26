@@ -50,7 +50,7 @@ export default function Auth() {
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6">
       {/* Logo */}
       <div className="flex flex-col items-center mb-10">
-        <div className="w-[72px] h-[72px] rounded-[22px] bg-[#1C1C1E] flex items-center justify-center shadow-lg mb-4">
+        <div className="w-[72px] h-[72px] rounded-[22px] bg-[#3D4A2F] flex items-center justify-center shadow-lg mb-4">
           <Zap size={36} className="text-white" strokeWidth={2.5} />
         </div>
         <h1 className="text-3xl font-black text-text tracking-tight">Morphiq</h1>

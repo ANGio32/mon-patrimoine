@@ -12,6 +12,7 @@ import Fitness from './pages/Fitness';
 import Profile from './pages/Profile';
 import MenuAnalyzer from './pages/MenuAnalyzer';
 import SmartGrocery from './pages/SmartGrocery';
+import Progress from './pages/Progress';
 
 export default function App() {
   const { state, userId, authLoading } = useApp();
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/menu" element={<MenuAnalyzer />} />
         <Route path="/smart-grocery" element={<SmartGrocery />} />
+        <Route path="/progress" element={<Progress />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <NavBar />
